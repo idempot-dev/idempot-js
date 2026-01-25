@@ -81,3 +81,56 @@ test("RedisIdempotencyStore - cleanup is no-op", async (t) => {
   const result = await store.lookup("test-key", "test-fp");
   t.ok(result.byKey, "record should still exist after cleanup");
 });
+
+test("RedisIdempotencyStore - complete throws on missing key", async (t) => {
+  const redis = new RedisMock();
+  const store = new RedisIdempotencyStore({ client: redis });
+
+  try {
+    await store.complete("nonexistent", {
+      status: 200,
+      headers: {},
+      body: "test",
+    });
+    t.fail("should have thrown");
+  } catch (err: unknown) {
+    const error = err as Error;
+    t.match(error.message, /No record found/, "should throw error for missing key");
+  }
+});
+
+test("RedisIdempotencyStore - lookup with different key and fingerprint", async (t) => {
+  const redis = new RedisMock();
+  const store = new RedisIdempotencyStore({ client: redis });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  const result = await store.lookup("key-2", "fp-1");
+
+  t.equal(result.byKey, null, "should not find by different key");
+  t.ok(result.byFingerprint, "should find by matching fingerprint");
+  t.equal(result.byFingerprint?.key, "key-1", "fingerprint should point to key-1");
+});
+
+test("RedisIdempotencyStore - handles pipeline errors gracefully", async (t) => {
+  const redis = new RedisMock();
+  const store = new RedisIdempotencyStore({ client: redis });
+
+  // Mock pipeline.exec() to throw error on closed connection
+  const originalPipeline = redis.pipeline.bind(redis);
+  redis.pipeline = function() {
+    const pipeline = originalPipeline();
+    const originalExec = pipeline.exec.bind(pipeline);
+    pipeline.exec = async function() {
+      throw new Error("Connection is closed");
+    };
+    return pipeline;
+  };
+
+  try {
+    await store.lookup("test", "test");
+    t.fail("should have thrown");
+  } catch (err) {
+    t.ok(err, "should throw error on connection failure");
+  }
+});
