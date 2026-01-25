@@ -1,18 +1,15 @@
-import { serve } from "@hono/node-server";
-import { Hono } from "hono";
+// Main middleware
+export { idempotency } from "./middleware.js";
 
-const app = new Hono();
+// Types
+export type {
+  IdempotencyRecord,
+  IdempotencyOptions,
+  IdempotencyStore
+} from "./types.js";
 
-app.get("/", (c) => {
-  return c.text("Hello Hono!");
-});
+// Store implementations
+export { MemoryIdempotencyStore } from "./store/memory.js";
 
-serve(
-  {
-    fetch: app.fetch,
-    port: 3000
-  },
-  (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
-  }
-);
+// Utilities
+export { generateFingerprint } from "./fingerprint.js";
