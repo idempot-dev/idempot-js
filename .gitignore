@@ -35,3 +35,4 @@ dist/
 
 # worktrees
 .worktrees/
+data/
