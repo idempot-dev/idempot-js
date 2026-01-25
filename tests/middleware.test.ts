@@ -206,3 +206,30 @@ test("middleware - detects same key with different payload", async (t) => {
   const json = await res.json();
   t.match(json.error, /different.*payload/i, "should indicate payload mismatch");
 });
+
+test("middleware - detects duplicate request with different key", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const app = new Hono();
+
+  app.post("/test", idempotency({ store }), (c) => {
+    return c.json({ message: "created" });
+  });
+
+  // First request
+  await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "key-1" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  // Second request with different key, same body
+  const res = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "key-2" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res.status, 409, "should return 409");
+  const json = await res.json();
+  t.match(json.error, /different.*key/i, "should indicate different key");
+});
