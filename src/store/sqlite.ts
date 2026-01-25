@@ -122,5 +122,9 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
     }
   }
 
-  async cleanup() {}
+  async cleanup(): Promise<void> {
+    this.db
+      .prepare("DELETE FROM idempotency_records WHERE expires_at <= ?")
+      .run(Date.now());
+  }
 }
