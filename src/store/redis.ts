@@ -75,7 +75,25 @@ export class RedisIdempotencyStore implements IdempotencyStore {
       headers: Record<string, string>;
       body: string;
     }
-  ): Promise<void> {}
+  ): Promise<void> {
+    // Fetch existing record
+    const existingJson = await this.client.get(`idempotency:${key}`);
+    if (!existingJson) {
+      throw new Error(`No record found for key: ${key}`);
+    }
+
+    const record = JSON.parse(existingJson) as IdempotencyRecord;
+    record.status = "complete";
+    record.response = response;
+
+    // Get remaining TTL and re-set with updated record
+    const ttl = await this.client.ttl(`idempotency:${key}`);
+    if (ttl > 0) {
+      await this.client.setex(`idempotency:${key}`, ttl, JSON.stringify(record));
+    } else {
+      throw new Error(`Record expired or missing for key: ${key}`);
+    }
+  }
 
   async cleanup(): Promise<void> {}
 }
