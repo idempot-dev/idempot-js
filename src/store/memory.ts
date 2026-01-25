@@ -41,7 +41,17 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
       body: string;
     }
   ): Promise<void> {
-    throw new Error("Not implemented");
+    const record = this.byKey.get(key);
+    if (!record) {
+      throw new Error(`No record found for key: ${key}`);
+    }
+
+    record.status = "complete";
+    record.response = response;
+
+    // Update both indexes
+    this.byKey.set(key, record);
+    this.byFingerprint.set(record.fingerprint, record);
   }
 
   async cleanup(): Promise<void> {

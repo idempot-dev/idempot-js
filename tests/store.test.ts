@@ -30,3 +30,23 @@ test("MemoryIdempotencyStore - startProcessing creates record", async (t) => {
   t.equal(result.byKey?.fingerprint, fingerprint, "fingerprint should match");
   t.ok(result.byKey?.expiresAt > Date.now(), "should have future expiration");
 });
+
+test("MemoryIdempotencyStore - complete updates record", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const key = "test-key";
+  const fingerprint = "test-fp";
+
+  await store.startProcessing(key, fingerprint, 1000);
+
+  const response = {
+    status: 200,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ success: true })
+  };
+
+  await store.complete(key, response);
+
+  const result = await store.lookup(key, fingerprint);
+  t.equal(result.byKey?.status, "complete", "status should be complete");
+  t.same(result.byKey?.response, response, "response should be stored");
+});
