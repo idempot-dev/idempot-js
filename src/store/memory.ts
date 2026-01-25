@@ -1,6 +1,9 @@
 import type { IdempotencyStore, IdempotencyRecord } from "../types.js";
 
 export class MemoryIdempotencyStore implements IdempotencyStore {
+  private byKey = new Map<string, IdempotencyRecord>();
+  private byFingerprint = new Map<string, IdempotencyRecord>();
+
   async lookup(
     key: string,
     fingerprint: string
@@ -8,7 +11,10 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
     byKey: IdempotencyRecord | null;
     byFingerprint: IdempotencyRecord | null;
   }> {
-    throw new Error("Not implemented");
+    return {
+      byKey: this.byKey.get(key) ?? null,
+      byFingerprint: this.byFingerprint.get(fingerprint) ?? null
+    };
   }
 
   async startProcessing(
