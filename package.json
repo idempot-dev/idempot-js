@@ -15,10 +15,16 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
-    "hono": "^4.11.5"
+    "hono": "^4.11.5",
+    "jsonpath-plus": "^10.3.0",
+    "xxhash-wasm": "^1.1.0"
+  },
+  "peerDependencies": {
+    "hono": ">=4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/jsonpath-plus": "^5.0.5",
     "@types/node": "^20.11.17",
     "@types/tap": "^15.0.12",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
