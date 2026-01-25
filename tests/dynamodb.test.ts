@@ -1,6 +1,6 @@
 import { test } from "tap";
 import { mockClient } from "aws-sdk-client-mock";
-import { DynamoDBDocumentClient, GetCommand, QueryCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoDbIdempotencyStore } from "../src/store/dynamodb.js";
 
 test("DynamoDbIdempotencyStore - initialization", (t) => {
@@ -66,4 +66,31 @@ test("DynamoDbIdempotencyStore - startProcessing creates record", async (t) => {
     capturedItem.expiresAt >= beforeTime && capturedItem.expiresAt <= afterTime,
     "expiresAt should be in expected range"
   );
+});
+
+test("DynamoDbIdempotencyStore - complete updates record", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  let capturedInput: any = null;
+  ddbMock.on(UpdateCommand).callsFake((input) => {
+    capturedInput = input;
+    return {};
+  });
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock as any
+  });
+
+  await store.complete("test-key", {
+    status: 200,
+    headers: { "content-type": "application/json" },
+    body: '{"result": "success"}'
+  });
+
+  t.ok(capturedInput, "should have called UpdateCommand");
+  t.equal(capturedInput.Key.key, "test-key", "key should match");
+  t.equal(capturedInput.TableName, "idempotency-records", "table name should match");
+  t.ok(capturedInput.UpdateExpression, "should have UpdateExpression");
+  t.ok(capturedInput.ConditionExpression, "should have ConditionExpression");
+  t.ok(capturedInput.ExpressionAttributeValues, "should have ExpressionAttributeValues");
 });
