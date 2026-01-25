@@ -76,7 +76,7 @@ export function idempotency(
         const cached = lookup.byKey.response;
         return c.body(
           cached.body,
-          cached.status,
+          cached.status as any,
           {
             ...cached.headers,
             "x-idempotent-replayed": "true"

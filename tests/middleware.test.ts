@@ -233,3 +233,75 @@ test("middleware - detects duplicate request with different key", async (t) => {
   const json = await res.json();
   t.match(json.error, /different.*key/i, "should indicate different key");
 });
+
+test("middleware - PATCH method is protected", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const app = new Hono();
+
+  let callCount = 0;
+  app.patch("/test", idempotency({ store }), (c) => {
+    callCount++;
+    return c.json({ message: "updated" });
+  });
+
+  await app.request("/test", {
+    method: "PATCH",
+    headers: { "idempotency-key": "patch-key" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  const res = await app.request("/test", {
+    method: "PATCH",
+    headers: { "idempotency-key": "patch-key" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res.status, 200, "should replay cached response");
+  t.equal(callCount, 1, "handler called only once");
+});
+
+test("middleware - custom header name", async (t) => {
+  const app = new Hono();
+
+  app.post("/test", idempotency({ headerName: "x-request-id" }), (c) => {
+    return c.json({ message: "created" });
+  });
+
+  const res = await app.request("/test", {
+    method: "POST",
+    headers: { "x-request-id": "custom-key" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res.status, 200, "should work with custom header name");
+});
+
+test("middleware - field exclusion works", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const app = new Hono();
+
+  let callCount = 0;
+  app.post(
+    "/test",
+    idempotency({ store, excludeFields: ["timestamp"] }),
+    (c) => {
+      callCount++;
+      return c.json({ message: "created" });
+    }
+  );
+
+  await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "exclude-key" },
+    body: JSON.stringify({ data: "test", timestamp: "2024-01-01" })
+  });
+
+  const res = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "exclude-key" },
+    body: JSON.stringify({ data: "test", timestamp: "2024-01-02" })
+  });
+
+  t.equal(res.status, 200, "should replay despite timestamp difference");
+  t.equal(callCount, 1, "handler called only once");
+});
