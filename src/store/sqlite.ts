@@ -80,7 +80,22 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
     };
   }
 
-  async startProcessing() {}
+  async startProcessing(
+    key: string,
+    fingerprint: string,
+    ttlMs: number
+  ): Promise<void> {
+    this.db
+      .prepare(
+        `
+      INSERT INTO idempotency_records
+      (key, fingerprint, status, expires_at)
+      VALUES (?, ?, 'processing', ?)
+    `
+      )
+      .run(key, fingerprint, Date.now() + ttlMs);
+  }
+
   async complete() {}
   async cleanup() {}
 }
