@@ -41,7 +41,11 @@
     "check": "npm run format:check && npm run lint",
     "example": "tsx examples/basic-app.ts",
     "example:sqlite": "tsx examples/sqlite-app.ts",
-    "example:redis": "tsx examples/redis-app.ts"
+    "example:redis": "tsx examples/redis-app.ts",
+    "example:bun": "bun run examples/bun-basic-app.ts",
+    "example:bun:sqlite": "bun run examples/bun-sqlite-app.ts",
+    "test:bun": "bun test",
+    "test:bun:coverage": "bun test --coverage"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",

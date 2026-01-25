@@ -14,11 +14,16 @@ Then choose a storage backend (see sections below).
 
 Choose the backend that best fits your deployment:
 
-| Backend | Best For | Setup Complexity | Deployment |
-|---------|----------|------------------|-----------|
-| **SQLite** | Single-server, development | Easy | Single instance |
-| **Redis** | Multi-server, high performance | Medium | Distributed systems |
-| **DynamoDB** | AWS-native, serverless, managed | Medium | AWS environments |
+| Backend | Best For | Setup Complexity | Node.js | Bun | Deno | Workers |
+|---------|----------|------------------|---------|-----|------|---------|
+| **SQLite** | Single-server, development | Easy | ✅ | ✅ | 🔄 | ❌ |
+| **Redis** | Multi-server, high performance | Medium | ✅ | ✅ | 🔄 | 🔄 |
+| **DynamoDB** | AWS-native, serverless, managed | Medium | ✅ | ✅ | 🔄 | 🔄 |
+
+**Runtime Support:**
+- ✅ Fully supported and tested
+- 🔄 Not yet tested (contributions welcome)
+- ❌ Not supported
 
 ## Quick Start - SQLite (Development)
 
@@ -126,6 +131,44 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
 See [docs/dynamodb-setup.md](./docs/dynamodb-setup.md) for complete setup instructions using CloudFormation, Terraform, AWS CDK, or AWS CLI.
 
+## Using with Bun
+
+Install and run with Bun's native performance:
+
+```bash
+bun add hono-idempotency
+```
+
+```typescript
+import { Hono } from "hono";
+import { idempotency, BunSqliteIdempotencyStore } from "hono-idempotency";
+
+const app = new Hono();
+const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
+
+app.post("/orders", idempotency({ store }), async (c) => {
+  return c.json({ id: "order-123" }, 201);
+});
+
+export default {
+  port: 3000,
+  fetch: app.fetch,
+};
+```
+
+**Features:**
+- Native `bun:sqlite` integration (2-3x faster than better-sqlite3)
+- No need to install `better-sqlite3` dependency
+- Works with Bun's native HTTP server
+- Full test coverage with Bun's test runner
+
+**Store Selection:**
+- **Node.js**: Use `SqliteIdempotencyStore` (better-sqlite3)
+- **Bun**: Use `BunSqliteIdempotencyStore` (native bun:sqlite)
+- **Redis/DynamoDB**: Use same stores across runtimes (runtime-agnostic)
+
+See [docs/bun-setup.md](./docs/bun-setup.md) for complete Bun setup guide.
+
 ## Core Features
 
 - IETF-compliant idempotency key handling
@@ -138,10 +181,15 @@ See [docs/dynamodb-setup.md](./docs/dynamodb-setup.md) for complete setup instru
 
 See `examples/` directory for complete usage examples:
 
+**Node.js:**
 - `basic-app.ts` - In-memory development setup
 - `sqlite-app.ts` - Production file-based persistence
 - `redis-app.ts` - Multi-server production setup
 - `dynamodb-app.ts` - AWS DynamoDB backend setup
+
+**Bun:**
+- `bun-basic-app.ts` - In-memory development with Bun
+- `bun-sqlite-app.ts` - File-based persistence with Bun
 
 ## Documentation
 
