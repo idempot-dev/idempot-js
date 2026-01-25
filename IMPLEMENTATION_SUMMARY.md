@@ -54,14 +54,15 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with 97.
 - Exports generateFingerprint utility
 
 ### 6. Example Applications
-- **examples/basic-app.ts** - MemoryIdempotencyStore
+- **examples/basic-app.ts** - In-memory SQLite for development
+  - Uses `:memory:` mode for lightweight local testing
   - Demonstrates all middleware features
-  - Shows optional and required usage
+  - Shows optional and required idempotency keys
   - Custom header name example
   - Field exclusion example
   - PATCH endpoint protection
   - Includes helpful curl examples
-- **examples/sqlite-app.ts** - SqliteIdempotencyStore
+- **examples/sqlite-app.ts** - Production file-based persistence
   - Persistent storage with SQLite
   - Periodic cleanup (hourly)
   - Graceful shutdown handling
