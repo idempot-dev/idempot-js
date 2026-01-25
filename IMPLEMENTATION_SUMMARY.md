@@ -22,14 +22,12 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with 97.
 
 ### 2. Store Layer
 - Interface-driven design (src/store/interface.ts)
-- **MemoryIdempotencyStore** with dual indexes (src/store/memory.ts)
-  - Lookup by key and fingerprint for O(1) conflict detection
-  - TTL-based expiration with cleanup method
-- **SqliteIdempotencyStore** with persistent storage (src/store/sqlite.ts)
+- **SqliteIdempotencyStore** - Production-ready persistent storage
   - SQLite database with dual indexes (key + fingerprint)
+  - In-memory mode (`:memory:`) for testing and development
+  - File-based mode for production persistence
   - Limited cleanup during lookups (max 10 expired records)
   - Full cleanup available via manual `cleanup()` method
-  - Supports both file-based and in-memory databases
   - Default database path: `./idempotency.db`
 
 ### 3. Fingerprinting (src/fingerprint.ts)
