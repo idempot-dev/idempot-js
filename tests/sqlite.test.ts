@@ -35,3 +35,23 @@ test("SqliteIdempotencyStore - startProcessing creates record", async (t) => {
 
   store.close();
 });
+
+test("SqliteIdempotencyStore - complete updates record", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  await store.startProcessing("test-key", "test-fp", 60000);
+
+  await store.complete("test-key", {
+    status: 200,
+    headers: { "content-type": "application/json" },
+    body: '{"result":"ok"}',
+  });
+
+  const result = await store.lookup("test-key", "test-fp");
+
+  t.equal(result.byKey?.status, "complete", "status should be complete");
+  t.ok(result.byKey?.response, "response should be stored");
+  t.equal(result.byKey?.response?.status, 200, "response status should match");
+
+  store.close();
+});
