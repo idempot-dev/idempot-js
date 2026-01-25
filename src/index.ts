@@ -12,6 +12,8 @@ export type {
 export { SqliteIdempotencyStore } from "./store/sqlite.js";
 export { RedisIdempotencyStore } from "./store/redis.js";
 export type { RedisIdempotencyStoreOptions } from "./store/redis.js";
+export { DynamoDbIdempotencyStore } from "./store/dynamodb.js";
+export type { DynamoDbIdempotencyStoreOptions } from "./store/dynamodb.js";
 
 // Utilities
 export { generateFingerprint } from "./fingerprint.js";
