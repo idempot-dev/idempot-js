@@ -37,3 +37,35 @@ test("generateFingerprint - excludes nested fields via JSONPath", async (t) => {
 
   t.equal(fp1, fp2, "fingerprints should match when nested field excluded");
 });
+
+test("generateFingerprint - handles non-JSON bodies", async (t) => {
+  const body1 = "plain text body";
+  const body2 = "plain text body";
+  const body3 = "different text";
+
+  const fp1 = await generateFingerprint(body1, []);
+  const fp2 = await generateFingerprint(body2, []);
+  const fp3 = await generateFingerprint(body3, []);
+
+  t.equal(fp1, fp2, "identical plain text should have same fingerprint");
+  t.not(fp1, fp3, "different plain text should have different fingerprint");
+});
+
+test("generateFingerprint - handles empty body", async (t) => {
+  const fp1 = await generateFingerprint("", []);
+  const fp2 = await generateFingerprint("{}", []);
+
+  t.ok(fp1, "should handle empty string");
+  t.ok(fp2, "should handle empty JSON");
+  t.not(fp1, fp2, "empty string and empty JSON should differ");
+});
+
+test("generateFingerprint - handles arrays", async (t) => {
+  const body1 = JSON.stringify({ items: [1, 2, 3] });
+  const body2 = JSON.stringify({ items: [1, 2, 3] });
+
+  const fp1 = await generateFingerprint(body1, []);
+  const fp2 = await generateFingerprint(body2, []);
+
+  t.equal(fp1, fp2, "arrays should be handled correctly");
+});
