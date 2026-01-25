@@ -1,4 +1,5 @@
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import type { IdempotencyStore, IdempotencyRecord } from "../types.js";
 
 export interface DynamoDbIdempotencyStoreOptions {
@@ -22,7 +23,57 @@ export class DynamoDbIdempotencyStore implements IdempotencyStore {
     byKey: IdempotencyRecord | null;
     byFingerprint: IdempotencyRecord | null;
   }> {
-    return { byKey: null, byFingerprint: null };
+    // Execute parallel operations for performance
+    const [byKeyResult, byFingerprintResult] = await Promise.all([
+      this.client.send(
+        new GetCommand({
+          TableName: this.tableName,
+          Key: { key }
+        })
+      ),
+      this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: "fingerprint-index",
+          KeyConditionExpression: "fingerprint = :fp",
+          ExpressionAttributeValues: {
+            ":fp": fingerprint
+          }
+        })
+      )
+    ]);
+
+    const byKey = this.parseRecord(byKeyResult.Item);
+    const byFingerprint =
+      byFingerprintResult.Items && byFingerprintResult.Items.length > 0
+        ? this.parseRecord(byFingerprintResult.Items[0])
+        : null;
+
+    return { byKey, byFingerprint };
+  }
+
+  private parseRecord(item: any): IdempotencyRecord | null {
+    if (!item) return null;
+
+    // Filter expired records
+    const now = Math.floor(Date.now() / 1000);
+    if (item.expiresAt && item.expiresAt < now) {
+      return null;
+    }
+
+    return {
+      key: item.key,
+      fingerprint: item.fingerprint,
+      status: item.status,
+      response: item.responseStatus
+        ? {
+            status: item.responseStatus,
+            headers: item.responseHeaders || {},
+            body: item.responseBody || ""
+          }
+        : undefined,
+      expiresAt: item.expiresAt * 1000 // Convert seconds to milliseconds
+    };
   }
 
   async startProcessing(
