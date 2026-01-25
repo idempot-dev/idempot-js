@@ -47,3 +47,38 @@ test("middleware - POST without key when required", async (t) => {
   const json = await res.json();
   t.match(json.error, /required/i, "should indicate header is required");
 });
+
+test("middleware - validates key length", async (t) => {
+  const app = new Hono();
+
+  app.post("/test", idempotency(), (c) => {
+    return c.json({ message: "created" });
+  });
+
+  const longKey = "x".repeat(256);
+  const res = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": longKey },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res.status, 400, "should return 400 for too-long key");
+  const json = await res.json();
+  t.match(json.error, /255 characters/i, "should indicate max length");
+});
+
+test("middleware - validates empty key", async (t) => {
+  const app = new Hono();
+
+  app.post("/test", idempotency(), (c) => {
+    return c.json({ message: "created" });
+  });
+
+  const res = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res.status, 400, "should return 400 for empty key");
+});

@@ -26,21 +26,30 @@ export function idempotency(
 
     const key = c.req.header(opts.headerName);
 
-    // Check if header is required
-    if (opts.required && !key) {
+    // Check if key provided and validate
+    if (key !== undefined) {
+      // Key was provided, must be valid
+      if (key.length === 0 || key.length > opts.maxKeyLength) {
+        return c.json(
+          { error: `Idempotency-Key must be between 1-${opts.maxKeyLength} characters` },
+          400
+        );
+      }
+      // Key is valid, continue to idempotency logic
+      // TODO: Implement idempotency logic
+      await next();
+      return;
+    }
+
+    // Key not provided
+    if (opts.required) {
       return c.json(
         { error: "Idempotency-Key header is required" },
         400
       );
     }
 
-    // If no key and optional, pass through
-    if (!key) {
-      await next();
-      return;
-    }
-
-    // TODO: Implement idempotency logic
+    // Optional and not provided, pass through
     await next();
   };
 }
