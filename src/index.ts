@@ -10,6 +10,8 @@ export type {
 
 // Store implementations
 export { SqliteIdempotencyStore } from "./store/sqlite.js";
+export { RedisIdempotencyStore } from "./store/redis.js";
+export type { RedisIdempotencyStoreOptions } from "./store/redis.js";
 
 // Utilities
 export { generateFingerprint } from "./fingerprint.js";
