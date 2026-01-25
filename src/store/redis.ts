@@ -95,5 +95,7 @@ export class RedisIdempotencyStore implements IdempotencyStore {
     }
   }
 
-  async cleanup(): Promise<void> {}
+  async cleanup(): Promise<void> {
+    // No-op: Redis TTL handles cleanup automatically
+  }
 }
