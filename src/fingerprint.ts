@@ -22,13 +22,13 @@ export async function generateFingerprint(
     let parsed = JSON.parse(body);
 
     // Exclude root-level fields
-    const rootExclusions = excludeFields.filter(f => !f.startsWith("$."));
+    const rootExclusions = excludeFields.filter((f) => !f.startsWith("$."));
     for (const field of rootExclusions) {
       delete parsed[field];
     }
 
     // Exclude nested fields via JSONPath
-    const jsonPathExclusions = excludeFields.filter(f => f.startsWith("$."));
+    const jsonPathExclusions = excludeFields.filter((f) => f.startsWith("$."));
     for (const path of jsonPathExclusions) {
       try {
         JSONPath({

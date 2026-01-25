@@ -34,7 +34,9 @@ export function idempotency(
       // Key was provided, must be valid
       if (key.length === 0 || key.length > opts.maxKeyLength) {
         return c.json(
-          { error: `Idempotency-Key must be between 1-${opts.maxKeyLength} characters` },
+          {
+            error: `Idempotency-Key must be between 1-${opts.maxKeyLength} characters`
+          },
           400
         );
       }
@@ -50,7 +52,10 @@ export function idempotency(
       // Existing record being processed - reject concurrent request
       if (lookup.byKey?.status === "processing") {
         return c.json(
-          { error: "A request with this idempotency key is already being processed" },
+          {
+            error:
+              "A request with this idempotency key is already being processed"
+          },
           409
         );
       }
@@ -58,7 +63,10 @@ export function idempotency(
       // Same fingerprint, different key - duplicate operation
       if (lookup.byFingerprint && lookup.byFingerprint.key !== key) {
         return c.json(
-          { error: "This request was already processed with a different idempotency key" },
+          {
+            error:
+              "This request was already processed with a different idempotency key"
+          },
           409
         );
       }
@@ -74,14 +82,10 @@ export function idempotency(
       // Existing complete record - replay
       if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
         const cached = lookup.byKey.response;
-        return c.body(
-          cached.body,
-          cached.status as any,
-          {
-            ...cached.headers,
-            "x-idempotent-replayed": "true"
-          }
-        );
+        return c.body(cached.body, cached.status as any, {
+          ...cached.headers,
+          "x-idempotent-replayed": "true"
+        });
       }
 
       // No existing record - process new request
@@ -112,10 +116,7 @@ export function idempotency(
 
     // Key not provided
     if (opts.required) {
-      return c.json(
-        { error: "Idempotency-Key header is required" },
-        400
-      );
+      return c.json({ error: "Idempotency-Key header is required" }, 400);
     }
 
     // Optional and not provided, pass through

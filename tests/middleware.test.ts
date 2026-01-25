@@ -177,7 +177,11 @@ test("middleware - detects concurrent processing", async (t) => {
 
   const conflict = res1.status === 409 ? res1 : res2;
   const json = await conflict.json();
-  t.match(json.error, /already being processed/i, "should indicate concurrent processing");
+  t.match(
+    json.error,
+    /already being processed/i,
+    "should indicate concurrent processing"
+  );
 });
 
 test("middleware - detects same key with different payload", async (t) => {
@@ -204,7 +208,11 @@ test("middleware - detects same key with different payload", async (t) => {
 
   t.equal(res.status, 422, "should return 422");
   const json = await res.json();
-  t.match(json.error, /different.*payload/i, "should indicate payload mismatch");
+  t.match(
+    json.error,
+    /different.*payload/i,
+    "should indicate payload mismatch"
+  );
 });
 
 test("middleware - detects duplicate request with different key", async (t) => {

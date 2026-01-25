@@ -13,11 +13,14 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
   console.log(`Creating order: ${orderId}`);
 
-  return c.json({
-    id: orderId,
-    status: "created",
-    ...body
-  }, 201);
+  return c.json(
+    {
+      id: orderId,
+      status: "created",
+      ...body
+    },
+    201
+  );
 });
 
 // Required idempotency-key
@@ -27,46 +30,63 @@ app.post("/payments", idempotency({ store, required: true }), async (c) => {
 
   console.log(`Processing payment: ${paymentId}`);
 
-  return c.json({
-    id: paymentId,
-    status: "processed",
-    ...body
-  }, 201);
+  return c.json(
+    {
+      id: paymentId,
+      status: "processed",
+      ...body
+    },
+    201
+  );
 });
 
 // Custom header name
-app.post("/transfers", idempotency({
-  store,
-  headerName: "x-request-id"
-}), async (c) => {
-  const body = await c.req.json();
-  const transferId = Math.random().toString(36).substring(7);
+app.post(
+  "/transfers",
+  idempotency({
+    store,
+    headerName: "x-request-id"
+  }),
+  async (c) => {
+    const body = await c.req.json();
+    const transferId = Math.random().toString(36).substring(7);
 
-  console.log(`Processing transfer: ${transferId}`);
+    console.log(`Processing transfer: ${transferId}`);
 
-  return c.json({
-    id: transferId,
-    status: "completed",
-    ...body
-  }, 201);
-});
+    return c.json(
+      {
+        id: transferId,
+        status: "completed",
+        ...body
+      },
+      201
+    );
+  }
+);
 
 // Exclude timestamp field from fingerprint
-app.post("/events", idempotency({
-  store,
-  excludeFields: ["timestamp", "$.metadata.requestId"]
-}), async (c) => {
-  const body = await c.req.json();
-  const eventId = Math.random().toString(36).substring(7);
+app.post(
+  "/events",
+  idempotency({
+    store,
+    excludeFields: ["timestamp", "$.metadata.requestId"]
+  }),
+  async (c) => {
+    const body = await c.req.json();
+    const eventId = Math.random().toString(36).substring(7);
 
-  console.log(`Recording event: ${eventId}`);
+    console.log(`Recording event: ${eventId}`);
 
-  return c.json({
-    id: eventId,
-    recorded: true,
-    ...body
-  }, 201);
-});
+    return c.json(
+      {
+        id: eventId,
+        recorded: true,
+        ...body
+      },
+      201
+    );
+  }
+);
 
 // PATCH endpoint also protected
 app.patch("/orders/:id", idempotency({ store }), async (c) => {
@@ -83,11 +103,14 @@ app.patch("/orders/:id", idempotency({ store }), async (c) => {
 });
 
 // Cleanup expired records every 10 minutes
-setInterval(() => {
-  store.cleanup().then(() => {
-    console.log("Cleaned up expired idempotency records");
-  });
-}, 10 * 60 * 1000);
+setInterval(
+  () => {
+    store.cleanup().then(() => {
+      console.log("Cleaned up expired idempotency records");
+    });
+  },
+  10 * 60 * 1000
+);
 
 serve(
   {
@@ -100,19 +123,19 @@ serve(
     console.log("Try these requests:");
     console.log("");
     console.log("# Create order (optional idempotency-key)");
-    console.log('curl -X POST http://localhost:3000/orders \\');
+    console.log("curl -X POST http://localhost:3000/orders \\");
     console.log('  -H "Content-Type: application/json" \\');
     console.log('  -H "idempotency-key: order-123" \\');
     console.log('  -d \'{"item": "widget", "quantity": 5}\'');
     console.log("");
     console.log("# Replay - same key and body returns cached response");
-    console.log('curl -X POST http://localhost:3000/orders \\');
+    console.log("curl -X POST http://localhost:3000/orders \\");
     console.log('  -H "Content-Type: application/json" \\');
     console.log('  -H "idempotency-key: order-123" \\');
     console.log('  -d \'{"item": "widget", "quantity": 5}\'');
     console.log("");
     console.log("# Payment (required idempotency-key)");
-    console.log('curl -X POST http://localhost:3000/payments \\');
+    console.log("curl -X POST http://localhost:3000/payments \\");
     console.log('  -H "Content-Type: application/json" \\');
     console.log('  -H "idempotency-key: payment-456" \\');
     console.log('  -d \'{"amount": 100, "currency": "USD"}\'');

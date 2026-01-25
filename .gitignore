@@ -27,5 +27,11 @@ lerna-debug.log*
 # misc
 .DS_Store
 
+# build
+dist/
+
+# test
+.tap/
+
 # worktrees
 .worktrees/

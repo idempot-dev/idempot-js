@@ -13,8 +13,16 @@ test("generateFingerprint - identical JSON produces identical hash", async (t) =
 });
 
 test("generateFingerprint - excludes root-level fields", async (t) => {
-  const body1 = JSON.stringify({ foo: "bar", timestamp: "2024-01-01", baz: 123 });
-  const body2 = JSON.stringify({ foo: "bar", timestamp: "2024-01-02", baz: 123 });
+  const body1 = JSON.stringify({
+    foo: "bar",
+    timestamp: "2024-01-01",
+    baz: 123
+  });
+  const body2 = JSON.stringify({
+    foo: "bar",
+    timestamp: "2024-01-02",
+    baz: 123
+  });
 
   const fp1 = await generateFingerprint(body1, ["timestamp"]);
   const fp2 = await generateFingerprint(body2, ["timestamp"]);

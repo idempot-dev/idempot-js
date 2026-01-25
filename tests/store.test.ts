@@ -28,7 +28,10 @@ test("MemoryIdempotencyStore - startProcessing creates record", async (t) => {
   t.equal(result.byKey?.status, "processing", "status should be processing");
   t.equal(result.byKey?.key, key, "key should match");
   t.equal(result.byKey?.fingerprint, fingerprint, "fingerprint should match");
-  t.ok(result.byKey && result.byKey.expiresAt > Date.now(), "should have future expiration");
+  t.ok(
+    result.byKey && result.byKey.expiresAt > Date.now(),
+    "should have future expiration"
+  );
 });
 
 test("MemoryIdempotencyStore - complete updates record", async (t) => {
@@ -70,7 +73,11 @@ test("MemoryIdempotencyStore - cleanup removes expired records", async (t) => {
   const result2 = await store.lookup(key2, fp2);
 
   t.equal(result1.byKey, null, "expired record should be removed by key");
-  t.equal(result1.byFingerprint, null, "expired record should be removed by fingerprint");
+  t.equal(
+    result1.byFingerprint,
+    null,
+    "expired record should be removed by fingerprint"
+  );
   t.ok(result2.byKey, "valid record should remain");
   t.ok(result2.byFingerprint, "valid record should remain");
 });
