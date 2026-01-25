@@ -7,3 +7,14 @@ test("SqliteIdempotencyStore - initialization", (t) => {
   store.close();
   t.end();
 });
+
+test("SqliteIdempotencyStore - lookup with empty store", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  const result = await store.lookup("test-key", "test-fingerprint");
+
+  t.equal(result.byKey, null, "byKey should be null");
+  t.equal(result.byFingerprint, null, "byFingerprint should be null");
+
+  store.close();
+});
