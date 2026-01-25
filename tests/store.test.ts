@@ -28,7 +28,7 @@ test("MemoryIdempotencyStore - startProcessing creates record", async (t) => {
   t.equal(result.byKey?.status, "processing", "status should be processing");
   t.equal(result.byKey?.key, key, "key should match");
   t.equal(result.byKey?.fingerprint, fingerprint, "fingerprint should match");
-  t.ok(result.byKey?.expiresAt > Date.now(), "should have future expiration");
+  t.ok(result.byKey && result.byKey.expiresAt > Date.now(), "should have future expiration");
 });
 
 test("MemoryIdempotencyStore - complete updates record", async (t) => {
@@ -73,4 +73,28 @@ test("MemoryIdempotencyStore - cleanup removes expired records", async (t) => {
   t.equal(result1.byFingerprint, null, "expired record should be removed by fingerprint");
   t.ok(result2.byKey, "valid record should remain");
   t.ok(result2.byFingerprint, "valid record should remain");
+});
+
+test("MemoryIdempotencyStore - complete throws on missing key", async (t) => {
+  const store = new MemoryIdempotencyStore();
+
+  await t.rejects(
+    store.complete("nonexistent-key", {
+      status: 200,
+      headers: {},
+      body: ""
+    }),
+    { message: /No record found/ },
+    "should throw error for missing key"
+  );
+});
+
+test("MemoryIdempotencyStore - lookup with different key and fingerprint", async (t) => {
+  const store = new MemoryIdempotencyStore();
+
+  await store.startProcessing("key1", "fp1", 1000);
+
+  const result = await store.lookup("key2", "fp1");
+  t.equal(result.byKey, null, "should not find by different key");
+  t.ok(result.byFingerprint, "should find by matching fingerprint");
 });
