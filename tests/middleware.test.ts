@@ -1,6 +1,7 @@
 import { test } from "tap";
 import { Hono } from "hono";
 import { idempotency } from "../src/middleware.js";
+import { MemoryIdempotencyStore } from "../src/store/memory.js";
 
 test("middleware - passes through GET requests", async (t) => {
   const app = new Hono();
@@ -81,4 +82,24 @@ test("middleware - validates empty key", async (t) => {
   });
 
   t.equal(res.status, 400, "should return 400 for empty key");
+});
+
+test("middleware - first request with new key", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const app = new Hono();
+
+  app.post("/test", idempotency({ store }), (c) => {
+    return c.json({ message: "created", id: 123 });
+  });
+
+  const res = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "unique-key-1" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res.status, 200, "should return handler response");
+  const json = await res.json();
+  t.same(json, { message: "created", id: 123 }, "should return correct body");
+  t.notOk(res.headers.get("x-idempotent-replayed"), "should not be replayed");
 });

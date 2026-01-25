@@ -1,5 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import type { IdempotencyOptions } from "./types.js";
+import { MemoryIdempotencyStore } from "./store/memory.js";
+import { generateFingerprint } from "./fingerprint.js";
 
 const DEFAULT_OPTIONS: Required<IdempotencyOptions> = {
   required: false,
@@ -14,6 +16,7 @@ export function idempotency(
   options: IdempotencyOptions = {}
 ): MiddlewareHandler {
   const opts = { ...DEFAULT_OPTIONS, ...options };
+  const store = opts.store ?? new MemoryIdempotencyStore();
 
   return async (c, next) => {
     const method = c.req.method;
@@ -35,8 +38,37 @@ export function idempotency(
           400
         );
       }
-      // Key is valid, continue to idempotency logic
-      // TODO: Implement idempotency logic
+      // Key is valid, implement idempotency logic
+
+      // Read body and generate fingerprint
+      const body = await c.req.text();
+      const fingerprint = await generateFingerprint(body, opts.excludeFields);
+
+      // Lookup in store
+      const lookup = await store.lookup(key, fingerprint);
+
+      // No existing record - process new request
+      if (!lookup.byKey && !lookup.byFingerprint) {
+        await store.startProcessing(key, fingerprint, opts.ttlMs);
+
+        // Call handler
+        await next();
+
+        // Clone response to cache it
+        const clonedResponse = c.res.clone();
+        const response = {
+          status: c.res.status,
+          headers: Object.fromEntries(c.res.headers.entries()),
+          body: await clonedResponse.text()
+        };
+
+        await store.complete(key, response);
+
+        // Return original response
+        return;
+      }
+
+      // TODO: Handle existing records
       await next();
       return;
     }
