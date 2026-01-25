@@ -22,7 +22,15 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
     fingerprint: string,
     ttlMs: number
   ): Promise<void> {
-    throw new Error("Not implemented");
+    const record: IdempotencyRecord = {
+      key,
+      fingerprint,
+      status: "processing",
+      expiresAt: Date.now() + ttlMs
+    };
+
+    this.byKey.set(key, record);
+    this.byFingerprint.set(fingerprint, record);
   }
 
   async complete(
