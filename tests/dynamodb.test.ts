@@ -94,3 +94,93 @@ test("DynamoDbIdempotencyStore - complete updates record", async (t) => {
   t.ok(capturedInput.ConditionExpression, "should have ConditionExpression");
   t.ok(capturedInput.ExpressionAttributeValues, "should have ExpressionAttributeValues");
 });
+
+test("DynamoDbIdempotencyStore - complete throws on missing key", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  const error = new Error("ConditionalCheckFailedException");
+  error.name = "ConditionalCheckFailedException";
+  ddbMock.on(UpdateCommand).rejects(error);
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock as any
+  });
+
+  try {
+    await store.complete("missing-key", {
+      status: 200,
+      headers: {},
+      body: ""
+    });
+    t.fail("should throw error for missing key");
+  } catch (err: any) {
+    t.ok(err, "should throw error");
+    t.match(err.message, /Record not found/, "error message should mention record not found");
+  }
+});
+
+test("DynamoDbIdempotencyStore - lookup filters expired records", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  const now = Math.floor(Date.now() / 1000);
+  const expiredRecord = {
+    key: "test-key",
+    fingerprint: "test-fp",
+    status: "processing",
+    expiresAt: now - 100 // Expired 100 seconds ago
+  };
+
+  ddbMock.on(GetCommand).resolves({ Item: expiredRecord });
+  ddbMock.on(QueryCommand).resolves({ Items: [expiredRecord] });
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock as any
+  });
+
+  const result = await store.lookup("test-key", "test-fp");
+
+  t.equal(result.byKey, null, "byKey should be null for expired record");
+  t.equal(result.byFingerprint, null, "byFingerprint should be null for expired record");
+});
+
+test("DynamoDbIdempotencyStore - lookup by fingerprint only", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  const now = Math.floor(Date.now() / 1000);
+  const fingerprintRecord = {
+    key: "different-key",
+    fingerprint: "test-fp",
+    status: "completed",
+    responseStatus: 200,
+    responseHeaders: { "content-type": "text/plain" },
+    responseBody: "OK",
+    expiresAt: now + 3600
+  };
+
+  ddbMock.on(GetCommand).resolves({}); // No record by key
+  ddbMock.on(QueryCommand).resolves({ Items: [fingerprintRecord] });
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock as any
+  });
+
+  const result = await store.lookup("some-key", "test-fp");
+
+  t.equal(result.byKey, null, "byKey should be null");
+  t.ok(result.byFingerprint, "byFingerprint should be found");
+  t.equal(result.byFingerprint?.key, "different-key", "key should match fingerprint record");
+  t.equal(result.byFingerprint?.status, "completed", "status should match");
+  t.equal(result.byFingerprint?.response?.status, 200, "response status should match");
+});
+
+test("DynamoDbIdempotencyStore - cleanup is no-op", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock as any
+  });
+
+  // cleanup should not throw and should be a no-op
+  await store.cleanup();
+  t.pass("cleanup should be no-op");
+});
