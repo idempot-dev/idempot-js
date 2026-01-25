@@ -50,3 +50,27 @@ test("MemoryIdempotencyStore - complete updates record", async (t) => {
   t.equal(result.byKey?.status, "complete", "status should be complete");
   t.same(result.byKey?.response, response, "response should be stored");
 });
+
+test("MemoryIdempotencyStore - cleanup removes expired records", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const key1 = "expired-key";
+  const key2 = "valid-key";
+  const fp1 = "fp1";
+  const fp2 = "fp2";
+
+  // Create expired record (TTL = -1000ms, already expired)
+  await store.startProcessing(key1, fp1, -1000);
+
+  // Create valid record
+  await store.startProcessing(key2, fp2, 10000);
+
+  await store.cleanup();
+
+  const result1 = await store.lookup(key1, fp1);
+  const result2 = await store.lookup(key2, fp2);
+
+  t.equal(result1.byKey, null, "expired record should be removed by key");
+  t.equal(result1.byFingerprint, null, "expired record should be removed by fingerprint");
+  t.ok(result2.byKey, "valid record should remain");
+  t.ok(result2.byFingerprint, "valid record should remain");
+});

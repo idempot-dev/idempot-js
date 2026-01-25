@@ -55,6 +55,23 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
   }
 
   async cleanup(): Promise<void> {
-    throw new Error("Not implemented");
+    const now = Date.now();
+
+    // Find expired keys
+    const expiredKeys: string[] = [];
+    for (const [key, record] of this.byKey) {
+      if (record.expiresAt <= now) {
+        expiredKeys.push(key);
+      }
+    }
+
+    // Remove from both indexes
+    for (const key of expiredKeys) {
+      const record = this.byKey.get(key);
+      if (record) {
+        this.byKey.delete(key);
+        this.byFingerprint.delete(record.fingerprint);
+      }
+    }
   }
 }
