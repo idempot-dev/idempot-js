@@ -96,6 +96,31 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
       .run(key, fingerprint, Date.now() + ttlMs);
   }
 
-  async complete() {}
+  async complete(
+    key: string,
+    response: {
+      status: number;
+      headers: Record<string, string>;
+      body: string;
+    }
+  ): Promise<void> {
+    const result = this.db
+      .prepare(
+        `
+      UPDATE idempotency_records
+      SET status = 'complete',
+          response_status = ?,
+          response_headers = ?,
+          response_body = ?
+      WHERE key = ?
+    `
+      )
+      .run(response.status, JSON.stringify(response.headers), response.body, key);
+
+    if (result.changes === 0) {
+      throw new Error(`No record found for key: ${key}`);
+    }
+  }
+
   async cleanup() {}
 }
