@@ -50,6 +50,8 @@
     "xxhash-wasm": "^1.1.0"
   },
   "peerDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.975.0",
+    "@aws-sdk/lib-dynamodb": "^3.975.0",
     "hono": ">=4.0.0",
     "ioredis": ">=5.0.0"
   },
@@ -59,6 +61,8 @@
     }
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.975.0",
+    "@aws-sdk/lib-dynamodb": "^3.975.0",
     "@eslint/js": "^9.39.2",
     "@hono/node-server": "^1.19.9",
     "@types/jsonpath-plus": "^5.0.5",
@@ -66,6 +70,7 @@
     "@types/tap": "^15.0.12",
     "@typescript-eslint/eslint-plugin": "^8.53.1",
     "@typescript-eslint/parser": "^8.53.1",
+    "aws-sdk-client-mock": "^4.1.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.1.0",
