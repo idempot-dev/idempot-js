@@ -1,5 +1,6 @@
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import type { IdempotencyStore, IdempotencyRecord } from "../types.js";
 
 export interface DynamoDbIdempotencyStoreOptions {
@@ -104,7 +105,32 @@ export class DynamoDbIdempotencyStore implements IdempotencyStore {
       body: string;
     }
   ): Promise<void> {
-    // Placeholder
+    try {
+      await this.client.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { key },
+          UpdateExpression:
+            "SET #status = :status, responseStatus = :responseStatus, responseHeaders = :responseHeaders, responseBody = :responseBody",
+          ConditionExpression: "attribute_exists(#key)",
+          ExpressionAttributeNames: {
+            "#key": "key",
+            "#status": "status"
+          },
+          ExpressionAttributeValues: {
+            ":status": "completed",
+            ":responseStatus": response.status,
+            ":responseHeaders": response.headers,
+            ":responseBody": response.body
+          }
+        })
+      );
+    } catch (error: any) {
+      if (error.name === "ConditionalCheckFailedException") {
+        throw new Error(`Record not found for key: ${key}`);
+      }
+      throw error;
+    }
   }
 
   async cleanup(): Promise<void> {
