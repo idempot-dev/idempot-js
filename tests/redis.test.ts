@@ -47,7 +47,7 @@ test("RedisIdempotencyStore - complete updates record", async (t) => {
   await store.complete("test-key", {
     status: 200,
     headers: { "content-type": "application/json" },
-    body: '{"result":"ok"}',
+    body: '{"result":"ok"}'
   });
 
   const result = await store.lookup("test-key", "test-fp");
@@ -90,12 +90,16 @@ test("RedisIdempotencyStore - complete throws on missing key", async (t) => {
     await store.complete("nonexistent", {
       status: 200,
       headers: {},
-      body: "test",
+      body: "test"
     });
     t.fail("should have thrown");
   } catch (err: unknown) {
     const error = err as Error;
-    t.match(error.message, /No record found/, "should throw error for missing key");
+    t.match(
+      error.message,
+      /No record found/,
+      "should throw error for missing key"
+    );
   }
 });
 
@@ -109,7 +113,11 @@ test("RedisIdempotencyStore - lookup with different key and fingerprint", async 
 
   t.equal(result.byKey, null, "should not find by different key");
   t.ok(result.byFingerprint, "should find by matching fingerprint");
-  t.equal(result.byFingerprint?.key, "key-1", "fingerprint should point to key-1");
+  t.equal(
+    result.byFingerprint?.key,
+    "key-1",
+    "fingerprint should point to key-1"
+  );
 });
 
 test("RedisIdempotencyStore - handles pipeline errors gracefully", async (t) => {
@@ -118,10 +126,10 @@ test("RedisIdempotencyStore - handles pipeline errors gracefully", async (t) => 
 
   // Mock pipeline.exec() to throw error on closed connection
   const originalPipeline = redis.pipeline.bind(redis);
-  redis.pipeline = function() {
+  redis.pipeline = function () {
     const pipeline = originalPipeline();
     const originalExec = pipeline.exec.bind(pipeline);
-    pipeline.exec = async function() {
+    pipeline.exec = async function () {
       throw new Error("Connection is closed");
     };
     return pipeline;

@@ -56,7 +56,7 @@ export class RedisIdempotencyStore implements IdempotencyStore {
       key,
       fingerprint,
       status: "processing",
-      expiresAt: Date.now() + ttlMs,
+      expiresAt: Date.now() + ttlMs
     };
 
     const ttlSeconds = Math.ceil(ttlMs / 1000);
@@ -89,7 +89,11 @@ export class RedisIdempotencyStore implements IdempotencyStore {
     // Get remaining TTL and re-set with updated record
     const ttl = await this.client.ttl(`idempotency:${key}`);
     if (ttl > 0) {
-      await this.client.setex(`idempotency:${key}`, ttl, JSON.stringify(record));
+      await this.client.setex(
+        `idempotency:${key}`,
+        ttl,
+        JSON.stringify(record)
+      );
     } else {
       throw new Error(`Record expired or missing for key: ${key}`);
     }

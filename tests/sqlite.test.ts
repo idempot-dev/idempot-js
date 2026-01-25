@@ -44,7 +44,7 @@ test("SqliteIdempotencyStore - complete updates record", async (t) => {
   await store.complete("test-key", {
     status: 200,
     headers: { "content-type": "application/json" },
-    body: '{"result":"ok"}',
+    body: '{"result":"ok"}'
   });
 
   const result = await store.lookup("test-key", "test-fp");
@@ -89,7 +89,7 @@ test("SqliteIdempotencyStore - complete throws on missing key", async (t) => {
     await store.complete("nonexistent", {
       status: 200,
       headers: {},
-      body: "test",
+      body: "test"
     });
     t.fail("should have thrown");
   } catch (err: any) {

@@ -13,7 +13,7 @@ const redis = new Redis({
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
     return delay;
-  },
+  }
 });
 
 const store = new RedisIdempotencyStore({ client: redis });
@@ -29,37 +29,33 @@ app.post("/orders", idempotency({ store }), async (c) => {
     {
       id: orderId,
       status: "created",
-      ...body,
+      ...body
     },
     201
   );
 });
 
 // Endpoint requiring idempotency key
-app.post(
-  "/payments",
-  idempotency({ store, required: true }),
-  async (c) => {
-    const body = await c.req.json();
-    const paymentId = Math.random().toString(36).substring(7);
+app.post("/payments", idempotency({ store, required: true }), async (c) => {
+  const body = await c.req.json();
+  const paymentId = Math.random().toString(36).substring(7);
 
-    console.log(`Processing payment: ${paymentId}`);
+  console.log(`Processing payment: ${paymentId}`);
 
-    return c.json(
-      {
-        id: paymentId,
-        status: "completed",
-        ...body,
-      },
-      200
-    );
-  }
-);
+  return c.json(
+    {
+      id: paymentId,
+      status: "completed",
+      ...body
+    },
+    200
+  );
+});
 
 serve(
   {
     fetch: app.fetch,
-    port: 3000,
+    port: 3000
   },
   (info) => {
     console.log(`Server running at http://localhost:${info.port}`);

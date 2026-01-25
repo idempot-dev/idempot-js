@@ -54,7 +54,9 @@
     "ioredis": ">=5.0.0"
   },
   "peerDependenciesMeta": {
-    "ioredis": { "optional": true }
+    "ioredis": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

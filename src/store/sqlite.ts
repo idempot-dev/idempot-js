@@ -45,10 +45,10 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
         ? {
             status: row.response_status,
             headers: JSON.parse(row.response_headers),
-            body: row.response_body,
+            body: row.response_body
           }
         : undefined,
-      expiresAt: row.expires_at,
+      expiresAt: row.expires_at
     };
   }
 
@@ -76,7 +76,7 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
 
     return {
       byKey: this.parseRecord(byKeyRow),
-      byFingerprint: this.parseRecord(byFingerprintRow),
+      byFingerprint: this.parseRecord(byFingerprintRow)
     };
   }
 
@@ -115,7 +115,12 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
       WHERE key = ?
     `
       )
-      .run(response.status, JSON.stringify(response.headers), response.body, key);
+      .run(
+        response.status,
+        JSON.stringify(response.headers),
+        response.body,
+        key
+      );
 
     if (result.changes === 0) {
       throw new Error(`No record found for key: ${key}`);
