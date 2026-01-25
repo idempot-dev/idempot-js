@@ -51,7 +51,22 @@ export class RedisIdempotencyStore implements IdempotencyStore {
     key: string,
     fingerprint: string,
     ttlMs: number
-  ): Promise<void> {}
+  ): Promise<void> {
+    const record: IdempotencyRecord = {
+      key,
+      fingerprint,
+      status: "processing",
+      expiresAt: Date.now() + ttlMs,
+    };
+
+    const ttlSeconds = Math.ceil(ttlMs / 1000);
+
+    // Pipeline both writes
+    const pipeline = this.client.pipeline();
+    pipeline.setex(`idempotency:${key}`, ttlSeconds, JSON.stringify(record));
+    pipeline.setex(`fingerprint:${fingerprint}`, ttlSeconds, key);
+    await pipeline.exec();
+  }
 
   async complete(
     key: string,
