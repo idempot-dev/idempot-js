@@ -1,5 +1,5 @@
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import type { IdempotencyStore, IdempotencyRecord } from "../types.js";
 
 export interface DynamoDbIdempotencyStoreOptions {
@@ -81,7 +81,19 @@ export class DynamoDbIdempotencyStore implements IdempotencyStore {
     fingerprint: string,
     ttlMs: number
   ): Promise<void> {
-    // Placeholder
+    const expiresAt = Math.floor((Date.now() + ttlMs) / 1000);
+
+    await this.client.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          key,
+          fingerprint,
+          status: "processing",
+          expiresAt
+        }
+      })
+    );
   }
 
   async complete(
