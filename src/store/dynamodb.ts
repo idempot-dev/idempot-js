@@ -1,6 +1,10 @@
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
+import {
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  UpdateCommand
+} from "@aws-sdk/lib-dynamodb";
 import type { IdempotencyStore, IdempotencyRecord } from "../types.js";
 
 export interface DynamoDbIdempotencyStoreOptions {
