@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import type { IdempotencyStore } from "../types.js";
+import type { IdempotencyStore, IdempotencyRecord } from "../types.js";
 
 export class SqliteIdempotencyStore implements IdempotencyStore {
   private db: Database.Database;
@@ -34,10 +34,52 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
     this.db.close();
   }
 
-  // Placeholder methods to satisfy interface
-  async lookup() {
-    return { byKey: null, byFingerprint: null };
+  private parseRecord(row: any): IdempotencyRecord | null {
+    if (!row) return null;
+
+    return {
+      key: row.key,
+      fingerprint: row.fingerprint,
+      status: row.status,
+      response: row.response_status
+        ? {
+            status: row.response_status,
+            headers: JSON.parse(row.response_headers),
+            body: row.response_body,
+          }
+        : undefined,
+      expiresAt: row.expires_at,
+    };
   }
+
+  async lookup(
+    key: string,
+    fingerprint: string
+  ): Promise<{
+    byKey: IdempotencyRecord | null;
+    byFingerprint: IdempotencyRecord | null;
+  }> {
+    // Delete up to 10 expired records
+    this.db
+      .prepare("DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10")
+      .run(Date.now());
+
+    // Lookup by key
+    const byKeyRow = this.db
+      .prepare("SELECT * FROM idempotency_records WHERE key = ?")
+      .get(key);
+
+    // Lookup by fingerprint
+    const byFingerprintRow = this.db
+      .prepare("SELECT * FROM idempotency_records WHERE fingerprint = ?")
+      .get(fingerprint);
+
+    return {
+      byKey: this.parseRecord(byKeyRow),
+      byFingerprint: this.parseRecord(byFingerprintRow),
+    };
+  }
+
   async startProcessing() {}
   async complete() {}
   async cleanup() {}
