@@ -31,16 +31,15 @@
   },
   "license": "MIT",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
     "test": "tap",
     "test:coverage": "tap --coverage-report=html",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "check": "npm run format:check && npm run lint"
+    "check": "npm run format:check && npm run lint",
+    "example": "tsx examples/basic-app.ts"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",
@@ -51,6 +50,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@hono/node-server": "^1.19.9",
     "@types/jsonpath-plus": "^5.0.5",
     "@types/node": "^20.11.17",
     "@types/tap": "^15.0.12",
@@ -59,6 +59,7 @@
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.1.0",
+    "hono": "^4.11.5",
     "prettier": "^3.8.1",
     "tap": "^21.5.0",
     "tsx": "^4.7.1",
