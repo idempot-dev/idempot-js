@@ -1,6 +1,35 @@
 {
   "name": "hono-idempotency",
+  "version": "0.1.0",
+  "description": "IETF-compliant idempotency middleware for Hono with pluggable storage backends",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "hono",
+    "middleware",
+    "idempotency",
+    "idempotent",
+    "ietf",
+    "retry",
+    "duplicate-detection"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mroderick/hono-idempotency"
+  },
+  "license": "MIT",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -14,8 +43,6 @@
     "check": "npm run format:check && npm run lint"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.9",
-    "hono": "^4.11.5",
     "jsonpath-plus": "^10.3.0",
     "xxhash-wasm": "^1.1.0"
   },
