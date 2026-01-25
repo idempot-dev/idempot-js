@@ -23,6 +23,48 @@ app.post("/orders", idempotency({ store }), async (c) => {
 });
 ```
 
+### Redis (Production - Multi-Server)
+
+For production deployments with multiple server instances:
+
+```bash
+npm install hono-idempotency ioredis
+```
+
+```typescript
+import { Hono } from "hono";
+import Redis from "ioredis";
+import { idempotency, RedisIdempotencyStore } from "hono-idempotency";
+
+const app = new Hono();
+
+const redis = new Redis({
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
+  password: process.env.REDIS_PASSWORD,
+  retryStrategy: (times) => Math.min(times * 50, 2000)
+});
+
+const store = new RedisIdempotencyStore({ client: redis });
+
+app.post("/orders", idempotency({ store }), async (c) => {
+  return c.json({ id: "order-123" }, 201);
+});
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  redis.quit();
+  process.exit(0);
+});
+```
+
+**Features:**
+
+- Shared state across multiple app instances
+- Native clustering and sentinel support via ioredis
+- Auto-expiration through Redis TTL
+- User controls Redis configuration (TLS, retry logic, connection pooling)
+
 ## Features
 
 - IETF-compliant idempotency key handling
@@ -34,8 +76,10 @@ app.post("/orders", idempotency({ store }), async (c) => {
 ## Examples
 
 See `examples/` directory for complete usage examples:
+
 - `basic-app.ts` - In-memory development setup
 - `sqlite-app.ts` - Production file-based persistence
+- `redis-app.ts` - Multi-server production setup
 
 ## Documentation
 

@@ -40,7 +40,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "check": "npm run format:check && npm run lint",
     "example": "tsx examples/basic-app.ts",
-    "example:sqlite": "tsx examples/sqlite-app.ts"
+    "example:sqlite": "tsx examples/sqlite-app.ts",
+    "example:redis": "tsx examples/redis-app.ts"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -49,7 +50,13 @@
     "xxhash-wasm": "^1.1.0"
   },
   "peerDependencies": {
-    "hono": ">=4.0.0"
+    "hono": ">=4.0.0",
+    "ioredis": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
@@ -63,6 +70,8 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.1.0",
     "hono": "^4.11.5",
+    "ioredis": "^5.9.2",
+    "ioredis-mock": "^8.13.1",
     "prettier": "^3.8.1",
     "tap": "^21.5.0",
     "tsx": "^4.7.1",

@@ -6,11 +6,14 @@ const app = new Hono();
 const store = new SqliteIdempotencyStore({ path: "./data/idempotency.db" });
 
 // Cleanup expired records every hour
-setInterval(() => {
-  store.cleanup().then(() => {
-    console.log("Cleaned up expired idempotency records");
-  });
-}, 60 * 60 * 1000);
+setInterval(
+  () => {
+    store.cleanup().then(() => {
+      console.log("Cleaned up expired idempotency records");
+    });
+  },
+  60 * 60 * 1000
+);
 
 // Basic usage with SQLite persistence
 app.post("/orders", idempotency({ store }), async (c) => {
@@ -23,7 +26,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
     {
       id: orderId,
       status: "created",
-      ...body,
+      ...body
     },
     201
   );
@@ -32,7 +35,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 serve(
   {
     fetch: app.fetch,
-    port: 3000,
+    port: 3000
   },
   (info) => {
     console.log(`Server running at http://localhost:${info.port}`);
