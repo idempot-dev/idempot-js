@@ -40,7 +40,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "check": "npm run format:check && npm run lint",
     "example": "tsx examples/basic-app.ts",
-    "example:sqlite": "tsx examples/sqlite-app.ts"
+    "example:sqlite": "tsx examples/sqlite-app.ts",
+    "example:redis": "tsx examples/redis-app.ts"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",
