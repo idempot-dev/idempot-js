@@ -1,12 +1,13 @@
 import { test } from "tap";
 import { Hono } from "hono";
 import { idempotency } from "../src/middleware.js";
-import { MemoryIdempotencyStore } from "../src/store/memory.js";
+import { SqliteIdempotencyStore } from "../src/store/sqlite.js";
 
 test("middleware - passes through GET requests", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
-  app.get("/test", idempotency(), (c) => {
+  app.get("/test", idempotency({ store }), (c) => {
     return c.json({ message: "success" });
   });
 
@@ -18,9 +19,10 @@ test("middleware - passes through GET requests", async (t) => {
 });
 
 test("middleware - POST without key when optional", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
-  app.post("/test", idempotency(), (c) => {
+  app.post("/test", idempotency({ store }), (c) => {
     return c.json({ message: "created" });
   });
 
@@ -33,9 +35,10 @@ test("middleware - POST without key when optional", async (t) => {
 });
 
 test("middleware - POST without key when required", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
-  app.post("/test", idempotency({ required: true }), (c) => {
+  app.post("/test", idempotency({ store, required: true }), (c) => {
     return c.json({ message: "created" });
   });
 
@@ -50,9 +53,10 @@ test("middleware - POST without key when required", async (t) => {
 });
 
 test("middleware - validates key length", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
-  app.post("/test", idempotency(), (c) => {
+  app.post("/test", idempotency({ store }), (c) => {
     return c.json({ message: "created" });
   });
 
@@ -69,9 +73,10 @@ test("middleware - validates key length", async (t) => {
 });
 
 test("middleware - validates empty key", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
-  app.post("/test", idempotency(), (c) => {
+  app.post("/test", idempotency({ store }), (c) => {
     return c.json({ message: "created" });
   });
 
@@ -85,7 +90,7 @@ test("middleware - validates empty key", async (t) => {
 });
 
 test("middleware - first request with new key", async (t) => {
-  const store = new MemoryIdempotencyStore();
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
   app.post("/test", idempotency({ store }), (c) => {
@@ -105,7 +110,7 @@ test("middleware - first request with new key", async (t) => {
 });
 
 test("middleware - replays cached response", async (t) => {
-  const store = new MemoryIdempotencyStore();
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
   let callCount = 0;
@@ -144,7 +149,7 @@ test("middleware - replays cached response", async (t) => {
 });
 
 test("middleware - detects concurrent processing", async (t) => {
-  const store = new MemoryIdempotencyStore();
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
   app.post("/test", idempotency({ store }), async (c) => {
@@ -185,7 +190,7 @@ test("middleware - detects concurrent processing", async (t) => {
 });
 
 test("middleware - detects same key with different payload", async (t) => {
-  const store = new MemoryIdempotencyStore();
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
   app.post("/test", idempotency({ store }), (c) => {
@@ -216,7 +221,7 @@ test("middleware - detects same key with different payload", async (t) => {
 });
 
 test("middleware - detects duplicate request with different key", async (t) => {
-  const store = new MemoryIdempotencyStore();
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
   app.post("/test", idempotency({ store }), (c) => {
@@ -243,7 +248,7 @@ test("middleware - detects duplicate request with different key", async (t) => {
 });
 
 test("middleware - PATCH method is protected", async (t) => {
-  const store = new MemoryIdempotencyStore();
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
   let callCount = 0;
@@ -269,9 +274,10 @@ test("middleware - PATCH method is protected", async (t) => {
 });
 
 test("middleware - custom header name", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
-  app.post("/test", idempotency({ headerName: "x-request-id" }), (c) => {
+  app.post("/test", idempotency({ store, headerName: "x-request-id" }), (c) => {
     return c.json({ message: "created" });
   });
 
@@ -285,7 +291,7 @@ test("middleware - custom header name", async (t) => {
 });
 
 test("middleware - field exclusion works", async (t) => {
-  const store = new MemoryIdempotencyStore();
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
   let callCount = 0;

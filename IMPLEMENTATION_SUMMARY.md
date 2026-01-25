@@ -2,16 +2,16 @@
 
 ## Summary
 
-Successfully implemented IETF-compliant idempotency middleware for Hono with 97.43% test coverage.
+Successfully implemented IETF-compliant idempotency middleware for Hono with SQLite persistent storage and 96.38% test coverage.
 
 ## Test Results
 
-- **Total Tests**: 56 (all passing)
-- **Coverage**: 97.43% overall
+- **Total Tests**: 59 (all passing)
+- **Coverage**: 96.38% overall
   - fingerprint.ts: 97.22%
-  - middleware.ts: 95.96%
-  - store/memory.ts: 100%
-- **Test Suites**: 3 (fingerprint, middleware, store)
+  - middleware.ts: 92.3%
+  - store/sqlite.ts: 100%
+- **Test Suites**: 3 (fingerprint, middleware, sqlite)
 
 ## Components Implemented
 
@@ -22,14 +22,12 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with 97.
 
 ### 2. Store Layer
 - Interface-driven design (src/store/interface.ts)
-- **MemoryIdempotencyStore** with dual indexes (src/store/memory.ts)
-  - Lookup by key and fingerprint for O(1) conflict detection
-  - TTL-based expiration with cleanup method
-- **SqliteIdempotencyStore** with persistent storage (src/store/sqlite.ts)
+- **SqliteIdempotencyStore** - Production-ready persistent storage
   - SQLite database with dual indexes (key + fingerprint)
+  - In-memory mode (`:memory:`) for testing and development
+  - File-based mode for production persistence
   - Limited cleanup during lookups (max 10 expired records)
   - Full cleanup available via manual `cleanup()` method
-  - Supports both file-based and in-memory databases
   - Default database path: `./idempotency.db`
 
 ### 3. Fingerprinting (src/fingerprint.ts)
@@ -52,19 +50,19 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with 97.
 ### 5. Public API (src/index.ts)
 - Exports middleware function
 - Exports all types
-- Exports MemoryIdempotencyStore
 - Exports SqliteIdempotencyStore
 - Exports generateFingerprint utility
 
 ### 6. Example Applications
-- **examples/basic-app.ts** - MemoryIdempotencyStore
+- **examples/basic-app.ts** - In-memory SQLite for development
+  - Uses `:memory:` mode for lightweight local testing
   - Demonstrates all middleware features
-  - Shows optional and required usage
+  - Shows optional and required idempotency keys
   - Custom header name example
   - Field exclusion example
   - PATCH endpoint protection
   - Includes helpful curl examples
-- **examples/sqlite-app.ts** - SqliteIdempotencyStore
+- **examples/sqlite-app.ts** - Production file-based persistence
   - Persistent storage with SQLite
   - Periodic cleanup (hourly)
   - Graceful shutdown handling
@@ -83,11 +81,12 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with 97.
 
 All requirements met:
 - ✅ TDD approach throughout
-- ✅ 56 comprehensive tests
-- ✅ 97.43% code coverage
+- ✅ 59 comprehensive tests (7 memory store tests removed)
+- ✅ 96.38% code coverage
 - ✅ Edge cases covered
 - ✅ Concurrent request handling verified
 - ✅ All conflict scenarios tested
+- ✅ SQLite persistence verified
 
 ## SQLite Store
 

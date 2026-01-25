@@ -1,9 +1,9 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { idempotency, MemoryIdempotencyStore } from "../src/index.js";
+import { idempotency, SqliteIdempotencyStore } from "../src/index.js";
 
 const app = new Hono();
-const store = new MemoryIdempotencyStore();
+const store = new SqliteIdempotencyStore({ path: ":memory:" });
 
 // Basic usage with default options (optional idempotency-key)
 app.post("/orders", idempotency({ store }), async (c) => {

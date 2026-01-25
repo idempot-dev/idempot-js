@@ -1,13 +1,12 @@
 import type { MiddlewareHandler } from "hono";
 import type { IdempotencyOptions } from "./types.js";
-import { MemoryIdempotencyStore } from "./store/memory.js";
 import { generateFingerprint } from "./fingerprint.js";
 
 const DEFAULT_OPTIONS: Required<IdempotencyOptions> = {
   required: false,
   ttlMs: 86400000, // 24 hours
   excludeFields: [],
-  store: null as any, // Will be set to MemoryIdempotencyStore
+  store: null as any,
   headerName: "idempotency-key",
   maxKeyLength: 255
 };
@@ -16,7 +15,13 @@ export function idempotency(
   options: IdempotencyOptions = {}
 ): MiddlewareHandler {
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  const store = opts.store ?? new MemoryIdempotencyStore();
+  if (!opts.store) {
+    throw new Error(
+      "IdempotencyStore must be provided. " +
+        "Use SqliteIdempotencyStore({ path: ':memory:' }) for development"
+    );
+  }
+  const store = opts.store;
 
   return async (c, next) => {
     const method = c.req.method;
