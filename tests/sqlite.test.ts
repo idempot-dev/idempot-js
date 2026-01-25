@@ -55,3 +55,29 @@ test("SqliteIdempotencyStore - complete updates record", async (t) => {
 
   store.close();
 });
+
+test("SqliteIdempotencyStore - cleanup removes expired records", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  // Add expired record
+  await store.startProcessing("expired-key", "expired-fp", -1000);
+
+  // Add valid record
+  await store.startProcessing("valid-key", "valid-fp", 60000);
+
+  await store.cleanup();
+
+  const expired = await store.lookup("expired-key", "expired-fp");
+  const valid = await store.lookup("valid-key", "valid-fp");
+
+  t.equal(expired.byKey, null, "expired record should be removed by key");
+  t.equal(
+    expired.byFingerprint,
+    null,
+    "expired record should be removed by fingerprint"
+  );
+  t.ok(valid.byKey, "valid record should remain");
+  t.ok(valid.byFingerprint, "valid record should remain");
+
+  store.close();
+});
