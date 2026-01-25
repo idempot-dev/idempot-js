@@ -47,6 +47,27 @@ export function idempotency(
       // Lookup in store
       const lookup = await store.lookup(key, fingerprint);
 
+      // Existing record being processed - reject concurrent request
+      if (lookup.byKey?.status === "processing") {
+        return c.json(
+          { error: "A request with this idempotency key is already being processed" },
+          409
+        );
+      }
+
+      // Existing complete record - replay
+      if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
+        const cached = lookup.byKey.response;
+        return c.body(
+          cached.body,
+          cached.status,
+          {
+            ...cached.headers,
+            "x-idempotent-replayed": "true"
+          }
+        );
+      }
+
       // No existing record - process new request
       if (!lookup.byKey && !lookup.byFingerprint) {
         await store.startProcessing(key, fingerprint, opts.ttlMs);
@@ -66,19 +87,6 @@ export function idempotency(
 
         // Return original response
         return;
-      }
-
-      // Existing complete record - replay
-      if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
-        const cached = lookup.byKey.response;
-        return c.body(
-          cached.body,
-          cached.status,
-          {
-            ...cached.headers,
-            "x-idempotent-replayed": "true"
-          }
-        );
       }
 
       // TODO: Handle other conflict cases

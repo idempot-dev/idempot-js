@@ -142,3 +142,40 @@ test("middleware - replays cached response", async (t) => {
   const json2 = await res2.json();
   t.same(json2, { message: "created", id: 123 }, "should return cached body");
 });
+
+test("middleware - detects concurrent processing", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const app = new Hono();
+
+  app.post("/test", idempotency({ store }), async (c) => {
+    // Simulate slow handler
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return c.json({ message: "created" });
+  });
+
+  // Start two requests concurrently with slight delay
+  const promise1 = app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "concurrent-key" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  // Small delay to ensure first request starts processing
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  const promise2 = app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "concurrent-key" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  const [res1, res2] = await Promise.all([promise1, promise2]);
+
+  // One should succeed, one should get 409
+  const statuses = [res1.status, res2.status].sort();
+  t.same(statuses, [200, 409], "one success and one conflict");
+
+  const conflict = res1.status === 409 ? res1 : res2;
+  const json = await conflict.json();
+  t.match(json.error, /already being processed/i, "should indicate concurrent processing");
+});
