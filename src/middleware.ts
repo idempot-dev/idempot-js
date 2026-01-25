@@ -55,6 +55,14 @@ export function idempotency(
         );
       }
 
+      // Same key, different fingerprint - payload mismatch
+      if (lookup.byKey && lookup.byKey.fingerprint !== fingerprint) {
+        return c.json(
+          { error: "Idempotency key reused with different request payload" },
+          422
+        );
+      }
+
       // Existing complete record - replay
       if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
         const cached = lookup.byKey.response;

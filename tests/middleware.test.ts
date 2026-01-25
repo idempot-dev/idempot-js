@@ -179,3 +179,30 @@ test("middleware - detects concurrent processing", async (t) => {
   const json = await conflict.json();
   t.match(json.error, /already being processed/i, "should indicate concurrent processing");
 });
+
+test("middleware - detects same key with different payload", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const app = new Hono();
+
+  app.post("/test", idempotency({ store }), (c) => {
+    return c.json({ message: "created" });
+  });
+
+  // First request
+  await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "mismatch-key" },
+    body: JSON.stringify({ data: "original" })
+  });
+
+  // Second request with same key, different body
+  const res = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "mismatch-key" },
+    body: JSON.stringify({ data: "changed" })
+  });
+
+  t.equal(res.status, 422, "should return 422");
+  const json = await res.json();
+  t.match(json.error, /different.*payload/i, "should indicate payload mismatch");
+});
