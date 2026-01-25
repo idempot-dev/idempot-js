@@ -16,10 +16,16 @@ export async function generateFingerprint(
 ): Promise<string> {
   const hasher = await getXXHash();
 
-  // Try to parse as JSON
   let normalized: string;
   try {
-    const parsed = JSON.parse(body);
+    let parsed = JSON.parse(body);
+
+    // Exclude root-level fields
+    const rootExclusions = excludeFields.filter(f => !f.startsWith("$."));
+    for (const field of rootExclusions) {
+      delete parsed[field];
+    }
+
     // Normalize: sort keys
     normalized = JSON.stringify(sortKeys(parsed));
   } catch {
