@@ -50,7 +50,6 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with 97.
 ### 5. Public API (src/index.ts)
 - Exports middleware function
 - Exports all types
-- Exports MemoryIdempotencyStore
 - Exports SqliteIdempotencyStore
 - Exports generateFingerprint utility
 
