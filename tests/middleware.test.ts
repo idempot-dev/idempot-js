@@ -103,3 +103,42 @@ test("middleware - first request with new key", async (t) => {
   t.same(json, { message: "created", id: 123 }, "should return correct body");
   t.notOk(res.headers.get("x-idempotent-replayed"), "should not be replayed");
 });
+
+test("middleware - replays cached response", async (t) => {
+  const store = new MemoryIdempotencyStore();
+  const app = new Hono();
+
+  let callCount = 0;
+  app.post("/test", idempotency({ store }), (c) => {
+    callCount++;
+    return c.json({ message: "created", id: 123 });
+  });
+
+  // First request
+  const res1 = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "replay-key" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res1.status, 200, "first request should succeed");
+  t.equal(callCount, 1, "handler should be called once");
+
+  // Second request with same key and body
+  const res2 = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "replay-key" },
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res2.status, 200, "cached response should have same status");
+  t.equal(callCount, 1, "handler should not be called again");
+  t.equal(
+    res2.headers.get("x-idempotent-replayed"),
+    "true",
+    "should have replay header"
+  );
+
+  const json2 = await res2.json();
+  t.same(json2, { message: "created", id: 123 }, "should return cached body");
+});

@@ -68,7 +68,20 @@ export function idempotency(
         return;
       }
 
-      // TODO: Handle existing records
+      // Existing complete record - replay
+      if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
+        const cached = lookup.byKey.response;
+        return c.body(
+          cached.body,
+          cached.status,
+          {
+            ...cached.headers,
+            "x-idempotent-replayed": "true"
+          }
+        );
+      }
+
+      // TODO: Handle other conflict cases
       await next();
       return;
     }
