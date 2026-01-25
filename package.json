@@ -44,8 +44,11 @@
     "example:redis": "tsx examples/redis-app.ts",
     "example:bun": "bun run examples/bun-basic-app.ts",
     "example:bun:sqlite": "bun run examples/bun-sqlite-app.ts",
+    "example:lambda:apigateway": "tsx examples/lambda-apigateway-dynamodb.ts",
+    "example:lambda:url": "tsx examples/lambda-url-dynamodb.ts",
     "test:bun": "bun test test/bun/",
-    "test:bun:coverage": "bun test test/bun/ --coverage"
+    "test:bun:coverage": "bun test test/bun/ --coverage",
+    "test:lambda": "bun test test/lambda/"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",

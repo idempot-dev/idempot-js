@@ -14,11 +14,11 @@ Then choose a storage backend (see sections below).
 
 Choose the backend that best fits your deployment:
 
-| Backend | Best For | Setup Complexity | Node.js | Bun | Deno | Workers |
-|---------|----------|------------------|---------|-----|------|---------|
-| **SQLite** | Single-server, development | Easy | ✅ | ✅ | 🔄 | ❌ |
-| **Redis** | Multi-server, high performance | Medium | ✅ | ✅ | 🔄 | 🔄 |
-| **DynamoDB** | AWS-native, serverless, managed | Medium | ✅ | ✅ | 🔄 | 🔄 |
+| Backend | Best For | Setup Complexity | Node.js | Bun | Lambda | Deno | Workers |
+|---------|----------|------------------|---------|-----|--------|------|---------|
+| **SQLite** | Single-server, development | Easy | ✅ | ✅ | ❌ | 🔄 | ❌ |
+| **Redis** | Multi-server, high performance | Medium | ✅ | ✅ | ✅ | 🔄 | 🔄 |
+| **DynamoDB** | AWS-native, serverless, managed | Medium | ✅ | ✅ | ✅ | 🔄 | 🔄 |
 
 **Runtime Support:**
 - ✅ Fully supported and tested
@@ -169,6 +169,49 @@ export default {
 
 See [docs/bun-setup.md](./docs/bun-setup.md) for complete Bun setup guide.
 
+## Using with AWS Lambda
+
+Deploy idempotency middleware on AWS Lambda with API Gateway or Function URLs:
+
+```bash
+npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
+```
+
+```typescript
+import { Hono } from "hono";
+import { handle } from "hono/aws-lambda";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { idempotency, DynamoDbIdempotencyStore } from "hono-idempotency";
+
+// Initialize outside handler for connection reuse
+const dynamoDBClient = new DynamoDBClient({ region: "us-east-1" });
+const documentClient = DynamoDBDocumentClient.from(dynamoDBClient);
+const store = new DynamoDbIdempotencyStore({
+  client: documentClient,
+  tableName: "idempotency-records"
+});
+
+const app = new Hono();
+app.post("/orders", idempotency({ store }), async (c) => {
+  return c.json({ id: "order-123" }, 201);
+});
+
+export const handler = handle(app);
+```
+
+**Features:**
+- Works with API Gateway (REST/HTTP API) and Lambda Function URLs
+- DynamoDB for serverless-native persistence
+- Redis/ElastiCache for existing infrastructure
+- Proper connection reuse across warm invocations
+
+**Recommended Storage:**
+- **DynamoDB**: Best for Lambda (serverless, no cold start penalty, scales automatically)
+- **Redis/ElastiCache**: For users with existing Redis infrastructure
+
+See [docs/lambda-setup.md](./docs/lambda-setup.md) for complete Lambda setup guide.
+
 ## Core Features
 
 - IETF-compliant idempotency key handling
@@ -190,6 +233,12 @@ See `examples/` directory for complete usage examples:
 **Bun:**
 - `bun-basic-app.ts` - In-memory development with Bun
 - `bun-sqlite-app.ts` - File-based persistence with Bun
+
+**AWS Lambda:**
+- `lambda-apigateway-dynamodb.ts` - API Gateway with DynamoDB
+- `lambda-apigateway-redis.ts` - API Gateway with Redis/ElastiCache
+- `lambda-url-dynamodb.ts` - Function URL with DynamoDB
+- `lambda-url-redis.ts` - Function URL with Redis/ElastiCache
 
 ## Documentation
 
