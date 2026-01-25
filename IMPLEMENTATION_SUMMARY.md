@@ -6,21 +6,24 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
 
 ## Test Results
 
-- **Total Tests**: 59 (all passing)
-- **Coverage**: 96.38% overall
+- **Total Tests**: 67 (all passing)
+- **Coverage**: 96%+ overall
   - fingerprint.ts: 97.22%
   - middleware.ts: 92.3%
   - store/sqlite.ts: 100%
-- **Test Suites**: 3 (fingerprint, middleware, sqlite)
+  - store/redis.ts: 100%
+- **Test Suites**: 4 (fingerprint, middleware, sqlite, redis)
 
 ## Components Implemented
 
 ### 1. Type System (src/types.ts)
+
 - IdempotencyRecord interface
 - IdempotencyOptions interface
 - IdempotencyStore interface
 
 ### 2. Store Layer
+
 - Interface-driven design (src/store/interface.ts)
 - **SqliteIdempotencyStore** - Production-ready persistent storage
   - SQLite database with dual indexes (key + fingerprint)
@@ -29,8 +32,15 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
   - Limited cleanup during lookups (max 10 expired records)
   - Full cleanup available via manual `cleanup()` method
   - Default database path: `./idempotency.db`
+- **RedisIdempotencyStore** - Multi-server production storage
+  - User-managed ioredis client
+  - JSON string storage with dual key pattern
+  - Native Redis TTL for auto-expiration
+  - Pipelined operations for performance
+  - Optional peer dependency (install only if needed)
 
 ### 3. Fingerprinting (src/fingerprint.ts)
+
 - xxHash64 for fast, non-cryptographic hashing
 - JSON normalization with key sorting
 - Root-level field exclusion
@@ -38,6 +48,7 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
 - Non-JSON body support
 
 ### 4. Middleware (src/middleware.ts)
+
 - Intercepts POST and PATCH requests
 - Optional or required idempotency-key header
 - Key validation (length 1-255 characters)
@@ -48,12 +59,15 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
 - Configurable header name and field exclusions
 
 ### 5. Public API (src/index.ts)
+
 - Exports middleware function
 - Exports all types
 - Exports SqliteIdempotencyStore
+- Exports RedisIdempotencyStore
 - Exports generateFingerprint utility
 
 ### 6. Example Applications
+
 - **examples/basic-app.ts** - In-memory SQLite for development
   - Uses `:memory:` mode for lightweight local testing
   - Demonstrates all middleware features
@@ -67,6 +81,11 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
   - Periodic cleanup (hourly)
   - Graceful shutdown handling
   - Database at `./data/idempotency.db`
+- **examples/redis-app.ts** - Multi-server production deployment
+  - Redis-backed storage for distributed systems
+  - Configurable via environment variables
+  - Automatic TTL-based cleanup
+  - Graceful connection shutdown
 
 ## Package Configuration
 
@@ -75,11 +94,13 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
 - ESM with NodeNext module resolution
 - Peer dependency: hono >=4.0.0
 - Dependencies: xxhash-wasm, jsonpath-plus, better-sqlite3
+- Optional Peer Dependencies: ioredis (for Redis store)
 - Keywords: hono, middleware, idempotency, ietf, retry, duplicate-detection
 
 ## Testing
 
 All requirements met:
+
 - ✅ TDD approach throughout
 - ✅ 59 comprehensive tests (7 memory store tests removed)
 - ✅ 96.38% code coverage
