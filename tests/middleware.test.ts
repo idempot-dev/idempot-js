@@ -30,3 +30,20 @@ test("middleware - POST without key when optional", async (t) => {
 
   t.equal(res.status, 200, "should allow request without key");
 });
+
+test("middleware - POST without key when required", async (t) => {
+  const app = new Hono();
+
+  app.post("/test", idempotency({ required: true }), (c) => {
+    return c.json({ message: "created" });
+  });
+
+  const res = await app.request("/test", {
+    method: "POST",
+    body: JSON.stringify({ data: "test" })
+  });
+
+  t.equal(res.status, 400, "should return 400");
+  const json = await res.json();
+  t.match(json.error, /required/i, "should indicate header is required");
+});
