@@ -1,5 +1,6 @@
 import xxhash from "xxhash-wasm";
 import type { XXHashAPI } from "xxhash-wasm";
+import { JSONPath } from "jsonpath-plus";
 
 let xxhashInstance: XXHashAPI | null = null;
 
@@ -24,6 +25,24 @@ export async function generateFingerprint(
     const rootExclusions = excludeFields.filter(f => !f.startsWith("$."));
     for (const field of rootExclusions) {
       delete parsed[field];
+    }
+
+    // Exclude nested fields via JSONPath
+    const jsonPathExclusions = excludeFields.filter(f => f.startsWith("$."));
+    for (const path of jsonPathExclusions) {
+      try {
+        JSONPath({
+          path,
+          json: parsed,
+          callback: (value, type, payload) => {
+            if (payload.parent && payload.parentProperty) {
+              delete payload.parent[payload.parentProperty];
+            }
+          }
+        });
+      } catch {
+        // Ignore invalid JSONPath
+      }
     }
 
     // Normalize: sort keys

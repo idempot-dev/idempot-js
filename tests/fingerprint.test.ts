@@ -21,3 +21,19 @@ test("generateFingerprint - excludes root-level fields", async (t) => {
 
   t.equal(fp1, fp2, "fingerprints should match when excluded field differs");
 });
+
+test("generateFingerprint - excludes nested fields via JSONPath", async (t) => {
+  const body1 = JSON.stringify({
+    foo: "bar",
+    metadata: { requestId: "req-1", clientId: "client-a" }
+  });
+  const body2 = JSON.stringify({
+    foo: "bar",
+    metadata: { requestId: "req-2", clientId: "client-a" }
+  });
+
+  const fp1 = await generateFingerprint(body1, ["$.metadata.requestId"]);
+  const fp2 = await generateFingerprint(body2, ["$.metadata.requestId"]);
+
+  t.equal(fp1, fp2, "fingerprints should match when nested field excluded");
+});
