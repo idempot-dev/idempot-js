@@ -1,20 +1,15 @@
 // Main middleware
 export { idempotency } from "./middleware.js";
 
-// Types
-export type {
-  IdempotencyRecord,
-  IdempotencyOptions,
-  IdempotencyStore
-} from "./types.js";
+// Types (exported via TypeScript .d.ts generation)
+export {};
 
 // Store implementations
 export { SqliteIdempotencyStore } from "./store/sqlite.js";
-export { BunSqliteIdempotencyStore } from "./store/bun-sqlite.js";
+// BunSqliteIdempotencyStore must be imported directly from "./store/bun-sqlite.js" in Bun runtime
+// export { BunSqliteIdempotencyStore } from "./store/bun-sqlite.js";
 export { RedisIdempotencyStore } from "./store/redis.js";
-export type { RedisIdempotencyStoreOptions } from "./store/redis.js";
 export { DynamoDbIdempotencyStore } from "./store/dynamodb.js";
-export type { DynamoDbIdempotencyStoreOptions } from "./store/dynamodb.js";
 
 // Utilities
 export { generateFingerprint } from "./fingerprint.js";

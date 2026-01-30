@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./dist",
+    "maxNodeModuleJsDepth": 0,
     "target": "ESNext",
     "module": "NodeNext",
     "strict": true,
-    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": ["node"],
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-    "outDir": "./dist",
-    "declaration": true,
-    "declarationMap": true
+    "types": ["node"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "tests", "examples"]
+  "include": ["src/**/*.js"],
+  "exclude": ["node_modules", "dist"]
 }

@@ -1,33 +1,49 @@
-import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import {
   GetCommand,
   PutCommand,
   QueryCommand,
   UpdateCommand
 } from "@aws-sdk/lib-dynamodb";
-import type { IdempotencyStore, IdempotencyRecord } from "../types.js";
 
-export interface DynamoDbIdempotencyStoreOptions {
-  client: DynamoDBDocumentClient;
-  tableName?: string;
-}
+/** @typedef {import("@aws-sdk/lib-dynamodb").DynamoDBDocumentClient} DynamoDBDocumentClient */
+/** @typedef {import("../types.js").IdempotencyStore} IdempotencyStore */
+/** @typedef {import("../types.js").IdempotencyRecord} IdempotencyRecord */
 
-export class DynamoDbIdempotencyStore implements IdempotencyStore {
-  private client: DynamoDBDocumentClient;
-  private tableName: string;
+/**
+ * @typedef {Object} DynamoDbIdempotencyStoreOptions
+ * @property {DynamoDBDocumentClient} client - The DynamoDB document client
+ * @property {string} [tableName] - The table name (defaults to "idempotency-records")
+ */
 
-  constructor(options: DynamoDbIdempotencyStoreOptions) {
+/**
+ * @implements {IdempotencyStore}
+ */
+export class DynamoDbIdempotencyStore {
+  /**
+   * @type {DynamoDBDocumentClient}
+   */
+  client;
+
+  /**
+   * @type {string}
+   */
+  tableName;
+
+  /**
+   * @param {DynamoDbIdempotencyStoreOptions} options
+   */
+  constructor(options) {
     this.client = options.client;
     this.tableName = options.tableName ?? "idempotency-records";
   }
 
-  async lookup(
-    key: string,
-    fingerprint: string
-  ): Promise<{
-    byKey: IdempotencyRecord | null;
-    byFingerprint: IdempotencyRecord | null;
-  }> {
+  /**
+   * Look up an idempotency record by key and fingerprint
+   * @param {string} key - The request key
+   * @param {string} fingerprint - The request fingerprint
+   * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
+   */
+  async lookup(key, fingerprint) {
     // Execute parallel operations for performance
     const [byKeyResult, byFingerprintResult] = await Promise.all([
       this.client.send(
@@ -57,7 +73,13 @@ export class DynamoDbIdempotencyStore implements IdempotencyStore {
     return { byKey, byFingerprint };
   }
 
-  private parseRecord(item: any): IdempotencyRecord | null {
+  /**
+   * Parse a DynamoDB item into an IdempotencyRecord
+   * @private
+   * @param {any} item - The DynamoDB item to parse
+   * @returns {IdempotencyRecord | null}
+   */
+  parseRecord(item) {
     if (!item) return null;
 
     // Filter expired records
@@ -81,11 +103,14 @@ export class DynamoDbIdempotencyStore implements IdempotencyStore {
     };
   }
 
-  async startProcessing(
-    key: string,
-    fingerprint: string,
-    ttlMs: number
-  ): Promise<void> {
+  /**
+   * Start processing a request
+   * @param {string} key - The request key
+   * @param {string} fingerprint - The request fingerprint
+   * @param {number} ttlMs - Time to live in milliseconds
+   * @returns {Promise<void>}
+   */
+  async startProcessing(key, fingerprint, ttlMs) {
     const expiresAt = Math.floor((Date.now() + ttlMs) / 1000);
 
     await this.client.send(
@@ -101,14 +126,14 @@ export class DynamoDbIdempotencyStore implements IdempotencyStore {
     );
   }
 
-  async complete(
-    key: string,
-    response: {
-      status: number;
-      headers: Record<string, string>;
-      body: string;
-    }
-  ): Promise<void> {
+  /**
+   * Mark a request as complete with its response
+   * @param {string} key - The request key
+   * @param {{status: number, headers: Record<string, string>, body: string}} response - The response object
+   * @returns {Promise<void>}
+   * @throws {Error} If record not found for key
+   */
+  async complete(key, response) {
     try {
       await this.client.send(
         new UpdateCommand({
@@ -129,15 +154,19 @@ export class DynamoDbIdempotencyStore implements IdempotencyStore {
           }
         })
       );
-    } catch (error: any) {
-      if (error.name === "ConditionalCheckFailedException") {
+    } catch (error) {
+      if (/** @type {any} */ (error).name === "ConditionalCheckFailedException") {
         throw new Error(`Record not found for key: ${key}`);
       }
       throw error;
     }
   }
 
-  async cleanup(): Promise<void> {
+  /**
+   * Clean up expired records (no-op: DynamoDB TTL handles cleanup)
+   * @returns {Promise<void>}
+   */
+  async cleanup() {
     // No-op: DynamoDB TTL handles cleanup
   }
 }

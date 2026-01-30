@@ -1,9 +1,14 @@
 import xxhash from "xxhash-wasm";
-import type { XXHashAPI } from "xxhash-wasm";
 import { JSONPath } from "jsonpath-plus";
 
-let xxhashInstance: XXHashAPI | null = null;
+/** @typedef {import("xxhash-wasm").XXHashAPI} XXHashAPI */
 
+/** @type {XXHashAPI | null} */
+let xxhashInstance = null;
+
+/**
+ * @returns {Promise<XXHashAPI>}
+ */
 async function getXXHash() {
   if (!xxhashInstance) {
     xxhashInstance = await xxhash();
@@ -11,13 +16,16 @@ async function getXXHash() {
   return xxhashInstance;
 }
 
-export async function generateFingerprint(
-  body: string,
-  excludeFields: string[]
-): Promise<string> {
+/**
+ * @param {string} body
+ * @param {string[]} excludeFields
+ * @returns {Promise<string>}
+ */
+export async function generateFingerprint(body, excludeFields) {
   const hasher = await getXXHash();
 
-  let normalized: string;
+  /** @type {string} */
+  let normalized;
   try {
     let parsed = JSON.parse(body);
 
@@ -55,7 +63,11 @@ export async function generateFingerprint(
   return hasher.h64ToString(normalized);
 }
 
-function sortKeys(obj: any): any {
+/**
+ * @param {any} obj
+ * @returns {any}
+ */
+function sortKeys(obj) {
   if (obj === null || typeof obj !== "object") {
     return obj;
   }
@@ -64,7 +76,8 @@ function sortKeys(obj: any): any {
     return obj.map(sortKeys);
   }
 
-  const sorted: Record<string, any> = {};
+  /** @type {Record<string, any>} */
+  const sorted = {};
   for (const key of Object.keys(obj).sort()) {
     sorted[key] = sortKeys(obj[key]);
   }

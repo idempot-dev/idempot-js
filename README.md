@@ -33,7 +33,7 @@ For local development with simple file-based persistence:
 npm install hono-idempotency better-sqlite3
 ```
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import { idempotency, SqliteIdempotencyStore } from "hono-idempotency";
 
@@ -54,7 +54,7 @@ For production deployments with multiple server instances:
 npm install hono-idempotency ioredis
 ```
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import Redis from "ioredis";
 import { idempotency, RedisIdempotencyStore } from "hono-idempotency";
@@ -96,7 +96,7 @@ For AWS-native deployments with serverless scaling:
 npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 ```
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
@@ -139,9 +139,10 @@ Install and run with Bun's native performance:
 bun add hono-idempotency
 ```
 
-```typescript
+```javascript
 import { Hono } from "hono";
-import { idempotency, BunSqliteIdempotencyStore } from "hono-idempotency";
+import { BunSqliteIdempotencyStore } from "hono-idempotency/store/bun-sqlite";
+import { idempotency } from "hono-idempotency";
 
 const app = new Hono();
 const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
@@ -177,7 +178,7 @@ Deploy idempotency middleware on AWS Lambda with API Gateway or Function URLs:
 npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 ```
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -225,20 +226,20 @@ See [docs/lambda-setup.md](./docs/lambda-setup.md) for complete Lambda setup gui
 See `examples/` directory for complete usage examples:
 
 **Node.js:**
-- `basic-app.ts` - In-memory development setup
-- `sqlite-app.ts` - Production file-based persistence
-- `redis-app.ts` - Multi-server production setup
-- `dynamodb-app.ts` - AWS DynamoDB backend setup
+- `basic-app.js` - In-memory development setup
+- `sqlite-app.js` - Production file-based persistence
+- `redis-app.js` - Multi-server production setup
+- `dynamodb-app.js` - AWS DynamoDB backend setup
 
 **Bun:**
-- `bun-basic-app.ts` - In-memory development with Bun
-- `bun-sqlite-app.ts` - File-based persistence with Bun
+- `bun-basic-app.js` - In-memory development with Bun
+- `bun-sqlite-app.js` - File-based persistence with Bun
 
 **AWS Lambda:**
-- `lambda-apigateway-dynamodb.ts` - API Gateway with DynamoDB
-- `lambda-apigateway-redis.ts` - API Gateway with Redis/ElastiCache
-- `lambda-url-dynamodb.ts` - Function URL with DynamoDB
-- `lambda-url-redis.ts` - Function URL with Redis/ElastiCache
+- `lambda-apigateway-dynamodb.js` - API Gateway with DynamoDB
+- `lambda-apigateway-redis.js` - API Gateway with Redis/ElastiCache
+- `lambda-url-dynamodb.js` - Function URL with DynamoDB
+- `lambda-url-redis.js` - Function URL with Redis/ElastiCache
 
 ## Documentation
 

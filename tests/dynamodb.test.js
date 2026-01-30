@@ -7,7 +7,7 @@ test("DynamoDbIdempotencyStore - initialization", (t) => {
   const ddbMock = mockClient(DynamoDBDocumentClient);
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any
+    client: ddbMock
   });
 
   t.ok(store, "store should be created");
@@ -18,7 +18,7 @@ test("DynamoDbIdempotencyStore - initialization with custom table name", (t) => 
   const ddbMock = mockClient(DynamoDBDocumentClient);
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any,
+    client: ddbMock,
     tableName: "custom-table"
   });
 
@@ -32,7 +32,7 @@ test("DynamoDbIdempotencyStore - lookup with empty store", async (t) => {
   ddbMock.on(QueryCommand).resolves({ Items: [] });
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any
+    client: ddbMock
   });
 
   const result = await store.lookup("test-key", "test-fingerprint");
@@ -44,14 +44,14 @@ test("DynamoDbIdempotencyStore - lookup with empty store", async (t) => {
 test("DynamoDbIdempotencyStore - startProcessing creates record", async (t) => {
   const ddbMock = mockClient(DynamoDBDocumentClient);
 
-  let capturedItem: any = null;
+  let capturedItem = null;
   ddbMock.on(PutCommand).callsFake((input) => {
     capturedItem = input.Item;
     return {};
   });
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any
+    client: ddbMock
   });
 
   const beforeTime = Math.floor(Date.now() / 1000);
@@ -71,14 +71,14 @@ test("DynamoDbIdempotencyStore - startProcessing creates record", async (t) => {
 test("DynamoDbIdempotencyStore - complete updates record", async (t) => {
   const ddbMock = mockClient(DynamoDBDocumentClient);
 
-  let capturedInput: any = null;
+  let capturedInput = null;
   ddbMock.on(UpdateCommand).callsFake((input) => {
     capturedInput = input;
     return {};
   });
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any
+    client: ddbMock
   });
 
   await store.complete("test-key", {
@@ -103,7 +103,7 @@ test("DynamoDbIdempotencyStore - complete throws on missing key", async (t) => {
   ddbMock.on(UpdateCommand).rejects(error);
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any
+    client: ddbMock
   });
 
   try {
@@ -113,7 +113,7 @@ test("DynamoDbIdempotencyStore - complete throws on missing key", async (t) => {
       body: ""
     });
     t.fail("should throw error for missing key");
-  } catch (err: any) {
+  } catch (err) {
     t.ok(err, "should throw error");
     t.match(err.message, /Record not found/, "error message should mention record not found");
   }
@@ -134,7 +134,7 @@ test("DynamoDbIdempotencyStore - lookup filters expired records", async (t) => {
   ddbMock.on(QueryCommand).resolves({ Items: [expiredRecord] });
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any
+    client: ddbMock
   });
 
   const result = await store.lookup("test-key", "test-fp");
@@ -161,7 +161,7 @@ test("DynamoDbIdempotencyStore - lookup by fingerprint only", async (t) => {
   ddbMock.on(QueryCommand).resolves({ Items: [fingerprintRecord] });
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any
+    client: ddbMock
   });
 
   const result = await store.lookup("some-key", "test-fp");
@@ -177,7 +177,7 @@ test("DynamoDbIdempotencyStore - cleanup is no-op", async (t) => {
   const ddbMock = mockClient(DynamoDBDocumentClient);
 
   const store = new DynamoDbIdempotencyStore({
-    client: ddbMock as any
+    client: ddbMock
   });
 
   // cleanup should not throw and should be a no-op

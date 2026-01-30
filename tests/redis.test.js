@@ -93,10 +93,9 @@ test("RedisIdempotencyStore - complete throws on missing key", async (t) => {
       body: "test"
     });
     t.fail("should have thrown");
-  } catch (err: unknown) {
-    const error = err as Error;
+  } catch (err) {
     t.match(
-      error.message,
+      err.message,
       /No record found/,
       "should throw error for missing key"
     );

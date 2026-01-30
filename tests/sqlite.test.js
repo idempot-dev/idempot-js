@@ -92,7 +92,7 @@ test("SqliteIdempotencyStore - complete throws on missing key", async (t) => {
       body: "test"
     });
     t.fail("should have thrown");
-  } catch (err: any) {
+  } catch (err) {
     t.match(
       err.message,
       /No record found/,

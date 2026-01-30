@@ -1,2 +1,2 @@
 files:
-  - "tests/**/*.test.ts"
+  - "tests/**/*.test.js"

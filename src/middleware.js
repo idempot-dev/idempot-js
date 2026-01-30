@@ -1,19 +1,22 @@
-import type { MiddlewareHandler } from "hono";
-import type { IdempotencyOptions } from "./types.js";
+/** @typedef {import("./types.js").IdempotencyOptions} IdempotencyOptions */
+
 import { generateFingerprint } from "./fingerprint.js";
 
-const DEFAULT_OPTIONS: Required<IdempotencyOptions> = {
+/** @type {Required<IdempotencyOptions>} */
+const DEFAULT_OPTIONS = {
   required: false,
   ttlMs: 86400000, // 24 hours
   excludeFields: [],
-  store: null as any,
+  store: /** @type {any} */ (null),
   headerName: "idempotency-key",
   maxKeyLength: 255
 };
 
-export function idempotency(
-  options: IdempotencyOptions = {}
-): MiddlewareHandler {
+/**
+ * @param {IdempotencyOptions} [options]
+ * @returns {import("hono").MiddlewareHandler}
+ */
+export function idempotency(options = {}) {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   if (!opts.store) {
     throw new Error(
@@ -87,7 +90,7 @@ export function idempotency(
       // Existing complete record - replay
       if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
         const cached = lookup.byKey.response;
-        return c.body(cached.body, cached.status as any, {
+        return c.body(cached.body, /** @type {any} */ (cached.status), {
           ...cached.headers,
           "x-idempotent-replayed": "true"
         });
