@@ -19,15 +19,18 @@ npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 The idempotency records table requires the following schema:
 
 ### Primary Index
+
 - **Partition Key**: `key` (String)
 - **Sort Key**: None
 
 ### Global Secondary Index
+
 - **Index Name**: `fingerprint-index`
 - **Partition Key**: `fingerprint` (String)
 - **Projection**: `ALL` or at minimum the fields listed below
 
 ### Required Attributes
+
 - `key` - String, Idempotency key (Partition Key)
 - `fingerprint` - String, Request fingerprint (for duplicate detection)
 - `status` - String, Current status (processing/completed)
@@ -43,8 +46,8 @@ The idempotency records table requires the following schema:
 Create a file `cloudformation-template.yaml`:
 
 ```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'DynamoDB table for idempotency records'
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "DynamoDB table for idempotency records"
 
 Parameters:
   TableName:
@@ -168,37 +171,37 @@ terraform apply
 Create a file `cdk/stack.ts`:
 
 ```typescript
-import { Stack, StackProps, RemovalPolicy } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as cdk from 'aws-cdk-lib';
+import { Stack, StackProps, RemovalPolicy } from "aws-cdk-lib";
+import { Construct } from "constructs";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as cdk from "aws-cdk-lib";
 
 export class IdempotencyStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const table = new dynamodb.Table(this, 'IdempotencyRecords', {
-      tableName: 'idempotency-records',
+    const table = new dynamodb.Table(this, "IdempotencyRecords", {
+      tableName: "idempotency-records",
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: {
-        name: 'key',
-        type: dynamodb.AttributeType.STRING,
+        name: "key",
+        type: dynamodb.AttributeType.STRING
       },
-      timeToLiveAttribute: 'expiresAt',
-      removalPolicy: RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "expiresAt",
+      removalPolicy: RemovalPolicy.DESTROY
     });
 
     table.addGlobalSecondaryIndex({
-      indexName: 'fingerprint-index',
+      indexName: "fingerprint-index",
       partitionKey: {
-        name: 'fingerprint',
-        type: dynamodb.AttributeType.STRING,
+        name: "fingerprint",
+        type: dynamodb.AttributeType.STRING
       },
-      projectionType: dynamodb.ProjectionType.ALL,
+      projectionType: dynamodb.ProjectionType.ALL
     });
 
-    new cdk.CfnOutput(this, 'TableName', {
-      value: table.tableName,
+    new cdk.CfnOutput(this, "TableName", {
+      value: table.tableName
     });
   }
 }
@@ -375,6 +378,7 @@ aws dynamodb list-tables
 ### Connection Timeout
 
 Check that:
+
 - AWS credentials are properly configured
 - The AWS region is correct
 - For local DynamoDB, the endpoint is reachable

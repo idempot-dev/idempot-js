@@ -38,7 +38,7 @@ console.log("Using SQLite storage at ./data/idempotency.db");
 // Bun's native server
 export default {
   port: 3000,
-  fetch: app.fetch,
+  fetch: app.fetch
 };
 
 // Graceful shutdown

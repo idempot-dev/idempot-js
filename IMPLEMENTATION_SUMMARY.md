@@ -170,21 +170,22 @@ process.on("SIGINT", () => {
 
 ## Storage Backend Comparison
 
-| Feature | SQLite | Redis | DynamoDB |
-|---------|--------|-------|----------|
-| Deployment | Single-server | Distributed | AWS-native |
-| Scaling | Manual provisioning | Manual provisioning | Automatic (on-demand) |
-| Maintenance | Self-hosted | Self-hosted | AWS-managed |
-| Cost | Low (no services) | Medium (service cost) | Low-Medium (pay per use) |
-| Setup Complexity | Easy | Medium | Medium |
-| High Availability | N/A | Via clustering | Built-in |
-| Persistence | File-based | Optional | Automatic |
-| TTL/Expiration | Manual cleanup | Native Redis TTL | Native DynamoDB TTL |
-| Best For | Development, single-server | Multi-server clusters | AWS environments, serverless |
+| Feature           | SQLite                     | Redis                 | DynamoDB                     |
+| ----------------- | -------------------------- | --------------------- | ---------------------------- |
+| Deployment        | Single-server              | Distributed           | AWS-native                   |
+| Scaling           | Manual provisioning        | Manual provisioning   | Automatic (on-demand)        |
+| Maintenance       | Self-hosted                | Self-hosted           | AWS-managed                  |
+| Cost              | Low (no services)          | Medium (service cost) | Low-Medium (pay per use)     |
+| Setup Complexity  | Easy                       | Medium                | Medium                       |
+| High Availability | N/A                        | Via clustering        | Built-in                     |
+| Persistence       | File-based                 | Optional              | Automatic                    |
+| TTL/Expiration    | Manual cleanup             | Native Redis TTL      | Native DynamoDB TTL          |
+| Best For          | Development, single-server | Multi-server clusters | AWS environments, serverless |
 
 ## Implementation Status
 
 All three storage backends are production-ready:
+
 - ✅ SQLite - Complete with persistent storage
 - ✅ Redis - Complete with distributed support
 - ✅ DynamoDB - Complete with AWS serverless support

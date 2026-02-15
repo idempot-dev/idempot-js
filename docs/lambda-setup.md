@@ -33,12 +33,14 @@ npm install ioredis
 ### DynamoDB (Recommended)
 
 **Best for:**
+
 - Serverless-native deployments
 - Variable/unpredictable traffic
 - Multi-region applications
 - No infrastructure management
 
 **Pros:**
+
 - Serverless (scales automatically)
 - No cold start penalty
 - Managed service (no patching/upgrades)
@@ -46,23 +48,27 @@ npm install ioredis
 - Point-in-time recovery
 
 **Cons:**
+
 - Higher latency than Redis (~10-20ms)
 - More complex pricing model
 
 ### Redis/ElastiCache
 
 **Best for:**
+
 - Existing Redis infrastructure
 - Extremely high throughput requirements
 - Sub-5ms latency needs
 - Shared cache across services
 
 **Pros:**
+
 - Very low latency (~1-3ms)
 - Familiar Redis APIs
 - Rich data structures
 
 **Cons:**
+
 - Requires VPC configuration
 - Cold start latency (connection setup)
 - Manual scaling/management
@@ -130,6 +136,7 @@ The Lambda execution role needs:
 ### API Gateway Configuration
 
 **REST API:**
+
 - Create REST API in API Gateway console
 - Create resource (e.g., `/orders`)
 - Create POST method
@@ -137,6 +144,7 @@ The Lambda execution role needs:
 - Deploy to stage
 
 **HTTP API (simpler, cheaper):**
+
 - Create HTTP API
 - Create route: `POST /orders`
 - Attach Lambda integration
@@ -177,6 +185,7 @@ export const handler = handle(app);
 ### Enable Function URL
 
 **AWS Console:**
+
 1. Open Lambda function
 2. Configuration → Function URL
 3. Click "Create function URL"
@@ -185,6 +194,7 @@ export const handler = handle(app);
 6. Save
 
 **AWS CLI:**
+
 ```bash
 aws lambda create-function-url-config \
   --function-name my-function \
@@ -208,10 +218,10 @@ const redis = new Redis({
   port: parseInt(process.env.REDIS_PORT || "6379"),
   password: process.env.REDIS_PASSWORD,
   // Connection management for serverless
-  lazyConnect: true,              // Don't connect until first operation
-  maxRetriesPerRequest: 3,        // Retry failed operations
-  enableReadyCheck: false,        // Skip ready check
-  keepAlive: 30000,               // Keep connections alive
+  lazyConnect: true, // Don't connect until first operation
+  maxRetriesPerRequest: 3, // Retry failed operations
+  enableReadyCheck: false, // Skip ready check
+  keepAlive: 30000, // Keep connections alive
   retryStrategy: (times) => Math.min(times * 50, 2000)
 });
 
@@ -252,11 +262,13 @@ Lambda must be in the same VPC as ElastiCache:
 ### Cold Starts vs Warm Invocations
 
 **Cold start**: First invocation or after idle period
+
 - Lambda creates new execution environment
 - Your code initializes (including connections)
 - Handler executes
 
 **Warm invocation**: Reusing existing environment
+
 - Execution environment reused
 - Global variables preserved
 - Connections stay open
@@ -290,12 +302,14 @@ export const handler = async (event, context) => {
 Set these in Lambda configuration:
 
 **DynamoDB:**
+
 ```bash
 AWS_REGION=us-east-1
 IDEMPOTENCY_TABLE=idempotency-records
 ```
 
 **Redis:**
+
 ```bash
 REDIS_HOST=my-cluster.cache.amazonaws.com
 REDIS_PORT=6379
@@ -308,7 +322,7 @@ REDIS_PASSWORD=my-secret-password  # If AUTH enabled
 
 ```yaml
 # template.yaml
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
 Resources:
@@ -358,6 +372,7 @@ Resources:
 ```
 
 Deploy:
+
 ```bash
 sam build
 sam deploy --guided
@@ -367,42 +382,42 @@ sam deploy --guided
 
 ```typescript
 // lib/lambda-stack.ts
-import * as cdk from 'aws-cdk-lib';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as cdk from "aws-cdk-lib";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
 
 export class LambdaStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // DynamoDB table
-    const table = new dynamodb.Table(this, 'IdempotencyTable', {
-      partitionKey: { name: 'key', type: dynamodb.AttributeType.STRING },
+    const table = new dynamodb.Table(this, "IdempotencyTable", {
+      partitionKey: { name: "key", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      timeToLiveAttribute: 'expiresAt',
+      timeToLiveAttribute: "expiresAt"
     });
 
     table.addGlobalSecondaryIndex({
-      indexName: 'fingerprint-index',
-      partitionKey: { name: 'fingerprint', type: dynamodb.AttributeType.STRING },
+      indexName: "fingerprint-index",
+      partitionKey: { name: "fingerprint", type: dynamodb.AttributeType.STRING }
     });
 
     // Lambda function
-    const fn = new lambda.Function(this, 'IdempotencyFunction', {
+    const fn = new lambda.Function(this, "IdempotencyFunction", {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'lambda-handler.handler',
-      code: lambda.Code.fromAsset('dist'),
+      handler: "lambda-handler.handler",
+      code: lambda.Code.fromAsset("dist"),
       environment: {
-        IDEMPOTENCY_TABLE: table.tableName,
-      },
+        IDEMPOTENCY_TABLE: table.tableName
+      }
     });
 
     table.grantReadWriteData(fn);
 
     // API Gateway
-    new apigateway.LambdaRestApi(this, 'IdempotencyApi', {
-      handler: fn,
+    new apigateway.LambdaRestApi(this, "IdempotencyApi", {
+      handler: fn
     });
   }
 }
@@ -435,6 +450,7 @@ aws lambda put-provisioned-concurrency-config \
 ### DynamoDB Optimization
 
 **On-Demand vs Provisioned:**
+
 - **On-Demand**: Variable traffic, unpredictable patterns
 - **Provisioned**: Consistent traffic, predictable patterns (cheaper)
 
@@ -447,9 +463,9 @@ Use `lazyConnect` and connection keep-alive for optimal performance:
 
 ```typescript
 const redis = new Redis({
-  lazyConnect: true,        // Connect on first use
-  keepAlive: 30000,         // Keep connections alive 30s
-  maxRetriesPerRequest: 3,
+  lazyConnect: true, // Connect on first use
+  keepAlive: 30000, // Keep connections alive 30s
+  maxRetriesPerRequest: 3
 });
 ```
 
@@ -460,6 +476,7 @@ const redis = new Redis({
 **Symptom**: First request times out, subsequent requests work.
 
 **Solutions:**
+
 1. Increase Lambda timeout (default 3s → 30s)
 2. Use provisioned concurrency
 3. Optimize initialization code
@@ -470,6 +487,7 @@ const redis = new Redis({
 **Symptom**: DynamoDB `ResourceNotFoundException`
 
 **Solutions:**
+
 1. Verify table exists: `aws dynamodb describe-table --table-name idempotency-records`
 2. Check environment variable: `IDEMPOTENCY_TABLE`
 3. Verify IAM permissions
@@ -480,6 +498,7 @@ const redis = new Redis({
 **Symptom**: First request to Redis times out
 
 **Solutions:**
+
 1. Verify Lambda is in VPC with ElastiCache
 2. Check security group rules
 3. Use `lazyConnect: true` and `enableReadyCheck: false`
@@ -490,6 +509,7 @@ const redis = new Redis({
 **Symptom**: Unexpected DynamoDB charges
 
 **Solutions:**
+
 1. Enable TTL for automatic cleanup
 2. Monitor read/write capacity units
 3. Consider provisioned capacity for predictable traffic
@@ -542,17 +562,19 @@ Monitor these key metrics:
 Add application metrics:
 
 ```typescript
-import { CloudWatch } from '@aws-sdk/client-cloudwatch';
+import { CloudWatch } from "@aws-sdk/client-cloudwatch";
 
 const cloudwatch = new CloudWatch({});
 
 await cloudwatch.putMetricData({
-  Namespace: 'Idempotency',
-  MetricData: [{
-    MetricName: 'CacheHits',
-    Value: 1,
-    Unit: 'Count'
-  }]
+  Namespace: "Idempotency",
+  MetricData: [
+    {
+      MetricName: "CacheHits",
+      Value: 1,
+      Unit: "Count"
+    }
+  ]
 });
 ```
 

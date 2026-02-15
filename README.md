@@ -14,13 +14,14 @@ Then choose a storage backend (see sections below).
 
 Choose the backend that best fits your deployment:
 
-| Backend | Best For | Setup Complexity | Node.js | Bun | Lambda | Deno | Workers |
-|---------|----------|------------------|---------|-----|--------|------|---------|
-| **SQLite** | Single-server, development | Easy | ✅ | ✅ | ❌ | 🔄 | ❌ |
-| **Redis** | Multi-server, high performance | Medium | ✅ | ✅ | ✅ | 🔄 | 🔄 |
-| **DynamoDB** | AWS-native, serverless, managed | Medium | ✅ | ✅ | ✅ | 🔄 | 🔄 |
+| Backend      | Best For                        | Setup Complexity | Node.js | Bun | Lambda | Deno | Workers |
+| ------------ | ------------------------------- | ---------------- | ------- | --- | ------ | ---- | ------- |
+| **SQLite**   | Single-server, development      | Easy             | ✅      | ✅  | ❌     | 🔄   | ❌      |
+| **Redis**    | Multi-server, high performance  | Medium           | ✅      | ✅  | ✅     | 🔄   | 🔄      |
+| **DynamoDB** | AWS-native, serverless, managed | Medium           | ✅      | ✅  | ✅     | 🔄   | 🔄      |
 
 **Runtime Support:**
+
 - ✅ Fully supported and tested
 - 🔄 Not yet tested (contributions welcome)
 - ❌ Not supported
@@ -153,17 +154,19 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
 export default {
   port: 3000,
-  fetch: app.fetch,
+  fetch: app.fetch
 };
 ```
 
 **Features:**
+
 - Native `bun:sqlite` integration (2-3x faster than better-sqlite3)
 - No need to install `better-sqlite3` dependency
 - Works with Bun's native HTTP server
 - Full test coverage with Bun's test runner
 
 **Store Selection:**
+
 - **Node.js**: Use `SqliteIdempotencyStore` (better-sqlite3)
 - **Bun**: Use `BunSqliteIdempotencyStore` (native bun:sqlite)
 - **Redis/DynamoDB**: Use same stores across runtimes (runtime-agnostic)
@@ -202,12 +205,14 @@ export const handler = handle(app);
 ```
 
 **Features:**
+
 - Works with API Gateway (REST/HTTP API) and Lambda Function URLs
 - DynamoDB for serverless-native persistence
 - Redis/ElastiCache for existing infrastructure
 - Proper connection reuse across warm invocations
 
 **Recommended Storage:**
+
 - **DynamoDB**: Best for Lambda (serverless, no cold start penalty, scales automatically)
 - **Redis/ElastiCache**: For users with existing Redis infrastructure
 
@@ -226,16 +231,19 @@ See [docs/lambda-setup.md](./docs/lambda-setup.md) for complete Lambda setup gui
 See `examples/` directory for complete usage examples:
 
 **Node.js:**
+
 - `basic-app.js` - In-memory development setup
 - `sqlite-app.js` - Production file-based persistence
 - `redis-app.js` - Multi-server production setup
 - `dynamodb-app.js` - AWS DynamoDB backend setup
 
 **Bun:**
+
 - `bun-basic-app.js` - In-memory development with Bun
 - `bun-sqlite-app.js` - File-based persistence with Bun
 
 **AWS Lambda:**
+
 - `lambda-apigateway-dynamodb.js` - API Gateway with DynamoDB
 - `lambda-apigateway-redis.js` - API Gateway with Redis/ElastiCache
 - `lambda-url-dynamodb.js` - Function URL with DynamoDB

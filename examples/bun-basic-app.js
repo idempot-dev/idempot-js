@@ -115,7 +115,7 @@ setInterval(
 // Bun's native server
 export default {
   port: 3000,
-  fetch: app.fetch,
+  fetch: app.fetch
 };
 
 console.log("Server running at http://localhost:3000");

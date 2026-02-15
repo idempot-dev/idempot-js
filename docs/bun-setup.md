@@ -39,11 +39,12 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
 export default {
   port: 3000,
-  fetch: app.fetch,
+  fetch: app.fetch
 };
 ```
 
 **Options:**
+
 - `path: ":memory:"` - In-memory database (development)
 - `path: "./data/idempotency.db"` - File-based persistence (production)
 
@@ -63,7 +64,7 @@ import { idempotency, RedisIdempotencyStore } from "hono-idempotency";
 const app = new Hono();
 const redis = new Redis({
   host: process.env.REDIS_HOST || "localhost",
-  port: parseInt(process.env.REDIS_PORT || "6379"),
+  port: parseInt(process.env.REDIS_PORT || "6379")
 });
 
 const store = new RedisIdempotencyStore({ client: redis });
@@ -75,7 +76,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
 export default {
   port: 3000,
-  fetch: app.fetch,
+  fetch: app.fetch
 };
 ```
 
@@ -112,7 +113,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
 export default {
   port: 3000,
-  fetch: app.fetch,
+  fetch: app.fetch
 };
 ```
 
@@ -173,12 +174,12 @@ bun test --coverage
 Benchmarks show `BunSqliteIdempotencyStore` delivers 2-3x better performance than `SqliteIdempotencyStore`:
 
 | Operation | Node.js (better-sqlite3) | Bun (bun:sqlite) | Improvement |
-|-----------|--------------------------|------------------|-------------|
-| INSERT | 45,000 ops/sec | 120,000 ops/sec | 2.7x |
-| SELECT | 80,000 ops/sec | 200,000 ops/sec | 2.5x |
-| UPDATE | 40,000 ops/sec | 95,000 ops/sec | 2.4x |
+| --------- | ------------------------ | ---------------- | ----------- |
+| INSERT    | 45,000 ops/sec           | 120,000 ops/sec  | 2.7x        |
+| SELECT    | 80,000 ops/sec           | 200,000 ops/sec  | 2.5x        |
+| UPDATE    | 40,000 ops/sec           | 95,000 ops/sec   | 2.4x        |
 
-*Benchmarks run on Apple M1 Pro, 16GB RAM*
+_Benchmarks run on Apple M1 Pro, 16GB RAM_
 
 ## File-Based Persistence
 
@@ -209,7 +210,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 // Bun's native server
 export default {
   port: 3000,
-  fetch: app.fetch,
+  fetch: app.fetch
 };
 
 // Graceful shutdown
@@ -284,6 +285,7 @@ If you see `Cannot find module 'bun:sqlite'` during TypeScript compilation:
 This is expected. The `bun:sqlite` module is only available in the Bun runtime, not during Node.js TypeScript compilation. You have two options:
 
 1. **Skip building Bun-specific files** (recommended):
+
    ```json
    {
      "exclude": ["src/store/bun-sqlite.ts"]
@@ -320,6 +322,7 @@ import { idempotency } from "./middleware.js";
 To migrate from Node.js to Bun:
 
 1. Change the store:
+
    ```typescript
    // Before (Node.js)
    import { SqliteIdempotencyStore } from "hono-idempotency";
@@ -331,6 +334,7 @@ To migrate from Node.js to Bun:
    ```
 
 2. Change the server:
+
    ```typescript
    // Before (Node.js)
    import { serve } from "@hono/node-server";
@@ -339,7 +343,7 @@ To migrate from Node.js to Bun:
    // After (Bun)
    export default {
      port: 3000,
-     fetch: app.fetch,
+     fetch: app.fetch
    };
    ```
 
