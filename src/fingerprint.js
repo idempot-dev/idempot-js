@@ -43,7 +43,9 @@ export async function generateFingerprint(body, excludeFields = []) {
   }
 
   // Exclude nested fields via JSONPath
-  const jsonPathExclusions = excludeFields.filter((f) => f && f.startsWith("$."));
+  const jsonPathExclusions = excludeFields.filter(
+    (f) => f && f.startsWith("$.")
+  );
   for (const path of jsonPathExclusions) {
     JSONPath({
       path,
