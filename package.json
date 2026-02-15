@@ -50,8 +50,7 @@
     "example:lambda:url": "node examples/lambda-url-dynamodb.js",
     "test:bun": "bun test test/bun/",
     "test:bun:coverage": "bun test test/bun/ --coverage",
-    "test:lambda": "bun test test/lambda/",
-    "prepare": "husky"
+    "test:lambda": "bun test test/lambda/"
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
