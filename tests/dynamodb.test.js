@@ -1,6 +1,12 @@
 import { test } from "tap";
 import { mockClient } from "aws-sdk-client-mock";
-import { DynamoDBDocumentClient, GetCommand, QueryCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  QueryCommand,
+  PutCommand,
+  UpdateCommand
+} from "@aws-sdk/lib-dynamodb";
 import { DynamoDbIdempotencyStore } from "../src/store/dynamodb.js";
 
 test("DynamoDbIdempotencyStore - initialization", (t) => {
@@ -89,10 +95,17 @@ test("DynamoDbIdempotencyStore - complete updates record", async (t) => {
 
   t.ok(capturedInput, "should have called UpdateCommand");
   t.equal(capturedInput.Key.key, "test-key", "key should match");
-  t.equal(capturedInput.TableName, "idempotency-records", "table name should match");
+  t.equal(
+    capturedInput.TableName,
+    "idempotency-records",
+    "table name should match"
+  );
   t.ok(capturedInput.UpdateExpression, "should have UpdateExpression");
   t.ok(capturedInput.ConditionExpression, "should have ConditionExpression");
-  t.ok(capturedInput.ExpressionAttributeValues, "should have ExpressionAttributeValues");
+  t.ok(
+    capturedInput.ExpressionAttributeValues,
+    "should have ExpressionAttributeValues"
+  );
 });
 
 test("DynamoDbIdempotencyStore - complete throws on missing key", async (t) => {
@@ -115,7 +128,34 @@ test("DynamoDbIdempotencyStore - complete throws on missing key", async (t) => {
     t.fail("should throw error for missing key");
   } catch (err) {
     t.ok(err, "should throw error");
-    t.match(err.message, /Record not found/, "error message should mention record not found");
+    t.match(
+      err.message,
+      /Record not found/,
+      "error message should mention record not found"
+    );
+  }
+});
+
+test("DynamoDbIdempotencyStore - complete rethrows unknown errors", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  const error = new Error("Network error");
+  error.name = "NetworkError";
+  ddbMock.on(UpdateCommand).rejects(error);
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock
+  });
+
+  try {
+    await store.complete("test-key", {
+      status: 200,
+      headers: {},
+      body: ""
+    });
+    t.fail("should have thrown");
+  } catch (err) {
+    t.equal(err.message, "Network error", "should rethrow unknown error");
   }
 });
 
@@ -140,7 +180,11 @@ test("DynamoDbIdempotencyStore - lookup filters expired records", async (t) => {
   const result = await store.lookup("test-key", "test-fp");
 
   t.equal(result.byKey, null, "byKey should be null for expired record");
-  t.equal(result.byFingerprint, null, "byFingerprint should be null for expired record");
+  t.equal(
+    result.byFingerprint,
+    null,
+    "byFingerprint should be null for expired record"
+  );
 });
 
 test("DynamoDbIdempotencyStore - lookup by fingerprint only", async (t) => {
@@ -168,9 +212,107 @@ test("DynamoDbIdempotencyStore - lookup by fingerprint only", async (t) => {
 
   t.equal(result.byKey, null, "byKey should be null");
   t.ok(result.byFingerprint, "byFingerprint should be found");
-  t.equal(result.byFingerprint?.key, "different-key", "key should match fingerprint record");
+  t.equal(
+    result.byFingerprint?.key,
+    "different-key",
+    "key should match fingerprint record"
+  );
   t.equal(result.byFingerprint?.status, "completed", "status should match");
-  t.equal(result.byFingerprint?.response?.status, 200, "response status should match");
+  t.equal(
+    result.byFingerprint?.response?.status,
+    200,
+    "response status should match"
+  );
+});
+
+test("DynamoDbIdempotencyStore - lookup handles missing response headers", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  const now = Math.floor(Date.now() / 1000);
+  const record = {
+    key: "test-key",
+    fingerprint: "test-fp",
+    status: "completed",
+    responseStatus: 200,
+    responseBody: "OK",
+    expiresAt: now + 3600
+  };
+
+  ddbMock.on(GetCommand).resolves({ Item: record });
+  ddbMock.on(QueryCommand).resolves({ Items: [] });
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock
+  });
+
+  const result = await store.lookup("test-key", "test-fp");
+
+  t.ok(result.byKey, "byKey should be found");
+  t.ok(result.byKey?.response, "response should be defined");
+  t.same(
+    result.byKey?.response?.headers,
+    {},
+    "headers should be empty object when missing"
+  );
+});
+
+test("DynamoDbIdempotencyStore - lookup handles missing response body", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  const now = Math.floor(Date.now() / 1000);
+  const record = {
+    key: "test-key",
+    fingerprint: "test-fp",
+    status: "completed",
+    responseStatus: 200,
+    responseHeaders: { "content-type": "text/plain" },
+    expiresAt: now + 3600
+  };
+
+  ddbMock.on(GetCommand).resolves({ Item: record });
+  ddbMock.on(QueryCommand).resolves({ Items: [] });
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock
+  });
+
+  const result = await store.lookup("test-key", "test-fp");
+
+  t.ok(result.byKey, "byKey should be found");
+  t.ok(result.byKey?.response, "response should be defined");
+  t.equal(
+    result.byKey?.response?.body,
+    "",
+    "body should be empty string when missing"
+  );
+});
+
+test("DynamoDbIdempotencyStore - lookup handles completely missing response", async (t) => {
+  const ddbMock = mockClient(DynamoDBDocumentClient);
+
+  const now = Math.floor(Date.now() / 1000);
+  const record = {
+    key: "test-key",
+    fingerprint: "test-fp",
+    status: "completed",
+    expiresAt: now + 3600
+  };
+
+  ddbMock.on(GetCommand).resolves({ Item: record });
+  ddbMock.on(QueryCommand).resolves({ Items: [] });
+
+  const store = new DynamoDbIdempotencyStore({
+    client: ddbMock
+  });
+
+  const result = await store.lookup("test-key", "test-fp");
+
+  t.ok(result.byKey, "byKey should be found");
+  t.equal(
+    result.byKey?.response,
+    undefined,
+    "response should be undefined when no responseStatus"
+  );
 });
 
 test("DynamoDbIdempotencyStore - cleanup is no-op", async (t) => {

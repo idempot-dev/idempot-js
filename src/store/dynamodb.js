@@ -155,7 +155,9 @@ export class DynamoDbIdempotencyStore {
         })
       );
     } catch (error) {
-      if (/** @type {any} */ (error).name === "ConditionalCheckFailedException") {
+      if (
+        /** @type {any} */ (error).name === "ConditionalCheckFailedException"
+      ) {
         throw new Error(`Record not found for key: ${key}`);
       }
       throw error;

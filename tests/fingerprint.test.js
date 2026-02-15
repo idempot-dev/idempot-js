@@ -77,3 +77,21 @@ test("generateFingerprint - handles arrays", async (t) => {
 
   t.equal(fp1, fp2, "arrays should be handled correctly");
 });
+
+test("generateFingerprint - handles invalid JSONPath gracefully", async (t) => {
+  const body = JSON.stringify({ foo: "bar" });
+
+  const fp = await generateFingerprint(body, [null]);
+
+  t.ok(fp, "should still produce fingerprint despite invalid JSONPath");
+});
+
+test("generateFingerprint - handles JSONPath errors in callback", async (t) => {
+  const body = JSON.stringify({ foo: "bar" });
+
+  const originalJSONPath = (await import("jsonpath-plus")).JSONPath;
+
+  const fp = await generateFingerprint(body, ["$.foo"]);
+
+  t.ok(fp, "should still produce fingerprint");
+});

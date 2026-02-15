@@ -150,3 +150,10 @@ test("SqliteIdempotencyStore - limited cleanup during lookup", async (t) => {
 
   store.close();
 });
+
+test("SqliteIdempotencyStore - uses default path when no options provided", (t) => {
+  const store = new SqliteIdempotencyStore();
+  t.ok(store, "store should be created with default path");
+  store.close();
+  t.end();
+});

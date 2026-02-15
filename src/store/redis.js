@@ -40,7 +40,10 @@ export class RedisIdempotencyStore {
       return { byKey: null, byFingerprint: null };
     }
 
-    const [[, byKeyJson], [, fpKeyJson]] = /** @type {[[Error | null, string | null], [Error | null, string | null]]} */ (results);
+    const [[, byKeyJson], [, fpKeyJson]] =
+      /** @type {[[Error | null, string | null], [Error | null, string | null]]} */ (
+        results
+      );
 
     // Parse record by key
     const byKey = byKeyJson ? JSON.parse(byKeyJson) : null;

@@ -319,3 +319,48 @@ test("middleware - field exclusion works", async (t) => {
   t.equal(res.status, 200, "should replay despite timestamp difference");
   t.equal(callCount, 1, "handler called only once");
 });
+
+test("middleware - throws when store is not provided", async (t) => {
+  try {
+    idempotency();
+    t.fail("should have thrown");
+  } catch (err) {
+    t.match(
+      err.message,
+      /IdempotencyStore must be provided/i,
+      "should throw error about store"
+    );
+  }
+});
+
+test("middleware - handles byKey with non-standard status passes through", async (t) => {
+  const body = JSON.stringify({ data: "test" });
+
+  const store = {
+    lookup: async (key, fingerprint) => {
+      return {
+        byKey: { key: key, fingerprint: fingerprint, status: "unknown" },
+        byFingerprint: null
+      };
+    },
+    startProcessing: async () => {},
+    complete: async () => {},
+    cleanup: async () => {}
+  };
+
+  const app = new Hono();
+  let callCount = 0;
+  app.post("/test", idempotency({ store }), (c) => {
+    callCount++;
+    return c.json({ message: "created" });
+  });
+
+  const res = await app.request("/test", {
+    method: "POST",
+    headers: { "idempotency-key": "test-key" },
+    body: body
+  });
+
+  t.equal(callCount, 1, "handler should be called");
+  t.equal(res.status, 200, "should pass through");
+});
