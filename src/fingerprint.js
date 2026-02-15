@@ -26,39 +26,36 @@ export async function generateFingerprint(body, excludeFields) {
 
   /** @type {string} */
   let normalized;
+
+  let parsed;
   try {
-    let parsed = JSON.parse(body);
-
-    // Exclude root-level fields
-    const rootExclusions = excludeFields.filter((f) => !f.startsWith("$."));
-    for (const field of rootExclusions) {
-      delete parsed[field];
-    }
-
-    // Exclude nested fields via JSONPath
-    const jsonPathExclusions = excludeFields.filter((f) => f.startsWith("$."));
-    for (const path of jsonPathExclusions) {
-      try {
-        JSONPath({
-          path,
-          json: parsed,
-          callback: (value, type, payload) => {
-            if (payload.parent && payload.parentProperty) {
-              delete payload.parent[payload.parentProperty];
-            }
-          }
-        });
-      } catch {
-        // Ignore invalid JSONPath
-      }
-    }
-
-    // Normalize: sort keys
-    normalized = JSON.stringify(sortKeys(parsed));
+    parsed = JSON.parse(body);
   } catch {
-    // Not JSON, use as-is
-    normalized = body;
+    return hasher.h64ToString(body);
   }
+
+  // Exclude root-level fields
+  const rootExclusions = (excludeFields ?? []).filter((f) => f && !f.startsWith("$."));
+  for (const field of rootExclusions) {
+    delete parsed[field];
+  }
+
+  // Exclude nested fields via JSONPath
+  const jsonPathExclusions = (excludeFields ?? []).filter((f) => f && f.startsWith("$."));
+  for (const path of jsonPathExclusions) {
+    JSONPath({
+      path,
+      json: parsed,
+      callback: (value, type, payload) => {
+        if (payload.parent && payload.parentProperty) {
+          delete payload.parent[payload.parentProperty];
+        }
+      }
+    });
+  }
+
+  // Normalize: sort keys
+  normalized = JSON.stringify(sortKeys(parsed));
 
   return hasher.h64ToString(normalized);
 }

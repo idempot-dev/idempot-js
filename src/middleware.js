@@ -1,6 +1,7 @@
 /** @typedef {import("./types.js").IdempotencyOptions} IdempotencyOptions */
 
 import { generateFingerprint } from "./fingerprint.js";
+import { validateExcludeFields } from "./validation.js";
 
 /** @type {Required<IdempotencyOptions>} */
 const DEFAULT_OPTIONS = {
@@ -24,6 +25,7 @@ export function idempotency(options = {}) {
         "Use SqliteIdempotencyStore({ path: ':memory:' }) for development"
     );
   }
+  validateExcludeFields(opts.excludeFields);
   const store = opts.store;
 
   return async (c, next) => {
