@@ -50,7 +50,8 @@
     "example:lambda:url": "node examples/lambda-url-dynamodb.js",
     "test:bun": "bun test test/bun/",
     "test:bun:coverage": "bun test test/bun/ --coverage",
-    "test:lambda": "bun test test/lambda/"
+    "test:lambda": "bun test test/lambda/",
+    "prepare": "husky"
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
@@ -81,6 +82,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.1.0",
     "hono": "^4.11.5",
+    "husky": "^9.1.7",
     "ioredis": "^5.9.2",
     "ioredis-mock": "^8.13.1",
     "prettier": "^3.8.1",
