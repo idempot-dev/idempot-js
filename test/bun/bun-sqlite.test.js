@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from "bun:test";
 import { BunSqliteIdempotencyStore } from "../../src/store/bun-sqlite.js";
 
 describe("BunSqliteIdempotencyStore", () => {
-  let store: BunSqliteIdempotencyStore;
+  let store;
 
   beforeEach(() => {
     store = new BunSqliteIdempotencyStore({ path: ":memory:" });
@@ -42,9 +42,9 @@ describe("BunSqliteIdempotencyStore", () => {
       const result = await store.lookup("key1", "fp1");
 
       expect(result.byKey).not.toBeNull();
-      expect(result.byKey?.key).toBe("key1");
-      expect(result.byKey?.fingerprint).toBe("fp1");
-      expect(result.byKey?.status).toBe("processing");
+      expect(result.byKey.key).toBe("key1");
+      expect(result.byKey.fingerprint).toBe("fp1");
+      expect(result.byKey.status).toBe("processing");
     });
 
     test("finds record by fingerprint", async () => {
@@ -53,7 +53,7 @@ describe("BunSqliteIdempotencyStore", () => {
       const result = await store.lookup("different-key", "fp1");
 
       expect(result.byFingerprint).not.toBeNull();
-      expect(result.byFingerprint?.fingerprint).toBe("fp1");
+      expect(result.byFingerprint.fingerprint).toBe("fp1");
     });
 
     test("cleans up expired records during lookup", async () => {
@@ -72,8 +72,8 @@ describe("BunSqliteIdempotencyStore", () => {
       const result = await store.lookup("key1", "fp1");
 
       expect(result.byKey).not.toBeNull();
-      expect(result.byKey?.status).toBe("processing");
-      expect(result.byKey?.response).toBeUndefined();
+      expect(result.byKey.status).toBe("processing");
+      expect(result.byKey.response).toBeUndefined();
     });
 
     test("stores correct expiration time", async () => {
@@ -85,8 +85,8 @@ describe("BunSqliteIdempotencyStore", () => {
       const result = await store.lookup("key1", "fp1");
       const afterTime = Date.now() + ttlMs;
 
-      expect(result.byKey?.expiresAt).toBeGreaterThanOrEqual(beforeTime);
-      expect(result.byKey?.expiresAt).toBeLessThanOrEqual(afterTime);
+      expect(result.byKey.expiresAt).toBeGreaterThanOrEqual(beforeTime);
+      expect(result.byKey.expiresAt).toBeLessThanOrEqual(afterTime);
     });
   });
 
@@ -102,13 +102,13 @@ describe("BunSqliteIdempotencyStore", () => {
 
       const result = await store.lookup("key1", "fp1");
 
-      expect(result.byKey?.status).toBe("complete");
-      expect(result.byKey?.response).not.toBeUndefined();
-      expect(result.byKey?.response?.status).toBe(201);
-      expect(result.byKey?.response?.headers).toEqual({
+      expect(result.byKey.status).toBe("complete");
+      expect(result.byKey.response).not.toBeUndefined();
+      expect(result.byKey.response.status).toBe(201);
+      expect(result.byKey.response.headers).toEqual({
         "content-type": "application/json"
       });
-      expect(result.byKey?.response?.body).toBe('{"id":"123"}');
+      expect(result.byKey.response.body).toBe('{"id":"123"}');
     });
 
     test("throws error for non-existent key", async () => {
@@ -180,9 +180,9 @@ describe("BunSqliteIdempotencyStore", () => {
 
       const result = await store.lookup("key1", "fp1");
 
-      expect(result.byKey?.response?.status).toBe(201);
-      expect(result.byKey?.response?.headers).toEqual(complexResponse.headers);
-      expect(result.byKey?.response?.body).toBe(complexResponse.body);
+      expect(result.byKey.response.status).toBe(201);
+      expect(result.byKey.response.headers).toEqual(complexResponse.headers);
+      expect(result.byKey.response.body).toBe(complexResponse.body);
     });
 
     test("handles multiple concurrent operations", async () => {
