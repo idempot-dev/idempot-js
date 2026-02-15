@@ -36,6 +36,7 @@
     "build:copy": "cp -r src/* dist/",
     "test": "tap",
     "test:coverage": "tap --coverage-report=html",
+    "test:verify-coverage": "tap --statements=100 --branches=100 --functions=100 --lines=100",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,md}\"",

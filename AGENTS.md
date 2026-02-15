@@ -59,6 +59,10 @@ npm run format  # auto-format
 npm run check
 ```
 
+## Quality Requirements
+
+**All commits must pass tests with 100% code coverage.** Run `npm run test:verify-coverage` before committing.
+
 **Build:**
 
 ```bash
