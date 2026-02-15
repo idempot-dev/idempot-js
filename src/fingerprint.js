@@ -1,5 +1,6 @@
 import xxhash from "xxhash-wasm";
 import { JSONPath } from "jsonpath-plus";
+import { validateExcludeFields } from "./validation.js";
 
 /** @typedef {import("xxhash-wasm").XXHashAPI} XXHashAPI */
 
@@ -18,10 +19,11 @@ async function getXXHash() {
 
 /**
  * @param {string} body
- * @param {string[]} excludeFields
+ * @param {string[]} [excludeFields]
  * @returns {Promise<string>}
  */
-export async function generateFingerprint(body, excludeFields) {
+export async function generateFingerprint(body, excludeFields = []) {
+  validateExcludeFields(excludeFields);
   const hasher = await getXXHash();
 
   /** @type {string} */
@@ -35,13 +37,13 @@ export async function generateFingerprint(body, excludeFields) {
   }
 
   // Exclude root-level fields
-  const rootExclusions = (excludeFields ?? []).filter((f) => f && !f.startsWith("$."));
+  const rootExclusions = excludeFields.filter((f) => f && !f.startsWith("$."));
   for (const field of rootExclusions) {
     delete parsed[field];
   }
 
   // Exclude nested fields via JSONPath
-  const jsonPathExclusions = (excludeFields ?? []).filter((f) => f && f.startsWith("$."));
+  const jsonPathExclusions = excludeFields.filter((f) => f && f.startsWith("$."));
   for (const path of jsonPathExclusions) {
     JSONPath({
       path,
