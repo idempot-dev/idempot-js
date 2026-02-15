@@ -226,6 +226,14 @@ See [docs/lambda-setup.md](./docs/lambda-setup.md) for complete Lambda setup gui
 - Automatic response caching and replay
 - TypeScript support with full type definitions
 
+## Development Setup
+
+To enable the pre-commit hook that checks for 100% test coverage:
+
+```bash
+npx husky install
+```
+
 ## Examples
 
 See `examples/` directory for complete usage examples:
