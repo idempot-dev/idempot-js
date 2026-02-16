@@ -2,7 +2,7 @@
 
 ## Summary
 
-Successfully implemented IETF-compliant idempotency middleware for Hono with SQLite persistent storage and 96.38% test coverage.
+IETF-compliant idempotency middleware for Hono with SQLite persistent storage and 96.38% test coverage.
 
 ## Test Results
 
@@ -27,24 +27,24 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
 - Interface-driven design (src/store/interface.ts)
 - **SqliteIdempotencyStore** - Production-ready persistent storage
   - SQLite database with dual indexes (key + fingerprint)
-  - In-memory mode (`:memory:`) for testing and development
-  - File-based mode for production persistence
+  - In-memory mode (`::memory:`) for testing and development
+  - File-based mode for production
   - Limited cleanup during lookups (max 10 expired records)
-  - Full cleanup available via manual `cleanup()` method
-  - Default database path: `./idempotency.db`
+  - Full cleanup via manual `cleanup()` method
+  - Default path: `./idempotency.db`
 - **RedisIdempotencyStore** - Multi-server production storage
   - User-managed ioredis client
   - JSON string storage with dual key pattern
   - Native Redis TTL for auto-expiration
   - Pipelined operations for performance
-  - Optional peer dependency (install only if needed)
+  - Optional peer dependency
 - **DynamoDbIdempotencyStore** - AWS-native serverless storage
   - DynamoDB DocumentClient for AWS SDK v3
   - Parallel lookup queries (key and fingerprint simultaneously)
   - Global secondary index for efficient fingerprint lookups
   - TTL-based automatic record expiration
   - Configurable table name (default: `idempotency-records`)
-  - Optional peer dependency (install only if needed)
+  - Optional peer dependency
 
 ### 3. Fingerprinting (src/fingerprint.ts)
 
@@ -58,7 +58,7 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
 
 - Intercepts POST and PATCH requests
 - Optional or required idempotency-key header
-- Key validation (length 1-255 characters)
+- Key validation (1-255 characters)
 - Concurrent request detection (409 status)
 - Payload mismatch detection (422 status)
 - Duplicate operation detection (409 status)
@@ -78,13 +78,13 @@ Successfully implemented IETF-compliant idempotency middleware for Hono with SQL
 ### 6. Example Applications
 
 - **examples/basic-app.ts** - In-memory SQLite for development
-  - Uses `:memory:` mode for lightweight local testing
+  - Uses `:memory:` mode for local testing
   - Demonstrates all middleware features
   - Shows optional and required idempotency keys
   - Custom header name example
   - Field exclusion example
   - PATCH endpoint protection
-  - Includes helpful curl examples
+  - Includes curl examples
 - **examples/sqlite-app.ts** - Production file-based persistence
   - Persistent storage with SQLite
   - Periodic cleanup (hourly)
@@ -158,7 +158,7 @@ process.on("SIGINT", () => {
 ### Features
 
 - **Persistent storage** - Survives server restarts
-- **Limited cleanup** - Deletes up to 10 expired records per lookup (prevents performance issues)
+- **Limited cleanup** - Deletes up to 10 expired records per lookup
 - **Manual cleanup** - `cleanup()` method for batch deletion
 - **In-memory mode** - Pass `:memory:` for testing
 - **Default path** - Uses `./idempotency.db` if no path specified
@@ -166,7 +166,7 @@ process.on("SIGINT", () => {
 ## Known Limitations
 
 - ESLint warnings for `any` types in fingerprinting code (JSONPath callbacks)
-- Uncovered lines are error-handling fallbacks that are difficult to trigger
+- Uncovered lines are error-handling fallbacks
 
 ## Storage Backend Comparison
 

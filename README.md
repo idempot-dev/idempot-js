@@ -8,7 +8,7 @@ IETF-compliant idempotency middleware for Hono with multiple storage backends.
 npm install hono-idempotency
 ```
 
-Then choose a storage backend (see sections below).
+Choose a storage backend from the sections below.
 
 ## Storage Backends
 
@@ -26,9 +26,9 @@ Choose the backend that best fits your deployment:
 - 🔄 Not yet tested (contributions welcome)
 - ❌ Not supported
 
-## Quick Start - SQLite (Development)
+## Quick Start - SQLite
 
-For local development with simple file-based persistence:
+For local development:
 
 ```bash
 npm install hono-idempotency better-sqlite3
@@ -47,9 +47,9 @@ app.post("/orders", idempotency({ store }), async (c) => {
 });
 ```
 
-### Redis (Production - Multi-Server)
+### Redis
 
-For production deployments with multiple server instances:
+For production with multiple server instances:
 
 ```bash
 npm install hono-idempotency ioredis
@@ -84,14 +84,14 @@ process.on("SIGINT", () => {
 
 **Features:**
 
-- Shared state across multiple app instances
+- Shared state across app instances
 - Native clustering and sentinel support via ioredis
-- Auto-expiration through Redis TTL
+- Auto-expiration via Redis TTL
 - User controls Redis configuration (TLS, retry logic, connection pooling)
 
-### DynamoDB (AWS-Native, Serverless)
+### DynamoDB
 
-For AWS-native deployments with serverless scaling:
+For AWS-native serverless deployments:
 
 ```bash
 npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
@@ -124,17 +124,17 @@ app.post("/orders", idempotency({ store }), async (c) => {
 **Features:**
 
 - AWS-managed, no infrastructure to maintain
-- Automatic serverless scaling on-demand
+- Automatic serverless scaling
 - Global secondary index for efficient fingerprint lookups
 - TTL-based automatic cleanup of expired records
 - Point-in-time recovery and backups
-- Access control via IAM
+- IAM access control
 
 See [docs/dynamodb-setup.md](./docs/dynamodb-setup.md) for complete setup instructions using CloudFormation, Terraform, AWS CDK, or AWS CLI.
 
 ## Using with Bun
 
-Install and run with Bun's native performance:
+Install and run with Bun:
 
 ```bash
 bun add hono-idempotency
@@ -161,7 +161,7 @@ export default {
 **Features:**
 
 - Native `bun:sqlite` integration (2-3x faster than better-sqlite3)
-- No need to install `better-sqlite3` dependency
+- No `better-sqlite3` dependency needed
 - Works with Bun's native HTTP server
 - Full test coverage with Bun's test runner
 
@@ -175,7 +175,7 @@ See [docs/bun-setup.md](./docs/bun-setup.md) for complete Bun setup guide.
 
 ## Using with AWS Lambda
 
-Deploy idempotency middleware on AWS Lambda with API Gateway or Function URLs:
+Deploy on AWS Lambda with API Gateway or Function URLs:
 
 ```bash
 npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
@@ -207,9 +207,9 @@ export const handler = handle(app);
 **Features:**
 
 - Works with API Gateway (REST/HTTP API) and Lambda Function URLs
-- DynamoDB for serverless-native persistence
+- DynamoDB for serverless persistence
 - Redis/ElastiCache for existing infrastructure
-- Proper connection reuse across warm invocations
+- Connection reuse across warm invocations
 
 **Recommended Storage:**
 
@@ -221,10 +221,10 @@ See [docs/lambda-setup.md](./docs/lambda-setup.md) for complete Lambda setup gui
 ## Core Features
 
 - IETF-compliant idempotency key handling
-- SQLite storage (in-memory for dev, file-based for production)
+- SQLite storage (in-memory or file-based)
 - Request fingerprinting for conflict detection
 - Automatic response caching and replay
-- TypeScript support with full type definitions
+- Full TypeScript type definitions
 
 ## Resilience
 
@@ -294,7 +294,7 @@ console.log(middleware.circuit.stats); // { failures, successes, rejects, ... }
 
 ## Development Setup
 
-To enable the pre-commit hook that checks for 100% test coverage:
+Enable the pre-commit hook that checks for 100% test coverage:
 
 ```bash
 npx husky install

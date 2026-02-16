@@ -1,15 +1,15 @@
 # Bun Setup Guide
 
-This guide covers using hono-idempotency with the Bun JavaScript runtime.
+Use hono-idempotency with the Bun JavaScript runtime.
 
 ## Why Bun?
 
-Bun offers several advantages for running your idempotency middleware:
+Bun offers several advantages:
 
 - **Native SQLite**: Built-in `bun:sqlite` module (2-3x faster than better-sqlite3)
-- **Fast startup**: Bun starts significantly faster than Node.js
+- **Fast startup**: Bun starts faster than Node.js
 - **Native TypeScript**: Run `.ts` files directly without transpilation
-- **Smaller bundle**: No need for additional SQLite native dependencies
+- **Smaller bundle**: No additional SQLite dependencies needed
 
 ## Installation
 
@@ -17,7 +17,7 @@ Bun offers several advantages for running your idempotency middleware:
 bun add hono-idempotency
 ```
 
-That's it! Unlike Node.js, you don't need to install `better-sqlite3` separately. Bun's native SQLite module is built-in.
+Unlike Node.js, you don't need `better-sqlite3`. Bun's native SQLite is built-in.
 
 ## Storage Backend Selection
 
@@ -280,9 +280,7 @@ app = "my-app"
 
 ### TypeScript compilation errors
 
-If you see `Cannot find module 'bun:sqlite'` during TypeScript compilation:
-
-This is expected. The `bun:sqlite` module is only available in the Bun runtime, not during Node.js TypeScript compilation. You have two options:
+If you see `Cannot find module 'bun:sqlite'` during TypeScript compilation, this is expected. The `bun:sqlite` module only works in Bun runtime. You have two options:
 
 1. **Skip building Bun-specific files** (recommended):
 
@@ -299,7 +297,7 @@ This is expected. The `bun:sqlite` module is only available in the Bun runtime, 
 
 ### Database locked errors
 
-If you see "database is locked" errors with file-based SQLite:
+If you see "database is locked" errors:
 
 - Ensure only one process accesses the database at a time
 - Use Redis or DynamoDB for multi-instance deployments
@@ -307,13 +305,13 @@ If you see "database is locked" errors with file-based SQLite:
 
 ### Import errors
 
-If you see import errors, ensure you're using `.js` extensions in imports:
+Use `.js` extensions in imports:
 
 ```typescript
 // Correct
 import { BunSqliteIdempotencyStore } from "hono-idempotency";
 
-// Also correct (for direct file imports)
+// Also correct
 import { idempotency } from "./middleware.js";
 ```
 

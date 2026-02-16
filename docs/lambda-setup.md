@@ -1,10 +1,10 @@
 # AWS Lambda Setup Guide
 
-This guide covers deploying hono-idempotency middleware on AWS Lambda.
+Deploy hono-idempotency middleware on AWS Lambda.
 
 ## Why Lambda?
 
-AWS Lambda offers several advantages for idempotency middleware:
+AWS Lambda offers several advantages:
 
 - **Serverless**: No server management, automatic scaling
 - **DynamoDB integration**: Native AWS service for persistence
@@ -76,19 +76,18 @@ npm install ioredis
 
 ## API Gateway Integration
 
-API Gateway provides a managed API layer with features like request validation, throttling, and API keys.
+API Gateway provides a managed API layer with request validation, throttling, and API keys.
 
 ### Example: API Gateway + DynamoDB
 
 ```typescript
-// lambda-handler.ts
 import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { idempotency, DynamoDbIdempotencyStore } from "hono-idempotency";
 
-// Initialize OUTSIDE handler for connection reuse
+// Initialize outside handler for connection reuse
 const dynamoDBClient = new DynamoDBClient({
   region: process.env.AWS_REGION || "us-east-1"
 });
@@ -103,11 +102,9 @@ const app = new Hono();
 
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();
-  // Your business logic here
   return c.json({ id: "order-123", ...body }, 201);
 });
 
-// Lambda handler - Hono adapter handles API Gateway events
 export const handler = handle(app);
 ```
 
@@ -473,7 +470,7 @@ const redis = new Redis({
 
 ### Cold Start Timeouts
 
-**Symptom**: First request times out, subsequent requests work.
+First request times out, subsequent requests work.
 
 **Solutions:**
 
@@ -484,7 +481,7 @@ const redis = new Redis({
 
 ### "Table Not Found" Errors
 
-**Symptom**: DynamoDB `ResourceNotFoundException`
+DynamoDB `ResourceNotFoundException`
 
 **Solutions:**
 
@@ -493,9 +490,7 @@ const redis = new Redis({
 3. Verify IAM permissions
 4. Ensure table is in same region as Lambda
 
-### Redis Connection Timeouts
-
-**Symptom**: First request to Redis times out
+### Redis Connection Times Out
 
 **Solutions:**
 
@@ -505,8 +500,6 @@ const redis = new Redis({
 4. Increase Lambda timeout
 
 ### High DynamoDB Costs
-
-**Symptom**: Unexpected DynamoDB charges
 
 **Solutions:**
 

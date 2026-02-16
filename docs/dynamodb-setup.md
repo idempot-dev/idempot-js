@@ -1,6 +1,6 @@
 # DynamoDB Setup Guide
 
-This guide explains how to set up DynamoDB as the storage backend for the hono-idempotency middleware.
+Set up DynamoDB as the storage backend for hono-idempotency.
 
 ## Prerequisites
 
@@ -31,13 +31,13 @@ The idempotency records table requires the following schema:
 
 ### Required Attributes
 
-- `key` - String, Idempotency key (Partition Key)
-- `fingerprint` - String, Request fingerprint (for duplicate detection)
-- `status` - String, Current status (processing/completed)
+- `key` - String, idempotency key (Partition Key)
+- `fingerprint` - String, request fingerprint (for duplicate detection)
+- `status` - String, current status (processing/completed)
 - `expiresAt` - Number, Unix timestamp in seconds (for TTL)
-- `responseStatus` - Number, HTTP response status (optional, only when completed)
-- `responseHeaders` - Map/Record, HTTP response headers (optional, only when completed)
-- `responseBody` - String, HTTP response body (optional, only when completed)
+- `responseStatus` - Number, HTTP response status (only when completed)
+- `responseHeaders` - Map/Record, HTTP response headers (only when completed)
+- `responseBody` - String, HTTP response body (only when completed)
 
 ## Setup Methods
 
@@ -253,18 +253,17 @@ const documentClient = DynamoDBDocumentClient.from(dynamoDBClient);
 
 const store = new DynamoDbIdempotencyStore({
   client: documentClient,
-  tableName: "idempotency-records" // Default if omitted
+  tableName: "idempotency-records"
 });
 
 const app = new Hono();
 
 app.post("/orders", idempotency({ store }), async (c) => {
-  // Your handler
   return c.json({ id: "order-123" }, 201);
 });
 ```
 
-### With Local DynamoDB (for development)
+### With Local DynamoDB
 
 For local testing, use DynamoDB Local:
 
@@ -312,22 +311,22 @@ export IDEMPOTENCY_TABLE=idempotency-records
 
 ### Automatic TTL Cleanup
 
-The store uses DynamoDB's Time To Live (TTL) feature to automatically expire old records:
+The store uses DynamoDB's TTL feature to automatically expire old records:
 
-- Records set to expire based on the `expiresAt` attribute
-- Expired records are automatically removed within 24 hours
+- Records expire based on the `expiresAt` attribute
+- Expired records are removed within 24 hours
 - No manual cleanup required
 
 ### Concurrent Request Detection
 
 The middleware prevents processing the same request multiple times:
 
-- Returns `409 Conflict` if another request with the same key is currently processing
-- Returns the cached response if the request has already been processed
+- Returns `409 Conflict` if another request with the same key is processing
+- Returns the cached response if the request already completed
 
 ### Duplicate Request Detection
 
-The fingerprinting system detects when the same logical request is sent with different keys:
+The fingerprinting system detects the same logical request sent with different keys:
 
 - Returns `409 Conflict` with a different key
 - Allows the same key with identical payloads
@@ -361,7 +360,7 @@ Required IAM permissions for the DynamoDB store:
 
 ### Table Not Found
 
-Ensure the table exists and the table name matches exactly (case-sensitive):
+Ensure the table exists and the name matches exactly (case-sensitive):
 
 ```bash
 aws dynamodb describe-table --table-name idempotency-records
@@ -377,7 +376,7 @@ aws dynamodb list-tables
 
 ### Connection Timeout
 
-Check that:
+Check:
 
 - AWS credentials are properly configured
 - The AWS region is correct
