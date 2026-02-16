@@ -323,10 +323,6 @@ See `examples/` directory for complete usage examples:
 - `lambda-url-dynamodb.js` - Function URL with DynamoDB
 - `lambda-url-redis.js` - Function URL with Redis/ElastiCache
 
-## Documentation
-
-See [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) for complete feature documentation.
-
 ## License
 
 MIT
