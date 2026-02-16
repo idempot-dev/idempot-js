@@ -11,12 +11,20 @@ const DEFAULT_OPTIONS = {
   excludeFields: [],
   store: /** @type {any} */ (null),
   headerName: "idempotency-key",
-  maxKeyLength: 255
+  maxKeyLength: 255,
+  resilience: {
+    timeout: 500,
+    maxRetries: 3,
+    retryDelay: 100,
+    errorThresholdPercentage: 50,
+    resetTimeout: 30000,
+    volumeThreshold: 10
+  }
 };
 
 /**
  * @param {IdempotencyOptions} [options]
- * @returns {import("hono").MiddlewareHandler}
+ * @returns {(c: any, next: any) => Promise<void>}
  */
 export function idempotency(options = {}) {
   const opts = { ...DEFAULT_OPTIONS, ...options };
@@ -33,6 +41,10 @@ export function idempotency(options = {}) {
     opts.resilience
   );
 
+  /**
+   * @param {any} c
+   * @param {() => Promise<void>} next
+   */
   const middleware = async (c, next) => {
     const method = c.req.method;
 
@@ -66,10 +78,7 @@ export function idempotency(options = {}) {
       try {
         lookup = await resilientStore.lookup(key, fingerprint);
       } catch {
-        return c.json(
-          { error: "Service temporarily unavailable" },
-          503
-        );
+        return c.json({ error: "Service temporarily unavailable" }, 503);
       }
 
       // Existing record being processed - reject concurrent request
@@ -116,10 +125,7 @@ export function idempotency(options = {}) {
         try {
           await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
         } catch {
-          return c.json(
-            { error: "Service temporarily unavailable" },
-            503
-          );
+          return c.json({ error: "Service temporarily unavailable" }, 503);
         }
 
         // Call handler

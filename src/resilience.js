@@ -17,8 +17,8 @@ const DEFAULT_RESILIENCE_OPTIONS = {
 /**
  * Wrap store operations with resilience
  * @param {IdempotencyStore} store
- * @param {ResilienceOptions} options
- * @returns {{store: IdempotencyStore, circuit: import("opossum").CircuitBreaker}}
+ * @param {ResilienceOptions} [options]
+ * @returns {{store: IdempotencyStore, circuit: any}}
  */
 export function withResilience(store, options = {}) {
   const opts = { ...DEFAULT_RESILIENCE_OPTIONS, ...options };
@@ -51,15 +51,29 @@ export function withResilience(store, options = {}) {
 
   const breaker = new CircuitBreaker(withRetry, breakerOptions);
 
+  /** @type {IdempotencyStore} */
   const wrappedStore = {
+    /**
+     * @param {string} key
+     * @param {string} fingerprint
+     */
     async lookup(key, fingerprint) {
       return breaker.fire(() => store.lookup(key, fingerprint));
     },
 
+    /**
+     * @param {string} key
+     * @param {string} fingerprint
+     * @param {number} ttlMs
+     */
     async startProcessing(key, fingerprint, ttlMs) {
       return breaker.fire(() => store.startProcessing(key, fingerprint, ttlMs));
     },
 
+    /**
+     * @param {string} key
+     * @param {{status: number, headers: Record<string, string>, body: string}} response
+     */
     async complete(key, response) {
       return breaker.fire(() => store.complete(key, response));
     },

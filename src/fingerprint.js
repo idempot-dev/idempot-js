@@ -35,9 +35,16 @@ export async function generateFingerprint(body, excludeFields = []) {
   }
 
   // Exclude root-level fields
-  const rootExclusions = excludeFields.filter((f) => f && !f.startsWith("$."));
-  for (const field of rootExclusions) {
-    delete parsed[field];
+  /** @type {Record<string, any> | undefined} */
+  let parsedObj;
+  if (typeof parsed === "object" && parsed !== null) {
+    parsedObj = parsed;
+    const rootExclusions = excludeFields.filter(
+      (f) => f && !f.startsWith("$.")
+    );
+    for (const field of rootExclusions) {
+      delete parsedObj[field];
+    }
   }
 
   // Exclude nested fields via JSONPath
