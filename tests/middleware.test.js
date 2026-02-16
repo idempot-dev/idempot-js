@@ -1,6 +1,7 @@
 import { test } from "tap";
 import { Hono } from "hono";
 import { idempotency } from "../src/middleware.js";
+import { withResilience } from "../src/resilience.js";
 import { SqliteIdempotencyStore } from "../src/store/sqlite.js";
 
 test("middleware - passes through GET requests", async (t) => {
@@ -363,4 +364,106 @@ test("middleware - handles byKey with non-standard status passes through", async
 
   t.equal(callCount, 1, "handler should be called");
   t.equal(res.status, 200, "should pass through");
+});
+
+test("withResilience retries until success", async (t) => {
+  let attempts = 0;
+  const flakyStore = {
+    lookup: () => {
+      attempts++;
+      if (attempts < 3) throw new Error("Transient error");
+      return Promise.resolve({ byKey: null, byFingerprint: null });
+    },
+    startProcessing: () => Promise.resolve(),
+    complete: () => Promise.resolve(),
+    cleanup: () => Promise.resolve()
+  };
+
+  const { store } = withResilience(flakyStore, { maxRetries: 3 });
+  await store.lookup("key", "fp");
+
+  t.equal(attempts, 3, "should retry 3 times before success");
+});
+
+test("withResilience cleanup is not wrapped", async (t) => {
+  let cleanupCalled = false;
+  const mockStore = {
+    lookup: () => Promise.resolve({ byKey: null, byFingerprint: null }),
+    startProcessing: () => Promise.resolve(),
+    complete: () => Promise.resolve(),
+    cleanup: () => {
+      cleanupCalled = true;
+    }
+  };
+
+  const { store } = withResilience(mockStore);
+  await store.cleanup();
+
+  t.ok(cleanupCalled, "cleanup should be called directly");
+});
+
+test("returns 503 when startProcessing fails after lookup", async (t) => {
+  const store = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      throw new Error("Connection refused");
+    },
+    complete: async () => {},
+    cleanup: async () => {}
+  };
+
+  const app = new Hono();
+  app.post("/", idempotency({ store }), (c) => c.text("ok"));
+
+  const res = await app.request("/", {
+    method: "POST",
+    headers: { "Idempotency-Key": "test-key" },
+    body: "{}"
+  });
+
+  t.equal(res.status, 503, "should return 503 when startProcessing fails");
+});
+
+test("returns 503 when lookup fails", async (t) => {
+  const failingStore = {
+    async lookup() {
+      throw new Error("Connection refused");
+    },
+    async startProcessing() {},
+    async complete() {},
+    async cleanup() {}
+  };
+
+  const app = new Hono();
+  app.post("/", idempotency({ store: failingStore }), (c) => c.text("ok"));
+
+  const res = await app.request("/", {
+    method: "POST",
+    headers: { "Idempotency-Key": "test-key" },
+    body: "{}"
+  });
+
+  t.equal(res.status, 503, "should return 503 when lookup fails");
+});
+
+test("continues response when complete fails", async (t) => {
+  const store = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {},
+    complete: async () => {
+      throw new Error("Connection refused");
+    },
+    cleanup: async () => {}
+  };
+
+  const app = new Hono();
+  app.post("/", idempotency({ store }), (c) => c.text("ok"));
+
+  const res = await app.request("/", {
+    method: "POST",
+    headers: { "Idempotency-Key": "test-key" },
+    body: "{}"
+  });
+
+  t.equal(res.status, 200, "should return 200 even if complete fails");
 });
