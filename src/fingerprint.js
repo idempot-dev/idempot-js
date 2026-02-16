@@ -27,8 +27,6 @@ export async function generateFingerprint(body, excludeFields = []) {
   const hasher = await getXXHash();
 
   /** @type {string} */
-  let normalized;
-
   let parsed;
   try {
     parsed = JSON.parse(body);
@@ -59,7 +57,8 @@ export async function generateFingerprint(body, excludeFields = []) {
   }
 
   // Normalize: sort keys
-  normalized = JSON.stringify(sortKeys(parsed));
+  /** @type {string} */
+  const normalized = JSON.stringify(sortKeys(parsed));
 
   return hasher.h64ToString(normalized);
 }
