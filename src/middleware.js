@@ -2,6 +2,7 @@
 
 import { generateFingerprint } from "./fingerprint.js";
 import { validateExcludeFields } from "./validation.js";
+import { withResilience } from "./resilience.js";
 
 /** @type {Required<IdempotencyOptions>} */
 const DEFAULT_OPTIONS = {
@@ -27,8 +28,12 @@ export function idempotency(options = {}) {
   }
   validateExcludeFields(opts.excludeFields);
   const store = opts.store;
+  const { store: resilientStore, circuit } = withResilience(
+    store,
+    opts.resilience
+  );
 
-  return async (c, next) => {
+  const middleware = async (c, next) => {
     const method = c.req.method;
 
     // Only intercept POST and PATCH
@@ -57,7 +62,15 @@ export function idempotency(options = {}) {
       const fingerprint = await generateFingerprint(body, opts.excludeFields);
 
       // Lookup in store
-      const lookup = await store.lookup(key, fingerprint);
+      let lookup;
+      try {
+        lookup = await resilientStore.lookup(key, fingerprint);
+      } catch {
+        return c.json(
+          { error: "Service temporarily unavailable" },
+          503
+        );
+      }
 
       // Existing record being processed - reject concurrent request
       if (lookup.byKey?.status === "processing") {
@@ -100,7 +113,14 @@ export function idempotency(options = {}) {
 
       // No existing record - process new request
       if (!lookup.byKey && !lookup.byFingerprint) {
-        await store.startProcessing(key, fingerprint, opts.ttlMs);
+        try {
+          await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
+        } catch {
+          return c.json(
+            { error: "Service temporarily unavailable" },
+            503
+          );
+        }
 
         // Call handler
         await next();
@@ -113,7 +133,11 @@ export function idempotency(options = {}) {
           body: await clonedResponse.text()
         };
 
-        await store.complete(key, response);
+        try {
+          await resilientStore.complete(key, response);
+        } catch (err) {
+          console.error("Failed to cache response:", err);
+        }
 
         // Return original response
         return;
@@ -132,4 +156,8 @@ export function idempotency(options = {}) {
     // Optional and not provided, pass through
     await next();
   };
+
+  middleware.circuit = circuit;
+
+  return middleware;
 }
