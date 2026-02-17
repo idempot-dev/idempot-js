@@ -1,6 +1,6 @@
 # hono-idempotency
 
-IETF-compliant idempotency middleware for Hono with multiple storage backends.
+Idempotency middleware for Hono with multiple storage backends, compliant with [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07) spec.
 
 ## Installation
 
