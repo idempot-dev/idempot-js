@@ -6,6 +6,7 @@ import pg from "pg";
 /**
  * @typedef {Object} PostgresIdempotencyStoreOptions
  * @property {string} connectionString - Postgres connection string
+ * @property {pg.Pool} [pool] - Optional existing pool (for testing)
  */
 
 /**
@@ -21,12 +22,15 @@ export class PostgresIdempotencyStore {
    * @param {PostgresIdempotencyStoreOptions} options
    */
   constructor(options) {
-    if (!pg) {
-      throw new Error("pg module not found. Install it: npm install pg");
+    if (options.pool) {
+      this.pool = options.pool;
+    } else {
+      // pg is always available when this module can be imported
+      // (it's a peer dependency that's installed for testing)
+      this.pool = new pg.Pool({
+        connectionString: options.connectionString
+      });
     }
-    this.pool = new pg.Pool({
-      connectionString: options.connectionString
-    });
   }
 
   /**
@@ -95,7 +99,9 @@ export class PostgresIdempotencyStore {
     );
 
     const [byKeyResult, byFingerprintResult] = await Promise.all([
-      this.pool.query("SELECT * FROM idempotency_records WHERE key = $1", [key]),
+      this.pool.query("SELECT * FROM idempotency_records WHERE key = $1", [
+        key
+      ]),
       this.pool.query(
         "SELECT * FROM idempotency_records WHERE fingerprint = $1",
         [fingerprint]
