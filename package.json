@@ -94,6 +94,7 @@
     "husky": "^9.1.7",
     "ioredis": "^5.9.2",
     "ioredis-mock": "^8.13.1",
+    "pg": "^8.18.0",
     "prettier": "^3.8.1",
     "tap": "^21.5.0",
     "typescript": "^5.8.3"
