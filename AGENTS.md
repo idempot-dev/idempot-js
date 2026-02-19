@@ -63,6 +63,8 @@ npm run check
 
 **All commits must pass tests with 100% code coverage.** Run `npm run test:verify-coverage` before committing.
 
+When trying to learn which lines are uncovered, use `npm run test:coverage`, which will report full coverage details for all files.
+
 **Build:**
 
 ```bash
