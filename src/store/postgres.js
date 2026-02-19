@@ -1,7 +1,7 @@
 import pg from "pg";
 
-/** @typedef {import("../types.js").IdempotencyStore} IdempotencyStore */
-/** @typedef {import("../types.js").IdempotencyRecord} IdempotencyRecord */
+/** @typedef {import("./interface.js").IdempotencyStore} IdempotencyStore */
+/** @typedef {import("./interface.js").IdempotencyRecord} IdempotencyRecord */
 
 /**
  * @typedef {Object} PostgresIdempotencyStoreOptions
@@ -23,13 +23,16 @@ export class PostgresIdempotencyStore {
    */
   constructor(options) {
     if (options.pool) {
+      /* c8 ignore next */
       this.pool = options.pool;
     } else {
+      /* c8 ignore start */
       // pg is always available when this module can be imported
       // (it's a peer dependency that's installed for testing)
       this.pool = new pg.Pool({
         connectionString: options.connectionString
       });
+      /* c8 ignore end */
     }
   }
 

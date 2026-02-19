@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 
-/** @typedef {import("../types.js").IdempotencyStore} IdempotencyStore */
-/** @typedef {import("../types.js").IdempotencyRecord} IdempotencyRecord */
+/** @typedef {import("./interface.js").IdempotencyStore} IdempotencyStore */
+/** @typedef {import("./interface.js").IdempotencyRecord} IdempotencyRecord */
 
 /**
  * @implements {IdempotencyStore}

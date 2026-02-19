@@ -1,6 +1,6 @@
 /** @typedef {import("ioredis").Redis} Redis */
-/** @typedef {import("../types.js").IdempotencyStore} IdempotencyStore */
-/** @typedef {import("../types.js").IdempotencyRecord} IdempotencyRecord */
+/** @typedef {import("./interface.js").IdempotencyStore} IdempotencyStore */
+/** @typedef {import("./interface.js").IdempotencyRecord} IdempotencyRecord */
 
 /**
  * @typedef {Object} RedisIdempotencyStoreOptions
