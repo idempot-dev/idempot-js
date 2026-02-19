@@ -29,7 +29,6 @@ const createMockPool = (responses = []) => {
 test("PostgresIdempotencyStore - initialization", async (t) => {
   const mockPool = createMockPool();
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
   t.ok(store, "store should be created");
@@ -40,7 +39,6 @@ test("PostgresIdempotencyStore - initialization", async (t) => {
 test("PostgresIdempotencyStore - init creates schema", async (t) => {
   const mockPool = createMockPool([{ rows: [], rowCount: 0 }]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -59,7 +57,6 @@ test("PostgresIdempotencyStore - lookup with empty store", async (t) => {
     { rows: [], rowCount: 0 }
   ]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -104,7 +101,6 @@ test("PostgresIdempotencyStore - lookup returns parsed records", async (t) => {
     }
   ]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -144,7 +140,6 @@ test("PostgresIdempotencyStore - lookup handles missing response", async (t) => 
     }
   ]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -160,7 +155,6 @@ test("PostgresIdempotencyStore - lookup handles missing response", async (t) => 
 test("PostgresIdempotencyStore - startProcessing creates record", async (t) => {
   const mockPool = createMockPool([{ rows: [], rowCount: 0 }]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -181,7 +175,6 @@ test("PostgresIdempotencyStore - complete updates record", async (t) => {
     { rows: [{ key: "test-key" }], rowCount: 1 }
   ]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -202,7 +195,6 @@ test("PostgresIdempotencyStore - complete updates record", async (t) => {
 test("PostgresIdempotencyStore - cleanup removes expired records", async (t) => {
   const mockPool = createMockPool([{ rows: [], rowCount: 0 }]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -219,7 +211,6 @@ test("PostgresIdempotencyStore - cleanup removes expired records", async (t) => 
 test("PostgresIdempotencyStore - complete throws on missing key", async (t) => {
   const mockPool = createMockPool([{ rows: [], rowCount: 0 }]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -259,7 +250,6 @@ test("PostgresIdempotencyStore - lookup with different key and fingerprint", asy
     } // SELECT by fingerprint
   ]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -278,7 +268,6 @@ test("PostgresIdempotencyStore - lookup deletes expired records", async (t) => {
     { rows: [], rowCount: 0 }
   ]);
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
@@ -304,12 +293,44 @@ test("PostgresIdempotencyStore - close ends pool", async (t) => {
     }
   };
   const store = new PostgresIdempotencyStore({
-    connectionString: "postgres://localhost/test",
     pool: mockPool
   });
 
   await store.close();
 
   t.ok(ended, "pool should be ended");
+  t.end();
+});
+
+test("PostgresIdempotencyStore - parseRecord handles missing response_headers", async (t) => {
+  const mockPool = createMockPool([
+    { rows: [], rowCount: 0 },
+    {
+      rows: [
+        {
+          key: "test-key",
+          fingerprint: "test-fp",
+          status: "complete",
+          response_status: 200,
+          response_headers: null,
+          response_body: '{"result":"ok"}',
+          expires_at: Date.now() + 60000
+        }
+      ],
+      rowCount: 1
+    }
+  ]);
+  const store = new PostgresIdempotencyStore({
+    pool: mockPool
+  });
+
+  const result = await store.lookup("test-key", "test-fp");
+
+  t.ok(result.byKey, "should find by key");
+  t.equal(result.byKey?.response?.status, 200, "response status should match");
+  t.ok(result.byKey?.response?.headers, "headers should be parsed (defaulted)");
+  t.same(result.byKey?.response?.headers, {}, "should default to empty object");
+
+  await store.close();
   t.end();
 });

@@ -10,8 +10,8 @@ Use the `pg` (node-postgres) library with connection pooling. Follow the SQLite 
 
 ### Configuration
 
-- Single `connectionString` option (standard Postgres connection string)
-- Uses pg's built-in connection pooling
+- Single `pool` option (pg Pool instance)
+- Consumer manages pool lifecycle
 
 ### Database Schema
 
@@ -42,10 +42,15 @@ CREATE INDEX IF NOT EXISTS idx_expires_at ON idempotency_records(expires_at);
 ## Example Usage
 
 ```js
+import pg from "pg";
 import { PostgresIdempotencyStore } from "hono-idempotency";
 
-const store = new PostgresIdempotencyStore({
+const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL
+});
+
+const store = new PostgresIdempotencyStore({
+  pool
 });
 ```
 

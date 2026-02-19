@@ -44,7 +44,7 @@ git commit -m "chore: add pg as optional peer dependency"
 Look at `tests/sqlite.test.js` or `tests/redis.test.js` for the mocking pattern used. The project uses `tap` with manual mocks, not Vitest.
 
 Key tests needed:
-- initialization with connection string
+- initialization with pool
 - lookup with empty store returns null
 - startProcessing creates record
 - complete updates record
@@ -219,14 +219,19 @@ git commit -m "build: add Postgres store to dist"
 **Step 1: Create example**
 
 ```js
+import pg from "pg";
 import { Hono } from "hono";
 import { idempotency } from "../src/index.js";
 import { PostgresIdempotencyStore } from "../src/store/postgres.js";
 
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
 const app = new Hono();
 
 const store = new PostgresIdempotencyStore({
-  connectionString: process.env.DATABASE_URL
+  pool
 });
 await store.init();
 
