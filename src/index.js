@@ -10,6 +10,11 @@ export { SqliteIdempotencyStore } from "./store/sqlite.js";
 // export { BunSqliteIdempotencyStore } from "./store/bun-sqlite.js";
 export { RedisIdempotencyStore } from "./store/redis.js";
 export { DynamoDbIdempotencyStore } from "./store/dynamodb.js";
+export { PostgresIdempotencyStore } from "./store/postgres.js";
+
+/**
+ * @typedef {import("./store/postgres.js").PostgresIdempotencyStoreOptions} PostgresIdempotencyStoreOptions
+ */
 
 // Utilities
 export { generateFingerprint } from "./fingerprint.js";

@@ -8,3 +8,7 @@ export { DynamoDbIdempotencyStore } from "./dynamodb.js";
 /**
  * @typedef {import("./dynamodb.js").DynamoDbIdempotencyStoreOptions} DynamoDbIdempotencyStoreOptions
  */
+export { PostgresIdempotencyStore } from "./postgres.js";
+/**
+ * @typedef {import("./postgres.js").PostgresIdempotencyStoreOptions} PostgresIdempotencyStoreOptions
+ */
