@@ -1,8 +1,17 @@
 import CircuitBreaker from "opossum";
 
 /**
- * @typedef {import("./types.js").ResilienceOptions} ResilienceOptions
- * @typedef {import("./types.js").IdempotencyStore} IdempotencyStore
+ * @typedef {import("./middleware.js").IdempotencyStore} IdempotencyStore
+ */
+
+/**
+ * @typedef {Object} ResilienceOptions
+ * @property {number} [timeout=500]
+ * @property {number} [maxRetries=3]
+ * @property {number} [retryDelay=100]
+ * @property {number} [errorThresholdPercentage=50]
+ * @property {number} [resetTimeout=30000]
+ * @property {number} [volumeThreshold=10]
  */
 
 const DEFAULT_RESILIENCE_OPTIONS = {

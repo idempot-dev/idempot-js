@@ -1,8 +1,22 @@
-/** @typedef {import("./types.js").IdempotencyOptions} IdempotencyOptions */
+/**
+ * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
+ * @typedef {import("./resilience.js").ResilienceOptions} ResilienceOptions
+ */
 
 import { generateFingerprint } from "./fingerprint.js";
 import { validateExcludeFields } from "./validation.js";
 import { withResilience } from "./resilience.js";
+
+/**
+ * @typedef {Object} IdempotencyOptions
+ * @property {boolean} [required]
+ * @property {number} [ttlMs]
+ * @property {string[]} [excludeFields]
+ * @property {IdempotencyStore} [store]
+ * @property {string} [headerName]
+ * @property {number} [maxKeyLength]
+ * @property {ResilienceOptions} [resilience]
+ */
 
 /** @type {Required<IdempotencyOptions>} */
 const DEFAULT_OPTIONS = {
