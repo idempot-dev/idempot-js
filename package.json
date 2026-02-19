@@ -63,10 +63,14 @@
     "@aws-sdk/client-dynamodb": "^3.975.0",
     "@aws-sdk/lib-dynamodb": "^3.975.0",
     "hono": ">=4.0.0",
-    "ioredis": ">=5.0.0"
+    "ioredis": ">=5.0.0",
+    "pg": ">=8.0.0"
   },
   "peerDependenciesMeta": {
     "ioredis": {
+      "optional": true
+    },
+    "pg": {
       "optional": true
     }
   },
