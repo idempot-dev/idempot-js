@@ -56,3 +56,29 @@ jobs:
         run: npm ci
       - name: Validate commit messages
         run: npx commitlint --from origin/main --to HEAD
+
+  bun:
+    name: Bun
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Bun tests
+        run: npm run test:bun
+      - name: Run Lambda tests
+        run: npm run test:lambda
+
+  deno:
+    name: Deno
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run Deno tests
+        run: npm run test:deno
