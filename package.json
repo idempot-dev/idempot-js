@@ -58,25 +58,12 @@
     "example:deno:redis": "deno run --allow-net examples/deno-redis-app.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
     "jsonpath-plus": "^10.3.0",
     "opossum": "^9.0.0",
     "xxhash-wasm": "^1.1.0"
   },
   "peerDependencies": {
-    "@aws-sdk/client-dynamodb": "^3.975.0",
-    "@aws-sdk/lib-dynamodb": "^3.975.0",
-    "hono": ">=4.0.0",
-    "ioredis": ">=5.0.0",
-    "pg": ">=8.0.0"
-  },
-  "peerDependenciesMeta": {
-    "ioredis": {
-      "optional": true
-    },
-    "pg": {
-      "optional": true
-    }
+    "hono": ">=4.0.0"
   },
   "devDependencies": {
     "@aws-sdk/client-dynamodb": "^3.975.0",
@@ -86,6 +73,7 @@
     "@eslint/js": "^9.39.2",
     "@hono/node-server": "^1.19.9",
     "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.6.2",
     "@types/jsonpath-plus": "^5.0.5",
     "@types/node": "^20.11.17",
     "@types/opossum": "^8.1.9",
