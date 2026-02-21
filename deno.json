@@ -1,0 +1,15 @@
+{
+  "imports": {
+    "hono-idempotency": "./src/index.js",
+    "hono": "npm:hono@^4.11.5",
+    "sqlite": "https://deno.land/x/sqlite/mod.ts",
+    "@db/redis": "jsr:@db/redis",
+    "ioredis": "npm:ioredis@^5.9.2",
+    "@aws-sdk/client-dynamodb": "npm:@aws-sdk/client-dynamodb@^3.975.0",
+    "@aws-sdk/lib-dynamodb": "npm:@aws-sdk/lib-dynamodb@^3.975.0"
+  },
+  "tasks": {
+    "test": "deno test test/deno/",
+    "example": "deno run --allow-net --allow-write examples/deno-kv-app.ts"
+  }
+}

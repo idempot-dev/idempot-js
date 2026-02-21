@@ -52,7 +52,10 @@
     "example:lambda:url": "node examples/lambda-url-dynamodb.js",
     "test:bun": "bun test test/bun/",
     "test:bun:coverage": "bun test test/bun/ --coverage",
-    "test:lambda": "bun test test/lambda/"
+    "test:lambda": "bun test test/lambda/",
+    "test:deno": "deno test test/deno/",
+    "example:deno:sqlite": "deno run --allow-write examples/deno-sqlite-app.ts",
+    "example:deno:redis": "deno run --allow-net examples/deno-redis-app.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.6.2",
