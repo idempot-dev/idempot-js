@@ -1,9 +1,10 @@
+/** @typedef {import("pg").Pool} Pool */
 /** @typedef {import("./interface.js").IdempotencyStore} IdempotencyStore */
 /** @typedef {import("./interface.js").IdempotencyRecord} IdempotencyRecord */
 
 /**
  * @typedef {Object} PostgresIdempotencyStoreOptions
- * @property {pg.Pool} pool - Postgres pool instance
+ * @property {Pool} pool - Postgres pool instance
  */
 
 /**
@@ -11,7 +12,7 @@
  */
 export class PostgresIdempotencyStore {
   /**
-   * @type {pg.Pool}
+   * @type {Pool}
    */
   pool;
 
