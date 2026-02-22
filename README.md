@@ -16,9 +16,10 @@ Choose the backend that best fits your deployment:
 
 | Backend      | Best For                        | Setup Complexity | Node.js | Bun | Lambda | Deno | Workers |
 | ------------ | ------------------------------- | ---------------- | ------- | --- | ------ | ---- | ------- |
-| **SQLite**   | Single-server, development      | Easy             | ✅      | ✅  | ❌     | 🔄   | ❌      |
-| **Redis**    | Multi-server, high performance  | Medium           | ✅      | ✅  | ✅     | 🔄   | 🔄      |
-| **DynamoDB** | AWS-native, serverless, managed | Medium           | ✅      | ✅  | ✅     | 🔄   | 🔄      |
+| **SQLite**   | Single-server, development      | Easy             | ✅      | ✅  | ❌     | ✅   | ❌      |
+| **Postgres** | Multi-server, managed           | Medium           | ✅      | ✅  | ✅     | ✅   | 🔄      |
+| **Redis**    | Multi-server, high performance  | Medium           | ✅      | ✅  | ✅     | ✅   | 🔄      |
+| **DynamoDB** | AWS-native, serverless, managed | Medium           | ✅      | ✅  | ✅     | ✅   | 🔄      |
 
 **Runtime Support:**
 
@@ -46,6 +47,46 @@ app.post("/orders", idempotency({ store }), async (c) => {
   return c.json({ id: "order-123" }, 201);
 });
 ```
+
+### PostgreSQL
+
+For production with multiple server instances using PostgreSQL:
+
+```bash
+npm install hono-idempotency pg
+```
+
+```javascript
+import { Hono } from "hono";
+import pg from "pg";
+import { idempotency, PostgresIdempotencyStore } from "hono-idempotency";
+
+const app = new Hono();
+
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+const store = new PostgresIdempotencyStore({ pool });
+await store.init();
+
+app.post("/orders", idempotency({ store }), async (c) => {
+  return c.json({ id: "order-123" }, 201);
+});
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  pool.end();
+  process.exit(0);
+});
+```
+
+**Features:**
+
+- Shared state across app instances
+- Connection pooling via pg
+- TTL-based automatic cleanup of expired records
+- Uses standard PostgreSQL connection strings
 
 ### Redis
 
@@ -308,6 +349,7 @@ See `examples/` directory for complete usage examples:
 
 - `basic-app.js` - In-memory development setup
 - `sqlite-app.js` - Production file-based persistence
+- `postgres-app.js` - PostgreSQL backend setup
 - `redis-app.js` - Multi-server production setup
 - `dynamodb-app.js` - AWS DynamoDB backend setup
 

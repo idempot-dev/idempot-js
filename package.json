@@ -45,6 +45,8 @@
     "check": "npm run format:check && npm run lint",
     "example": "node examples/basic-app.js",
     "example:sqlite": "node examples/sqlite-app.js",
+    "example:postgres": "node examples/postgres-app.js",
+    "example:postgres:setup": "bash examples/postgres-setup.sh",
     "example:redis": "node examples/redis-app.js",
     "example:bun": "bun run examples/bun-basic-app.js",
     "example:bun:sqlite": "bun run examples/bun-sqlite-app.js",

@@ -1,7 +1,7 @@
 /// <reference types="deno" />
 import { Hono } from "hono";
-import { idempotency } from "../../src/index.js";
-import { DenoRedisIdempotencyStore } from "../../src/store/deno-redis.js";
+import { idempotency } from "../src/index.js";
+import { DenoRedisIdempotencyStore } from "../src/store/deno-redis.js";
 
 const app = new Hono();
 
