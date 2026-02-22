@@ -12,14 +12,18 @@ Choose a storage backend from the sections below.
 
 ## Storage Backends
 
-Choose the backend that best fits your deployment:
+The library supports several storage backends.
 
-| Backend      | Best For                        | Setup Complexity | Node.js | Bun | Lambda | Deno | Workers |
-| ------------ | ------------------------------- | ---------------- | ------- | --- | ------ | ---- | ------- |
-| **SQLite**   | Single-server, development      | Easy             | ✅      | ✅  | ❌     | ✅   | ❌      |
-| **Postgres** | Multi-server, managed           | Medium           | ✅      | ✅  | ✅     | ✅   | 🔄      |
-| **Redis**    | Multi-server, high performance  | Medium           | ✅      | ✅  | ✅     | ✅   | 🔄      |
-| **DynamoDB** | AWS-native, serverless, managed | Medium           | ✅      | ✅  | ✅     | ✅   | 🔄      |
+**Choosing a storage backend:**
+
+If you're running high volume systems or want to share a storage backend among several services, it would make sense to have a dedicated data store for idempotency. Otherwise, you can easily use your existing database for your application.
+
+| Backend      | Best For                        | Setup Complexity | Node | Bun | Deno | Lambda | Workers |
+| ------------ | ------------------------------- | ---------------- | ---- | --- | ---- | ------ | ------- |
+| **Redis**    | High performance                | Medium           | ✅   | ✅  | ✅   | ✅    | 🔄      |
+| **DynamoDB** | AWS-native, serverless, managed | Medium           | ✅   | ✅  | ✅   | ✅    | 🔄      |
+| **Postgres** | Multi-server                    | Medium           | ✅   | ✅  | ✅   | ✅    | 🔄      |
+| **SQLite**   | Single-server, development      | Easy             | ✅   | ✅  | ✅   | ❌    | ❌      |
 
 **Runtime Support:**
 
@@ -27,12 +31,22 @@ Choose the backend that best fits your deployment:
 - 🔄 Not yet tested (contributions welcome)
 - ❌ Not supported
 
+**Important:**
+
+The idempotency promise only works with persistence. If the storage backend doesn't have persistence, the system is not idempotent and is at risk of accepting duplicate requests.
+
+- For Redis this means configuring `AOF` and `[TODO: find other configuration option]`.
+- For SQLite it means making sure your database is persisted between deployments (TODO: litespeed?)
+
+
 ## Quick Start - SQLite
 
-For local development:
+For local development
 
 ```bash
-npm install hono-idempotency better-sqlite3
+npm install hono-idempotency
+# TODO: do we need to install better-sqlite3, or will it get pulled in as a devDependency automatically?
+npm install -D better-sqlite3
 ```
 
 ```javascript
@@ -48,224 +62,21 @@ app.post("/orders", idempotency({ store }), async (c) => {
 });
 ```
 
-### PostgreSQL
-
-For production with multiple server instances using PostgreSQL:
-
-```bash
-npm install hono-idempotency pg
-```
-
-```javascript
-import { Hono } from "hono";
-import pg from "pg";
-import { idempotency, PostgresIdempotencyStore } from "hono-idempotency";
-
-const app = new Hono();
-
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL
-});
-
-const store = new PostgresIdempotencyStore({ pool });
-await store.init();
-
-app.post("/orders", idempotency({ store }), async (c) => {
-  return c.json({ id: "order-123" }, 201);
-});
-
-// Graceful shutdown
-process.on("SIGINT", () => {
-  pool.end();
-  process.exit(0);
-});
-```
-
-**Features:**
-
-- Shared state across app instances
-- Connection pooling via pg
-- TTL-based automatic cleanup of expired records
-- Uses standard PostgreSQL connection strings
-
-### Redis
-
-For production with multiple server instances:
-
-```bash
-npm install hono-idempotency ioredis
-```
-
-```javascript
-import { Hono } from "hono";
-import Redis from "ioredis";
-import { idempotency, RedisIdempotencyStore } from "hono-idempotency";
-
-const app = new Hono();
-
-const redis = new Redis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: parseInt(process.env.REDIS_PORT || "6379"),
-  password: process.env.REDIS_PASSWORD,
-  retryStrategy: (times) => Math.min(times * 50, 2000)
-});
-
-const store = new RedisIdempotencyStore({ client: redis });
-
-app.post("/orders", idempotency({ store }), async (c) => {
-  return c.json({ id: "order-123" }, 201);
-});
-
-// Graceful shutdown
-process.on("SIGINT", () => {
-  redis.quit();
-  process.exit(0);
-});
-```
-
-**Features:**
-
-- Shared state across app instances
-- Native clustering and sentinel support via ioredis
-- Auto-expiration via Redis TTL
-- User controls Redis configuration (TLS, retry logic, connection pooling)
-
-### DynamoDB
-
-For AWS-native serverless deployments:
-
-```bash
-npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
-```
-
-```javascript
-import { Hono } from "hono";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { idempotency, DynamoDbIdempotencyStore } from "hono-idempotency";
-
-const dynamoDBClient = new DynamoDBClient({
-  region: process.env.AWS_REGION || "us-east-1"
-});
-
-const documentClient = DynamoDBDocumentClient.from(dynamoDBClient);
-
-const store = new DynamoDbIdempotencyStore({
-  client: documentClient,
-  tableName: "idempotency-records" // Created via CloudFormation, Terraform, or AWS CLI
-});
-
-const app = new Hono();
-
-app.post("/orders", idempotency({ store }), async (c) => {
-  return c.json({ id: "order-123" }, 201);
-});
-```
-
-**Features:**
-
-- AWS-managed, no infrastructure to maintain
-- Automatic serverless scaling
-- Global secondary index for efficient fingerprint lookups
-- TTL-based automatic cleanup of expired records
-- Point-in-time recovery and backups
-- IAM access control
-
-See [docs/dynamodb-setup.md](./docs/dynamodb-setup.md) for complete setup instructions using CloudFormation, Terraform, AWS CDK, or AWS CLI.
-
-## Using with Bun
-
-Install and run with Bun:
-
-```bash
-bun add hono-idempotency
-```
-
-```javascript
-import { Hono } from "hono";
-import { BunSqliteIdempotencyStore } from "hono-idempotency/store/bun-sqlite";
-import { idempotency } from "hono-idempotency";
-
-const app = new Hono();
-const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
-
-app.post("/orders", idempotency({ store }), async (c) => {
-  return c.json({ id: "order-123" }, 201);
-});
-
-export default {
-  port: 3000,
-  fetch: app.fetch
-};
-```
-
-**Features:**
-
-- Native `bun:sqlite` integration (2-3x faster than better-sqlite3)
-- No `better-sqlite3` dependency needed
-- Works with Bun's native HTTP server
-- Full test coverage with Bun's test runner
-
-**Store Selection:**
-
-- **Node.js**: Use `SqliteIdempotencyStore` (better-sqlite3)
-- **Bun**: Use `BunSqliteIdempotencyStore` (native bun:sqlite)
-- **Redis/DynamoDB**: Use same stores across runtimes (runtime-agnostic)
-
-See [docs/bun-setup.md](./docs/bun-setup.md) for complete Bun setup guide.
-
-## Using with AWS Lambda
-
-Deploy on AWS Lambda with API Gateway or Function URLs:
-
-```bash
-npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
-```
-
-```javascript
-import { Hono } from "hono";
-import { handle } from "hono/aws-lambda";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { idempotency, DynamoDbIdempotencyStore } from "hono-idempotency";
-
-// Initialize outside handler for connection reuse
-const dynamoDBClient = new DynamoDBClient({ region: "us-east-1" });
-const documentClient = DynamoDBDocumentClient.from(dynamoDBClient);
-const store = new DynamoDbIdempotencyStore({
-  client: documentClient,
-  tableName: "idempotency-records"
-});
-
-const app = new Hono();
-app.post("/orders", idempotency({ store }), async (c) => {
-  return c.json({ id: "order-123" }, 201);
-});
-
-export const handler = handle(app);
-```
-
-**Features:**
-
-- Works with API Gateway (REST/HTTP API) and Lambda Function URLs
-- DynamoDB for serverless persistence
-- Redis/ElastiCache for existing infrastructure
-- Connection reuse across warm invocations
-
 **Recommended Storage:**
 
+- **Redis/ElastiCache**: For users with existing Redis infrastructure or high volume
 - **DynamoDB**: Best for Lambda (serverless, no cold start penalty, scales automatically)
-- **Redis/ElastiCache**: For users with existing Redis infrastructure
+- **Postgres**: For users with existing Postgres infrastructure
+- **SQLite**: For single server and light weight local development
 
 See [docs/lambda-setup.md](./docs/lambda-setup.md) for complete Lambda setup guide.
 
 ## Core Features
 
 - IETF-compliant idempotency key handling
-- SQLite storage (in-memory or file-based)
 - Request fingerprinting for conflict detection
 - Automatic response caching and replay
-- Full TypeScript type definitions
+- Supports multiple storage backends
 
 ## Resilience
 
@@ -276,10 +87,10 @@ The middleware includes built-in resilience features using [opossum](https://nod
 When the backing store (Redis, DynamoDB, SQLite) experiences failures:
 
 1. **Retries** - Failed operations are automatically retried up to 3 times
-2. **Timeout** - Each operation times out after 1 second to prevent hanging
+2. **Timeout** - Each operation times out (`500ms` default) to prevent hanging
 3. **Circuit Breaker** - After 50% failure rate over 10 requests, the circuit opens
 4. **Fail-Fast** - While the circuit is open, requests fail immediately without calling the store
-5. **Auto-Recovery** - After 30 seconds, the circuit allows test requests through
+5. **Auto-Recovery** - After 30 seconds, the circuit breaker allows test requests through
 
 ### Configuration
 
@@ -335,36 +146,13 @@ console.log(middleware.circuit.stats); // { failures, successes, rejects, ... }
 
 ## Development Setup
 
-Enable the pre-commit hook that checks for 100% test coverage:
-
-```bash
-npx husky install
-```
+See [DEVELOPMENT.md](DEVELOPMENT.md)
 
 ## Examples
 
-See `examples/` directory for complete usage examples:
-
-**Node.js:**
-
-- `basic-app.js` - In-memory development setup
-- `sqlite-app.js` - Production file-based persistence
-- `postgres-app.js` - PostgreSQL backend setup
-- `redis-app.js` - Multi-server production setup
-- `dynamodb-app.js` - AWS DynamoDB backend setup
-
-**Bun:**
-
-- `bun-basic-app.js` - In-memory development with Bun
-- `bun-sqlite-app.js` - File-based persistence with Bun
-
-**AWS Lambda:**
-
-- `lambda-apigateway-dynamodb.js` - API Gateway with DynamoDB
-- `lambda-apigateway-redis.js` - API Gateway with Redis/ElastiCache
-- `lambda-url-dynamodb.js` - Function URL with DynamoDB
-- `lambda-url-redis.js` - Function URL with Redis/ElastiCache
+See `examples/` directory for complete usage examples
 
 ## License
 
-MIT
+BSD-3
+TODO: Find the exact license abbreviation and regenerate the text
