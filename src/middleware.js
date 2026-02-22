@@ -13,7 +13,6 @@ import { withResilience } from "./resilience.js";
  * @property {number} [ttlMs]
  * @property {string[]} [excludeFields]
  * @property {IdempotencyStore} [store]
- * @property {string} [headerName]
  * @property {number} [maxKeyLength]
  * @property {ResilienceOptions} [resilience]
  */
@@ -24,7 +23,6 @@ const DEFAULT_OPTIONS = {
   ttlMs: 86400000, // 24 hours
   excludeFields: [],
   store: /** @type {any} */ (null),
-  headerName: "idempotency-key",
   maxKeyLength: 255,
   resilience: {
     timeout: 500,
@@ -68,7 +66,8 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const key = c.req.header(opts.headerName);
+    const HEADER_NAME = "Idempotency-Key";
+    const key = c.req.header(HEADER_NAME);
 
     // Check if key provided and validate
     if (key !== undefined) {

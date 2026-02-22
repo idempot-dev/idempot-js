@@ -274,23 +274,6 @@ test("middleware - PATCH method is protected", async (t) => {
   t.equal(callCount, 1, "handler called only once");
 });
 
-test("middleware - custom header name", async (t) => {
-  const store = new SqliteIdempotencyStore({ path: ":memory:" });
-  const app = new Hono();
-
-  app.post("/test", idempotency({ store, headerName: "x-request-id" }), (c) => {
-    return c.json({ message: "created" });
-  });
-
-  const res = await app.request("/test", {
-    method: "POST",
-    headers: { "x-request-id": "custom-key" },
-    body: JSON.stringify({ data: "test" })
-  });
-
-  t.equal(res.status, 200, "should work with custom header name");
-});
-
 test("middleware - field exclusion works", async (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();

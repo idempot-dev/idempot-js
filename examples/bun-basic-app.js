@@ -40,30 +40,6 @@ app.post("/payments", idempotency({ store, required: true }), async (c) => {
   );
 });
 
-// Custom header name
-app.post(
-  "/transfers",
-  idempotency({
-    store,
-    headerName: "x-request-id"
-  }),
-  async (c) => {
-    const body = await c.req.json();
-    const transferId = Math.random().toString(36).substring(7);
-
-    console.log(`Processing transfer: ${transferId}`);
-
-    return c.json(
-      {
-        id: transferId,
-        status: "completed",
-        ...body
-      },
-      201
-    );
-  }
-);
-
 // Exclude timestamp field from fingerprint
 app.post(
   "/events",

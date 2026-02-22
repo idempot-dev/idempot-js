@@ -44,8 +44,7 @@ app.post("/payments", idempotency({ store, required: true }), async (c) => {
 app.post(
   "/transfers",
   idempotency({
-    store,
-    headerName: "x-request-id"
+    store
   }),
   async (c) => {
     const body = await c.req.json();
