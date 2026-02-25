@@ -33,10 +33,10 @@ If you're running high volume systems or want to share a storage backend among s
 
 **Important:**
 
-The idempotency promise only works with persistence. If the storage backend doesn't have persistence, the system is not idempotent and is at risk of accepting duplicate requests.
+The idempotency promise only works with persistence. If the storage backend doesn't have reliable persistence, the system is not idempotent and is at risk of accepting duplicate requests.
 
-- For Redis this means configuring `AOF` and `[TODO: find other configuration option]`.
-- For SQLite it means making sure your database is persisted between deployments (TODO: litespeed?)
+- For Redis this means configuring `AOF` (and maybe also `RDB`). See [Redis persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
+- For SQLite it means making sure your database is persisted between deployments. You could use [litestream](https://litestream.io).
 
 
 ## Quick Start - SQLite

@@ -1,5 +1,6 @@
 # TODO
 
+- Automatic changelog and versioning
 - Figure out how to publish the stores as independent packages
 - Review the examples
 - Example
@@ -10,4 +11,3 @@
     - Different idempotency key, same payload
     - Different idempotency key, different payload
 - Try property based testing with fast-check
-- Document both Redis storage options
