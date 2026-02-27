@@ -108,11 +108,15 @@ export class CloudflareKvIdempotencyStore {
     for await (const entry of list) {
       const keyParts = entry.key;
       if (keyParts[1] === "fp") {
-        const recordJson = await this.kv.get(["idempotency", keyParts[2]]);
-        if (recordJson) {
-          const record = JSON.parse(recordJson);
-          if (record.expiresAt < Date.now()) {
-            keysToDelete.push(entry.key);
+        // Fingerprint entry stores the key, get it first
+        const key = await this.kv.get(["idempotency", "fp", keyParts[2]]);
+        if (key) {
+          const recordJson = await this.kv.get(["idempotency", key]);
+          if (recordJson) {
+            const record = JSON.parse(recordJson);
+            if (record.expiresAt < Date.now()) {
+              keysToDelete.push(entry.key);
+            }
           }
         }
       }
