@@ -1,5 +1,5 @@
 import { test } from "tap";
-import { PostgresIdempotencyStore } from "../src/store/postgres.js";
+import { PostgresIdempotencyStore } from "../../src/store/postgres.js";
 
 const createMockPool = (responses = []) => {
   let callIndex = 0;

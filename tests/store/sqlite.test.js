@@ -1,5 +1,5 @@
 import { test } from "tap";
-import { SqliteIdempotencyStore } from "../src/store/sqlite.js";
+import { SqliteIdempotencyStore } from "../../src/store/sqlite.js";
 
 test("SqliteIdempotencyStore - initialization", (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });

@@ -1,6 +1,6 @@
 import { test } from "tap";
 import RedisMock from "ioredis-mock";
-import { RedisIdempotencyStore } from "../src/store/redis.js";
+import { RedisIdempotencyStore } from "../../src/store/redis.js";
 
 test("RedisIdempotencyStore - initialization", (t) => {
   const redis = new RedisMock();

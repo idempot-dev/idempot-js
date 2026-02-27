@@ -7,7 +7,7 @@ import {
   PutCommand,
   UpdateCommand
 } from "@aws-sdk/lib-dynamodb";
-import { DynamoDbIdempotencyStore } from "../src/store/dynamodb.js";
+import { DynamoDbIdempotencyStore } from "../../src/store/dynamodb.js";
 
 test("DynamoDbIdempotencyStore - initialization", (t) => {
   const ddbMock = mockClient(DynamoDBDocumentClient);
