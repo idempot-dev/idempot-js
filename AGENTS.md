@@ -21,3 +21,5 @@ npm run build
 - **Framework**: Hono v4.11.5 middleware
 - **Language**: JavaScript with JSDoc
 - **Module System**: ESM (type: "module" in package.json, NodeNext module resolution)
+
+**Important:** The codebase is in JavaScript. TypeScript definitions are offered as a convenience to consumers of the library.
