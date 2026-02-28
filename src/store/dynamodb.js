@@ -131,7 +131,7 @@ export class DynamoDbIdempotencyStore {
    * @param {string} key - The request key
    * @param {{status: number, headers: Record<string, string>, body: string}} response - The response object
    * @returns {Promise<void>}
-   * @throws {Error} If record not found for key
+   * @throws {Error} If Record not found for key
    */
   async complete(key, response) {
     try {
@@ -147,7 +147,7 @@ export class DynamoDbIdempotencyStore {
             "#status": "status"
           },
           ExpressionAttributeValues: {
-            ":status": "completed",
+            ":status": "complete",
             ":responseStatus": response.status,
             ":responseHeaders": response.headers,
             ":responseBody": response.body

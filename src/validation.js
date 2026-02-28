@@ -1,5 +1,5 @@
 /**
- * @param {unknown} fields
+ * @param {string[]} fields
  * @returns {asserts fields is string[]}
  */
 export function validateExcludeFields(fields) {
