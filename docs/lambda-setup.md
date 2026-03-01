@@ -80,7 +80,7 @@ API Gateway provides a managed API layer with request validation, throttling, an
 
 ### Example: API Gateway + DynamoDB
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -153,7 +153,7 @@ Function URLs provide direct HTTPS access without API Gateway.
 
 ### Example: Function URL + DynamoDB
 
-```typescript
+```javascript
 // Same handler code as API Gateway example
 // The Hono adapter automatically handles both event formats
 
@@ -203,7 +203,7 @@ aws lambda create-function-url-config \
 
 ### Example: Lambda + Redis
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import Redis from "ioredis";
@@ -272,7 +272,7 @@ Lambda must be in the same VPC as ElastiCache:
 
 ### Best Practice: Initialize Outside Handler
 
-```typescript
+```javascript
 // ✅ GOOD: Initialize outside handler (reused across invocations)
 const dynamoDBClient = new DynamoDBClient({ region: "us-east-1" });
 const documentClient = DynamoDBDocumentClient.from(dynamoDBClient);
@@ -286,7 +286,7 @@ app.post("/orders", idempotency({ store }), handler);
 export const handler = handle(app);
 ```
 
-```typescript
+```javascript
 // ❌ BAD: Initialize inside handler (recreated every invocation)
 export const handler = async (event, context) => {
   const dynamoDBClient = new DynamoDBClient({ region: "us-east-1" });
@@ -377,7 +377,7 @@ sam deploy --guided
 
 ### Using AWS CDK
 
-```typescript
+```javascript
 // lib/lambda-stack.ts
 import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -458,7 +458,7 @@ Required for fingerprint lookups. Ensure it's configured in your table.
 
 Use `lazyConnect` and connection keep-alive for optimal performance:
 
-```typescript
+```javascript
 const redis = new Redis({
   lazyConnect: true, // Connect on first use
   keepAlive: 30000, // Keep connections alive 30s
@@ -554,7 +554,7 @@ Monitor these key metrics:
 
 Add application metrics:
 
-```typescript
+```javascript
 import { CloudWatch } from "@aws-sdk/client-cloudwatch";
 
 const cloudwatch = new CloudWatch({});

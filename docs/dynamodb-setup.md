@@ -170,7 +170,7 @@ terraform apply
 
 Create a file `cdk/stack.ts`:
 
-```typescript
+```javascript
 import { Stack, StackProps, RemovalPolicy } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
@@ -239,7 +239,7 @@ aws dynamodb update-time-to-live \
 
 ### Basic Setup
 
-```typescript
+```javascript
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Hono } from "hono";
@@ -287,7 +287,7 @@ aws dynamodb create-table \
 
 Then configure your client:
 
-```typescript
+```javascript
 const dynamoDBClient = new DynamoDBClient({
   region: "us-east-1",
   endpoint: "http://localhost:8000"

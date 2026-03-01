@@ -25,7 +25,7 @@ Unlike Node.js, you don't need `better-sqlite3`. Bun's native SQLite is built-in
 
 Use `BunSqliteIdempotencyStore` for native performance:
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import { idempotency, BunSqliteIdempotencyStore } from "hono-idempotency";
 
@@ -56,7 +56,7 @@ Redis works the same way on Bun as on Node.js:
 bun add ioredis
 ```
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import Redis from "ioredis";
 import { idempotency, RedisIdempotencyStore } from "hono-idempotency";
@@ -88,7 +88,7 @@ DynamoDB also works the same way on Bun:
 bun add @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 ```
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
@@ -130,22 +130,22 @@ bun run app.ts
 Or use the example apps:
 
 ```bash
-bun run examples/bun-basic-app.ts
-bun run examples/bun-sqlite-app.ts
+bun run examples/bun-basic-app.js
+bun run examples/bun-sqlite-app.js
 ```
 
 ### Production
 
-For production, you can still run the `.ts` file directly:
+For production, you can still run the `.js` file directly:
 
 ```bash
-bun run --production app.ts
+bun run --production app.js
 ```
 
 Or build and run the compiled output:
 
 ```bash
-bun build app.ts --target=bun --outdir=./dist
+bun build app.js --target=bun --outdir=./dist
 bun run ./dist/app.js
 ```
 
@@ -185,7 +185,7 @@ _Benchmarks run on Apple M1 Pro, 16GB RAM_
 
 For production deployments with file-based SQLite:
 
-```typescript
+```javascript
 import { Hono } from "hono";
 import { idempotency, BunSqliteIdempotencyStore } from "hono-idempotency";
 
@@ -307,7 +307,7 @@ If you see "database is locked" errors:
 
 Use `.js` extensions in imports:
 
-```typescript
+```javascript
 // Correct
 import { BunSqliteIdempotencyStore } from "hono-idempotency";
 
@@ -321,7 +321,7 @@ To migrate from Node.js to Bun:
 
 1. Change the store:
 
-   ```typescript
+   ```javascript
    // Before (Node.js)
    import { SqliteIdempotencyStore } from "hono-idempotency";
    const store = new SqliteIdempotencyStore({ path: ":memory:" });
@@ -333,7 +333,7 @@ To migrate from Node.js to Bun:
 
 2. Change the server:
 
-   ```typescript
+   ```javascript
    // Before (Node.js)
    import { serve } from "@hono/node-server";
    serve({ fetch: app.fetch, port: 3000 });
@@ -361,4 +361,3 @@ That's it! Your middleware logic stays the same.
 
 - See [README.md](../README.md) for middleware configuration options
 - See [examples/](../examples/) for complete working examples
-- See [IMPLEMENTATION_SUMMARY.md](../IMPLEMENTATION_SUMMARY.md) for detailed feature documentation
