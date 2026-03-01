@@ -18,12 +18,14 @@ The library supports several storage backends.
 
 If you're running high volume systems or want to share a storage backend among several services, it would make sense to have a dedicated data store for idempotency. Otherwise, you can easily use your existing database for your application.
 
-| Backend      | Best For                        | Setup Complexity | Node | Bun | Deno | Lambda | Workers |
-| ------------ | ------------------------------- | ---------------- | ---- | --- | ---- | ------ | ------- |
-| **Redis**    | High performance                | Medium           | ✅   | ✅  | ✅   | ✅    | 🔄      |
-| **DynamoDB** | AWS-native, serverless, managed | Medium           | ✅   | ✅  | ✅   | ✅    | 🔄      |
-| **Postgres** | Multi-server                    | Medium           | ✅   | ✅  | ✅   | ✅    | 🔄      |
-| **SQLite**   | Single-server, development      | Easy             | ✅   | ✅  | ✅   | ❌    | ❌      |
+| Backend           | Best For                        | Setup Complexity | Node | Bun | Deno | Lambda | Workers |
+| ----------------- | ------------------------------- | ---------------- | ---- | --- | ---- | ------ | ------- |
+| **Redis**         | High performance                | Medium           | ✅   | ✅  | ✅   | ✅     | 🔄      |
+| **DynamoDB**      | AWS-native, serverless, managed | Medium           | ✅   | ✅  | ✅   | ✅     | 🔄      |
+| **Postgres**      | Multi-server                    | Medium           | ✅   | ✅  | ✅   | ✅     | 🔄      |
+| **SQLite**        | Single-server, development      | Easy             | ✅   | ✅  | ✅   | ❌     | ❌      |
+| **Bun SQLite**    | Bun runtime, best performance   | Easy             | ❌   | ✅  | ❌   | ❌     | ❌      |
+| **Cloudflare KV** | Cloudflare Workers              | Easy             | ❌   | ❌  | ❌   | ❌     | ✅      |
 
 **Runtime Support:**
 
@@ -37,7 +39,6 @@ The idempotency promise only works with persistence. If the storage backend does
 
 - For Redis this means configuring `AOF` (and maybe also `RDB`). See [Redis persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
 - For SQLite it means making sure your database is persisted between deployments. You could use [litestream](https://litestream.io).
-
 
 ## Quick Start - SQLite
 
