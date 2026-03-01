@@ -57,7 +57,11 @@
     "test:lambda": "bun test test/lambda/",
     "test:deno": "deno test test/deno/",
     "example:deno:sqlite": "deno run --allow-write examples/deno-sqlite-app.ts",
-    "example:deno:redis": "deno run --allow-net examples/deno-redis-app.ts"
+    "example:deno:redis": "deno run --allow-net examples/deno-redis-app.ts",
+    "example:cloudflare": "node examples/cloudflare-kv-app.js",
+    "example:dynamodb": "node examples/dynamodb-app.js",
+    "example:lambda:url:redis": "node examples/lambda-url-redis.js",
+    "example:lambda:apigateway:redis": "node examples/lambda-apigateway-redis.js"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",

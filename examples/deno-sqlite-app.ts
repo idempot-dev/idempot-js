@@ -17,4 +17,22 @@ app.post("/users", async (c) => {
   return c.json({ id: crypto.randomUUID(), ...body });
 });
 
+console.log("Server running at http://localhost:8000");
+console.log("Using SQLite storage at ./idempotency.db");
+console.log("");
+console.log("Try these requests:");
+console.log("");
+console.log("# Create user (optional idempotency-key)");
+console.log("curl -X POST http://localhost:8000/users \\");
+console.log('  -H "Content-Type: application/json" \\');
+console.log('  -H "idempotency-key: user-123" \\');
+console.log('  -d \'{"name": "John"}\'');
+console.log("");
+console.log("# Replay - same key and body returns cached response");
+console.log("curl -X POST http://localhost:8000/users \\");
+console.log('  -H "Content-Type: application/json" \\');
+console.log('  -H "idempotency-key: user-123" \\');
+console.log('  -d \'{"name": "John"}\'');
+console.log("");
+
 Deno.serve(app.fetch);

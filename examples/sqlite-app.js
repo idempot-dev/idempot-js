@@ -40,6 +40,21 @@ serve(
   (info) => {
     console.log(`Server running at http://localhost:${info.port}`);
     console.log("Using SQLite storage at ./data/idempotency.db");
+    console.log("");
+    console.log("Try these requests:");
+    console.log("");
+    console.log("# Create order (optional idempotency-key)");
+    console.log("curl -X POST http://localhost:3000/orders \\");
+    console.log('  -H "Content-Type: application/json" \\');
+    console.log('  -H "idempotency-key: order-123" \\');
+    console.log('  -d \'{"item": "widget", "quantity": 5}\'');
+    console.log("");
+    console.log("# Replay - same key and body returns cached response");
+    console.log("curl -X POST http://localhost:3000/orders \\");
+    console.log('  -H "Content-Type: application/json" \\');
+    console.log('  -H "idempotency-key: order-123" \\');
+    console.log('  -d \'{"item": "widget", "quantity": 5}\'');
+    console.log("");
   }
 );
 

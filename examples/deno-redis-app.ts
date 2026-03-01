@@ -20,4 +20,24 @@ app.post("/posts", async (c) => {
   return c.json({ id: crypto.randomUUID(), ...body });
 });
 
+console.log("Server running at http://localhost:8000");
+console.log(
+  `Using Redis storage at ${Deno.env.get("REDIS_HOST") ?? "127.0.0.1"}:${Deno.env.get("REDIS_PORT") ?? "6379"}`
+);
+console.log("");
+console.log("Try these requests:");
+console.log("");
+console.log("# Create post (optional idempotency-key)");
+console.log("curl -X POST http://localhost:8000/posts \\");
+console.log('  -H "Content-Type: application/json" \\');
+console.log('  -H "idempotency-key: post-123" \\');
+console.log('  -d \'{"title": "Hello World"}\'');
+console.log("");
+console.log("# Replay - same key and body returns cached response");
+console.log("curl -X POST http://localhost:8000/posts \\");
+console.log('  -H "Content-Type: application/json" \\');
+console.log('  -H "idempotency-key: post-123" \\');
+console.log('  -d \'{"title": "Hello World"}\'');
+console.log("");
+
 Deno.serve(app.fetch);

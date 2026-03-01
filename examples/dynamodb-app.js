@@ -71,12 +71,27 @@ serve(
     console.log(
       `Table name: ${process.env.IDEMPOTENCY_TABLE || "idempotency-records"}`
     );
-    console.log("\nTry these curl commands:");
+    console.log("");
+    console.log("Try these requests:");
+    console.log("");
+    console.log("# Create order (optional idempotency-key)");
     console.log("curl -X POST http://localhost:3000/orders \\");
     console.log('  -H "Content-Type: application/json" \\');
-    console.log('  -H "Idempotency-Key: order-123" \\');
-    console.log('  -d \'{"product":"widget","quantity":5}\'');
-    console.log("\ncurl http://localhost:3000/health");
+    console.log('  -H "idempotency-key: order-123" \\');
+    console.log('  -d \'{"item": "widget", "quantity": 5}\'');
+    console.log("");
+    console.log("# Replay - same key and body returns cached response");
+    console.log("curl -X POST http://localhost:3000/orders \\");
+    console.log('  -H "Content-Type: application/json" \\');
+    console.log('  -h "idempotency-key: order-123" \\');
+    console.log('  -d \'{"item": "widget", "quantity": 5}\'');
+    console.log("");
+    console.log("# Payment (required idempotency-key)");
+    console.log("curl -X POST http://localhost:3000/payments \\");
+    console.log('  -H "Content-Type: application/json" \\');
+    console.log('  -H "idempotency-key: payment-456" \\');
+    console.log('  -d \'{"amount": 100, "currency": "USD"}\'');
+    console.log("");
   }
 );
 
