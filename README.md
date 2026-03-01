@@ -46,7 +46,6 @@ For local development
 
 ```bash
 npm install hono-idempotency
-# TODO: do we need to install better-sqlite3, or will it get pulled in as a devDependency automatically?
 npm install -D better-sqlite3
 ```
 
@@ -62,15 +61,6 @@ app.post("/orders", idempotency({ store }), async (c) => {
   return c.json({ id: "order-123" }, 201);
 });
 ```
-
-**Recommended Storage:**
-
-- **Redis/ElastiCache**: For users with existing Redis infrastructure or high volume
-- **DynamoDB**: Best for Lambda (serverless, no cold start penalty, scales automatically)
-- **Postgres**: For users with existing Postgres infrastructure
-- **SQLite**: For single server and light weight local development
-
-See [docs/lambda-setup.md](./docs/lambda-setup.md) for complete Lambda setup guide.
 
 ## Core Features
 
