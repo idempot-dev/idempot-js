@@ -69,6 +69,10 @@ app.post("/orders", idempotency({ store }), async (c) => {
 - Automatic response caching and replay
 - Supports multiple storage backends
 
+## Response Headers
+
+When a duplicate request is detected (same idempotency key), the middleware replays the cached response instead of executing the handler. In this case, the response includes the `x-idempotent-replayed: true` header to indicate that the response was replayed from cache.
+
 ## Resilience
 
 The middleware includes built-in resilience features using [opossum](https://nodeshift.dev/opossum/) circuit breaker to handle store failures gracefully.
