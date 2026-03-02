@@ -1,5 +1,6 @@
 // Main middleware
 export { idempotency } from "./middleware.js";
+export { idempotency as idempotencyExpress } from "./middleware-express.js";
 
 // Types (exported via TypeScript .d.ts generation)
 export {};
