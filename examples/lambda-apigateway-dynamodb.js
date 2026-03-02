@@ -27,7 +27,8 @@ import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { idempotency, DynamoDbIdempotencyStore } from "../src/index.js";
+import { idempotency } from "../src/hono-middleware.js";
+import { DynamoDbIdempotencyStore } from "../src/store/dynamodb.js";
 
 // Initialize clients OUTSIDE handler for connection reuse across warm invocations
 // This significantly improves performance by avoiding reconnection overhead

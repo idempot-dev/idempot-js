@@ -1,7 +1,8 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import Redis from "ioredis";
-import { idempotency, RedisIdempotencyStore } from "../src/index.js";
+import { idempotency } from "../src/hono-middleware.js";
+import { RedisIdempotencyStore } from "../src/store/redis.js";
 
 const app = new Hono();
 

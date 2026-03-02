@@ -30,7 +30,8 @@
 import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import Redis from "ioredis";
-import { idempotency, RedisIdempotencyStore } from "../src/index.js";
+import { idempotency } from "../src/hono-middleware.js";
+import { RedisIdempotencyStore } from "../src/store/redis.js";
 
 // Initialize Redis client OUTSIDE handler for connection reuse
 // Lambda-specific configuration for optimal performance in serverless environment
