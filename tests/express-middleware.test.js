@@ -72,7 +72,7 @@ test("middleware-express - POST without key when optional", async (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = express();
   app.use(express.json());
-  app.post("/test", idempotency({ store }), (req, res) => {
+  app.post("/test", idempotency({ store, required: false }), (req, res) => {
     res.json({ message: "created" });
   });
 

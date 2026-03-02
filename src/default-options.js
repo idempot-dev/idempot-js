@@ -15,8 +15,11 @@
 
 /** @type {Required<IdempotencyOptions>} */
 const DEFAULT_OPTIONS = {
-  /** Whether the Idempotency-Key header is required. When false, requests without the header pass through unchanged. */
-  required: false,
+  /** Whether the Idempotency-Key header is required.
+   *  When false, requests without the header pass through unchanged.
+   *  Setting required to false is generally NOT RECOMMENDED, but can be helpful during rollout of idempotency for endpoints.
+   */
+  required: true,
 
   /** Time-to-live in milliseconds for storing idempotency records. Default is 24 hours (86400000ms). */
   ttlMs: 86400000,
@@ -33,15 +36,15 @@ const DEFAULT_OPTIONS = {
   /** Configuration for the circuit breaker and retry logic when interacting with the store. */
   resilience: {
     /** Timeout in milliseconds for each store operation. Default is 500ms. */
-    timeout: 500,
+    timeoutMs: 500,
     /** Maximum number of retry attempts for failed operations. Default is 3. */
     maxRetries: 3,
     /** Delay in milliseconds between retry attempts. Default is 100ms. */
-    retryDelay: 100,
+    retryDelayMs: 100,
     /** Error threshold percentage that triggers the circuit breaker. Default is 50%. */
     errorThresholdPercentage: 50,
     /** Time in milliseconds to wait before attempting to reset the circuit breaker. Default is 30000ms (30 seconds). */
-    resetTimeout: 30000,
+    resetTimeoutMs: 30000,
     /** Minimum number of requests required before the circuit breaker can trigger. Default is 10. */
     volumeThreshold: 10
   }

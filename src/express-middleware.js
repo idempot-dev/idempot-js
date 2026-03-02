@@ -33,7 +33,7 @@ export function idempotency(options = {}) {
   }
   validateExcludeFields(opts.excludeFields);
   const store = opts.store;
-  const { store: resilientStore, circuit } = withResilience(
+  const { store: resilientStore } = withResilience(
     store,
     opts.resilience
   );

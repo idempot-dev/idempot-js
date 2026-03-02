@@ -97,11 +97,11 @@ app.post(
   idempotency({
     store,
     resilience: {
-      timeout: 1000, // Operation timeout in ms (default: 500)
+      timeoutMs: 1000, // Operation timeout in ms (default: 500)
       maxRetries: 3, // Retry attempts (default: 3)
-      retryDelay: 100, // Delay between retries in ms (default: 100)
+      retryDelayMs: 100, // Delay between retries in ms (default: 100)
       errorThresholdPercentage: 50, // % failures to open circuit (default: 50)
-      resetTimeout: 30000, // ms before attempting reset (default: 30000)
+      resetTimeoutMs: 30000, // ms before attempting reset (default: 30000)
       volumeThreshold: 10 // min requests before evaluating (default: 10)
     }
   }),
@@ -132,11 +132,11 @@ console.log(middleware.circuit.stats); // { failures, successes, rejects, ... }
 
 | Option                   | Default | Description                          |
 | ------------------------ | ------- | ------------------------------------ |
-| timeout                  | 500ms   | Max time to wait for store operation |
+| timeoutMs                | 500ms   | Max time to wait for store operation |
 | maxRetries               | 3       | Number of retry attempts             |
-| retryDelay               | 100ms   | Delay between retries                |
+| retryDelayMs             | 100ms   | Delay between retries                |
 | errorThresholdPercentage | 50%     | Failures to open circuit             |
-| resetTimeout             | 30s     | Time before attempting reset         |
+| resetTimeoutMs           | 30s     | Time before attempting reset         |
 | volumeThreshold          | 10      | Requests before circuit evaluates    |
 
 ## Development Setup

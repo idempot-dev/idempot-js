@@ -62,7 +62,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 });
 
 // Required idempotency key for sensitive operations
-app.post("/payments", idempotency({ store, required: true }), async (c) => {
+app.post("/payments", idempotency({ store }), async (c) => {
   const body = await c.req.json();
   const paymentId = Math.random().toString(36).substring(7);
 

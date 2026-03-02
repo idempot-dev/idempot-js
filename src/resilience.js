@@ -6,20 +6,20 @@ import CircuitBreaker from "opossum";
 
 /**
  * @typedef {Object} ResilienceOptions
- * @property {number} [timeout=500]
+ * @property {number} [timeoutMs=500]
  * @property {number} [maxRetries=3]
- * @property {number} [retryDelay=100]
+ * @property {number} [retryDelayMs=100]
  * @property {number} [errorThresholdPercentage=50]
- * @property {number} [resetTimeout=30000]
+ * @property {number} [resetTimeoutMs=30000]
  * @property {number} [volumeThreshold=10]
  */
 
 const DEFAULT_RESILIENCE_OPTIONS = {
-  timeout: 500,
+  timeoutMs: 500,
   maxRetries: 3,
-  retryDelay: 100,
+  retryDelayMs: 100,
   errorThresholdPercentage: 50,
-  resetTimeout: 30000,
+  resetTimeoutMs: 30000,
   volumeThreshold: 10
 };
 
@@ -33,9 +33,9 @@ export function withResilience(store, options = {}) {
   const opts = { ...DEFAULT_RESILIENCE_OPTIONS, ...options };
 
   const breakerOptions = {
-    timeout: opts.timeout,
+    timeout: opts.timeoutMs,
     errorThresholdPercentage: opts.errorThresholdPercentage,
-    resetTimeout: opts.resetTimeout,
+    resetTimeout: opts.resetTimeoutMs,
     volumeThreshold: opts.volumeThreshold
   };
 
@@ -51,7 +51,7 @@ export function withResilience(store, options = {}) {
       } catch (error) {
         lastError = error;
         if (i < opts.maxRetries - 1) {
-          await new Promise((r) => setTimeout(r, opts.retryDelay));
+          await new Promise((r) => setTimeout(r, opts.retryDelayMs));
         }
       }
     }

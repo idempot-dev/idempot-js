@@ -23,7 +23,7 @@ test("middleware - POST without key when optional", async (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = new Hono();
 
-  app.post("/test", idempotency({ store }), (c) => {
+  app.post("/test", idempotency({ store, required: false }), (c) => {
     return c.json({ message: "created" });
   });
 
