@@ -12,7 +12,7 @@
  */
 
 import { Hono } from "hono";
-import { idempotency } from "../src/middleware.js";
+import { idempotency } from "../src/hono-middleware.js";
 import { CloudflareKvIdempotencyStore } from "../src/store/cloudflare-kv.js";
 
 const app = new Hono();

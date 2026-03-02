@@ -312,7 +312,7 @@ Use `.js` extensions in imports:
 import { BunSqliteIdempotencyStore } from "idempot";
 
 // Also correct
-import { idempotency } from "./middleware.js";
+import { idempotency } from "./hono-middleware.js";
 ```
 
 ## Migration from Node.js

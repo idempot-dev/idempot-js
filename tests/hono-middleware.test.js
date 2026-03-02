@@ -1,6 +1,6 @@
 import { test } from "tap";
 import { Hono } from "hono";
-import { idempotency } from "../src/middleware.js";
+import { idempotency } from "../src/hono-middleware.js";
 import { withResilience } from "../src/resilience.js";
 import { SqliteIdempotencyStore } from "../src/store/sqlite.js";
 

@@ -149,7 +149,7 @@ export class MyIdempotencyStore {
 ## Usage
 
 ```javascript
-import { idempotency } from "./src/middleware.js";
+import { idempotency } from "./src/hono-middleware.js";
 import { MyIdempotencyStore } from "./src/store/my-custom-store.js";
 
 const store = new MyIdempotencyStore({

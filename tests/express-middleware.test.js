@@ -1,7 +1,7 @@
 import { test } from "tap";
 import express from "express";
 import http from "http";
-import { idempotency } from "../src/middleware-express.js";
+import { idempotency } from "../src/express-middleware.js";
 import { SqliteIdempotencyStore } from "../src/store/sqlite.js";
 
 function makeRequest(port, path, method, idempotencyKey, body) {
