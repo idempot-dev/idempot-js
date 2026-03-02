@@ -97,6 +97,31 @@ fastify.post(
 
 When a duplicate request is detected (same idempotency key), the middleware replays the cached response instead of executing the handler. In this case, the response includes the `x-idempotent-replayed: true` header to indicate that the response was replayed from cache.
 
+## Key Length Requirements
+
+By default, idempotency keys must be between **16 and 255 characters**. This provides sufficient entropy (~95 bits with base64) to prevent key exhaustion and collision attacks.
+
+### Why 16 characters?
+
+- Matches industry standards (NanoID default)
+- Provides ~95 bits of entropy
+- Accommodates all major ID generators: UUID (36), ULID (26), CUID (25), KSUID (27)
+- Prevents exhaustion with just 62 possible values (1 char = only a-z, A-Z, 0-9)
+
+### Customizing Key Length
+
+If you need shorter keys (not recommended for production):
+
+```javascript
+idempotency({
+  store,
+  minKeyLength: 8, // Reduce minimum (1-255 allowed)
+  maxKeyLength: 128 // Reduce maximum if needed
+});
+```
+
+**Note:** The IETF draft spec recommends 1-255 characters. We default to 16+ for security.
+
 ## Resilience
 
 The middleware includes built-in resilience features using [opossum](https://nodeshift.dev/opossum/) circuit breaker to handle store failures gracefully.
