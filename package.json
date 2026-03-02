@@ -90,6 +90,7 @@
     "aws-sdk-client-mock": "^4.1.0",
     "better-sqlite3": "^12.6.2",
     "eslint": "^10.0.0",
+    "fastify": "^5.0.0",
     "eslint-config-prettier": "^10.1.8",
     "express": "^5.2.1",
     "globals": "^17.1.0",
