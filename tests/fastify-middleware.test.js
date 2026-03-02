@@ -41,7 +41,7 @@ test("passes through when idempotency-key is provided", async (t) => {
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "test-key-123" }
+    headers: { "idempotency-key": "test-key-1234567" }
   });
 
   t.equal(response.statusCode, 201);
@@ -92,7 +92,7 @@ test("returns 400 if idempotency-key is too long", async (t) => {
   });
 
   t.equal(response.statusCode, 400);
-  t.match(response.json(), { error: /between 1-/ });
+  t.match(response.json(), { error: /between 16-/ });
 });
 
 test("caches response on first request with idempotency key", async (t) => {
@@ -114,7 +114,7 @@ test("caches response on first request with idempotency key", async (t) => {
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "unique-key-1" }
+    headers: { "idempotency-key": "unique-key-12345" }
   });
 
   t.equal(response1.statusCode, 201);
@@ -125,7 +125,7 @@ test("caches response on first request with idempotency key", async (t) => {
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "unique-key-1" }
+    headers: { "idempotency-key": "unique-key-12345" }
   });
 
   t.equal(response2.statusCode, 201);
@@ -138,7 +138,7 @@ test("returns 409 when same idempotency key is already processing", async (t) =>
   const fastify = Fastify();
 
   // Start processing but don't complete
-  await store.startProcessing("processing-key", "fp1", 60000);
+  await store.startProcessing("processing-key-123", "fp1", 60000);
 
   fastify.post(
     "/test",
@@ -152,7 +152,7 @@ test("returns 409 when same idempotency key is already processing", async (t) =>
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "processing-key" }
+    headers: { "idempotency-key": "processing-key-123" }
   });
 
   t.equal(response.statusCode, 409);
@@ -177,7 +177,7 @@ test("returns 409 when same fingerprint was used with different key", async (t) 
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "key-1" }
+    headers: { "idempotency-key": "key-1-16-chars-long" }
   });
 
   // New request with same body but different key
@@ -185,7 +185,7 @@ test("returns 409 when same fingerprint was used with different key", async (t) 
     method: "POST",
     url: "/test",
     payload: { foo: "bar" }, // Same fingerprint
-    headers: { "idempotency-key": "key-2" } // Different key
+    headers: { "idempotency-key": "key-2-16-chars-long" } // Different key
   });
 
   t.equal(response.statusCode, 409);
@@ -209,7 +209,7 @@ test("returns 422 when idempotency key reused with different payload", async (t)
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "same-key" }
+    headers: { "idempotency-key": "same-key-1234567" }
   });
 
   // New request with same key but different body
@@ -217,7 +217,7 @@ test("returns 422 when idempotency key reused with different payload", async (t)
     method: "POST",
     url: "/test",
     payload: { foo: "different" }, // Different fingerprint
-    headers: { "idempotency-key": "same-key" }
+    headers: { "idempotency-key": "same-key-1234567" }
   });
 
   t.equal(response.statusCode, 422);
@@ -283,7 +283,7 @@ test("returns 503 when lookup fails", async (t) => {
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "test-key" }
+    headers: { "idempotency-key": "test-key-1234567" }
   });
 
   t.equal(response.statusCode, 503);
@@ -311,7 +311,7 @@ test("returns 503 when startProcessing fails", async (t) => {
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "test-key" }
+    headers: { "idempotency-key": "test-key-1234567" }
   });
 
   t.equal(response.statusCode, 503);
@@ -340,7 +340,7 @@ test("handles complete failure gracefully", async (t) => {
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { "idempotency-key": "test-key" }
+    headers: { "idempotency-key": "test-key-1234567" }
   });
 
   t.equal(response.statusCode, 200);
@@ -363,7 +363,7 @@ test("handles string body", async (t) => {
     url: "/test",
     payload: "plain text body",
     headers: {
-      "idempotency-key": "string-body-key",
+      "idempotency-key": "string-body-key-1",
       "content-type": "text/plain"
     }
   });
@@ -423,7 +423,7 @@ test("handles empty body", async (t) => {
   const response = await fastify.inject({
     method: "POST",
     url: "/test",
-    headers: { "idempotency-key": "empty-body-key" }
+    headers: { "idempotency-key": "empty-body-key-12" }
   });
 
   t.equal(response.statusCode, 200);
