@@ -20,14 +20,15 @@ export function validateExcludeFields(fields) {
 
 /**
  * @param {string} key
- * @param {number} maxKeyLength
+ * @param {{minKeyLength?: number, maxKeyLength?: number}} [options={}]
  * @returns {{valid: boolean, error?: string}}
  */
-export function validateIdempotencyKey(key, maxKeyLength) {
-  if (key.length === 0 || key.length > maxKeyLength) {
+export function validateIdempotencyKey(key, options = {}) {
+  const { minKeyLength = 16, maxKeyLength = 255 } = options;
+  if (key.length < minKeyLength || key.length > maxKeyLength) {
     return {
       valid: false,
-      error: `Idempotency-Key must be between 1-${maxKeyLength} characters`
+      error: `Idempotency-Key must be between ${minKeyLength}-${maxKeyLength} characters`
     };
   }
   return { valid: true };

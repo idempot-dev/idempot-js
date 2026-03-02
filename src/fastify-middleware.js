@@ -43,7 +43,10 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const keyValidation = validateIdempotencyKey(key, opts.maxKeyLength);
+    const keyValidation = validateIdempotencyKey(key, {
+      minKeyLength: 1,
+      maxKeyLength: opts.maxKeyLength
+    });
     if (!keyValidation.valid) {
       return reply.code(400).send({ error: keyValidation.error });
     }

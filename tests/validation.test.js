@@ -60,24 +60,36 @@ test("validateExcludeFields - throws for invalid JSONPath", (t) => {
 
 // validateIdempotencyKey tests
 test("validateIdempotencyKey - accepts valid key", (t) => {
-  const result = validateIdempotencyKey("valid-key", 255);
+  const result = validateIdempotencyKey("a-valid-key-12345", {
+    maxKeyLength: 255
+  });
   t.equal(result.valid, true);
   t.equal(result.error, undefined);
   t.end();
 });
 
 test("validateIdempotencyKey - rejects empty key", (t) => {
-  const result = validateIdempotencyKey("", 255);
+  const result = validateIdempotencyKey("", { maxKeyLength: 255 });
   t.equal(result.valid, false);
-  t.match(result.error, /between 1-255 characters/i);
+  t.match(result.error, /between 16-255 characters/i);
   t.end();
 });
 
 test("validateIdempotencyKey - rejects too long key", (t) => {
   const longKey = "x".repeat(256);
-  const result = validateIdempotencyKey(longKey, 255);
+  const result = validateIdempotencyKey(longKey, { maxKeyLength: 255 });
   t.equal(result.valid, false);
-  t.match(result.error, /between 1-255 characters/i);
+  t.match(result.error, /between 16-255 characters/i);
+  t.end();
+});
+
+test("validateIdempotencyKey - rejects key shorter than minKeyLength", (t) => {
+  const result = validateIdempotencyKey("short", {
+    minKeyLength: 16,
+    maxKeyLength: 255
+  });
+  t.equal(result.valid, false);
+  t.equal(result.error, "Idempotency-Key must be between 16-255 characters");
   t.end();
 });
 

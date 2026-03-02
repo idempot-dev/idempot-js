@@ -64,7 +64,10 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const keyValidation = validateIdempotencyKey(key, opts.maxKeyLength);
+    const keyValidation = validateIdempotencyKey(key, {
+      minKeyLength: 1,
+      maxKeyLength: opts.maxKeyLength
+    });
     if (!keyValidation.valid) {
       return c.json({ error: keyValidation.error }, 400);
     }
