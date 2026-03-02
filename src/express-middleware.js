@@ -26,7 +26,11 @@ const HEADER_NAME = "idempotency-key";
 
 /**
  * Express middleware for idempotency
- * @param {IdempotencyOptions} [options]
+ * @param {Object} opts - Middleware options
+ * @param {IdempotencyStore} opts.store - Storage backend
+ * @param {string} [opts.headerName="Idempotency-Key"] - Header name
+ * @param {number} [opts.maxKeyLength=255] - Maximum key length
+ * @param {number} [opts.minKeyLength=16] - Minimum key length (default: 16 for entropy)
  * @returns {(req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => Promise<void>}
  */
 export function idempotency(options = {}) {

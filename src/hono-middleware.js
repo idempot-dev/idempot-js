@@ -26,7 +26,11 @@ const HEADER_NAME = "idempotency-key";
 
 /**
  * Hono middleware for idempotency
- * @param {IdempotencyOptions} [options]
+ * @param {Object} opts - Middleware options
+ * @param {IdempotencyStore} opts.store - Storage backend
+ * @param {string} [opts.headerName="Idempotency-Key"] - Header name
+ * @param {number} [opts.maxKeyLength=255] - Maximum key length
+ * @param {number} [opts.minKeyLength=16] - Minimum key length (default: 16 for entropy)
  * @returns {(c: any, next: any) => Promise<void>}
  */
 export function idempotency(options = {}) {

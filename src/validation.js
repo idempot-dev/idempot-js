@@ -20,7 +20,9 @@ export function validateExcludeFields(fields) {
 
 /**
  * @param {string} key
- * @param {{minKeyLength?: number, maxKeyLength?: number}} [options={}]
+ * @param {Object} options
+ * @param {number} [options.minKeyLength=16] - Minimum allowed key length (default: 16)
+ * @param {number} [options.maxKeyLength=255] - Maximum allowed key length (default: 255)
  * @returns {{valid: boolean, error?: string}}
  */
 export function validateIdempotencyKey(key, options = {}) {

@@ -12,6 +12,15 @@ import { DEFAULT_OPTIONS } from "./default-options.js";
 
 const HEADER_NAME = "idempotency-key";
 
+/**
+ * Fastify middleware for idempotency
+ * @param {Object} opts - Middleware options
+ * @param {IdempotencyStore} opts.store - Storage backend
+ * @param {string} [opts.headerName="Idempotency-Key"] - Header name
+ * @param {number} [opts.maxKeyLength=255] - Maximum key length
+ * @param {number} [opts.minKeyLength=16] - Minimum key length (default: 16 for entropy)
+ * @returns {(request: any, reply: any) => Promise<void>}
+ */
 export function idempotency(options = {}) {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   if (!opts.store) {
