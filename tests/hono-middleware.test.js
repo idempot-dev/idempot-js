@@ -100,7 +100,7 @@ test("middleware - first request with new key", async (t) => {
 
   const res = await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "unique-key-1" },
+    headers: { "idempotency-key": "unique-key-12345678" },
     body: JSON.stringify({ data: "test" })
   });
 
@@ -123,7 +123,7 @@ test("middleware - replays cached response", async (t) => {
   // First request
   const res1 = await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "replay-key" },
+    headers: { "idempotency-key": "replay-key-123456789" },
     body: JSON.stringify({ data: "test" })
   });
 
@@ -133,7 +133,7 @@ test("middleware - replays cached response", async (t) => {
   // Second request with same key and body
   const res2 = await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "replay-key" },
+    headers: { "idempotency-key": "replay-key-123456789" },
     body: JSON.stringify({ data: "test" })
   });
 
@@ -162,7 +162,7 @@ test("middleware - detects concurrent processing", async (t) => {
   // Start two requests concurrently with slight delay
   const promise1 = app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "concurrent-key" },
+    headers: { "idempotency-key": "concurrent-key-12345" },
     body: JSON.stringify({ data: "test" })
   });
 
@@ -171,7 +171,7 @@ test("middleware - detects concurrent processing", async (t) => {
 
   const promise2 = app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "concurrent-key" },
+    headers: { "idempotency-key": "concurrent-key-12345" },
     body: JSON.stringify({ data: "test" })
   });
 
@@ -201,14 +201,14 @@ test("middleware - detects same key with different payload", async (t) => {
   // First request
   await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "mismatch-key" },
+    headers: { "idempotency-key": "mismatch-key-1234567" },
     body: JSON.stringify({ data: "original" })
   });
 
   // Second request with same key, different body
   const res = await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "mismatch-key" },
+    headers: { "idempotency-key": "mismatch-key-1234567" },
     body: JSON.stringify({ data: "changed" })
   });
 
@@ -232,14 +232,14 @@ test("middleware - detects duplicate request with different key", async (t) => {
   // First request
   await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "key-1" },
+    headers: { "idempotency-key": "key-1-2345678901234" },
     body: JSON.stringify({ data: "test" })
   });
 
   // Second request with different key, same body
   const res = await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "key-2" },
+    headers: { "idempotency-key": "key-2-2345678901234" },
     body: JSON.stringify({ data: "test" })
   });
 
@@ -260,13 +260,13 @@ test("middleware - PATCH method is protected", async (t) => {
 
   await app.request("/test", {
     method: "PATCH",
-    headers: { "idempotency-key": "patch-key" },
+    headers: { "idempotency-key": "patch-key-123456789" },
     body: JSON.stringify({ data: "test" })
   });
 
   const res = await app.request("/test", {
     method: "PATCH",
-    headers: { "idempotency-key": "patch-key" },
+    headers: { "idempotency-key": "patch-key-123456789" },
     body: JSON.stringify({ data: "test" })
   });
 
@@ -290,13 +290,13 @@ test("middleware - field exclusion works", async (t) => {
 
   await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "exclude-key" },
+    headers: { "idempotency-key": "exclude-key-1234567" },
     body: JSON.stringify({ data: "test", timestamp: "2024-01-01" })
   });
 
   const res = await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "exclude-key" },
+    headers: { "idempotency-key": "exclude-key-1234567" },
     body: JSON.stringify({ data: "test", timestamp: "2024-01-02" })
   });
 
@@ -341,7 +341,7 @@ test("middleware - handles byKey with non-standard status passes through", async
 
   const res = await app.request("/test", {
     method: "POST",
-    headers: { "idempotency-key": "test-key" },
+    headers: { "idempotency-key": "test-key-12345678" },
     body: body
   });
 
@@ -400,7 +400,7 @@ test("returns 503 when startProcessing fails after lookup", async (t) => {
 
   const res = await app.request("/", {
     method: "POST",
-    headers: { "Idempotency-Key": "test-key" },
+    headers: { "Idempotency-Key": "test-key-12345678" },
     body: "{}"
   });
 
@@ -422,7 +422,7 @@ test("returns 503 when lookup fails", async (t) => {
 
   const res = await app.request("/", {
     method: "POST",
-    headers: { "Idempotency-Key": "test-key" },
+    headers: { "Idempotency-Key": "test-key-12345678" },
     body: "{}"
   });
 
@@ -444,7 +444,7 @@ test("continues response when complete fails", async (t) => {
 
   const res = await app.request("/", {
     method: "POST",
-    headers: { "Idempotency-Key": "test-key" },
+    headers: { "Idempotency-Key": "test-key-12345678" },
     body: "{}"
   });
 
