@@ -47,3 +47,26 @@ test("passes through when idempotency-key is provided", async (t) => {
   t.equal(response.statusCode, 201);
   t.equal(response.json().id, "order-123");
 });
+
+test("GET requests pass through without idempotency processing", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  let handlerCalled = false;
+  fastify.get(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      handlerCalled = true;
+      return reply.send({ ok: true });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "GET",
+    url: "/test"
+  });
+
+  t.ok(handlerCalled);
+  t.equal(response.statusCode, 200);
+});
