@@ -17,3 +17,86 @@ export function validateExcludeFields(fields) {
     }
   }
 }
+
+/**
+ * @param {string} key
+ * @param {number} maxKeyLength
+ * @returns {{valid: boolean, error?: string}}
+ */
+export function validateIdempotencyKey(key, maxKeyLength) {
+  if (key.length === 0 || key.length > maxKeyLength) {
+    return {
+      valid: false,
+      error: `Idempotency-Key must be between 1-${maxKeyLength} characters`
+    };
+  }
+  return { valid: true };
+}
+
+/**
+ * @param {{byKey: any, byFingerprint: any}} lookup
+ * @param {string} key
+ * @param {string} fingerprint
+ * @returns {{conflict: boolean, status?: number, error?: string}}
+ */
+export function checkLookupConflicts(lookup, key, fingerprint) {
+  if (lookup.byKey?.status === "processing") {
+    return {
+      conflict: true,
+      status: 409,
+      error: "A request with this idempotency key is already being processed"
+    };
+  }
+
+  if (lookup.byFingerprint && lookup.byFingerprint.key !== key) {
+    return {
+      conflict: true,
+      status: 409,
+      error:
+        "This request was already processed with a different idempotency key"
+    };
+  }
+
+  if (lookup.byKey && lookup.byKey.fingerprint !== fingerprint) {
+    return {
+      conflict: true,
+      status: 422,
+      error: "Idempotency key reused with different request payload"
+    };
+  }
+
+  return { conflict: false };
+}
+
+/**
+ * @param {string} method
+ * @returns {boolean}
+ */
+export function shouldProcessRequest(method) {
+  return method === "POST" || method === "PATCH";
+}
+
+/**
+ * @param {{byKey: any, byFingerprint: any}} lookup
+ * @returns {any | null}
+ */
+export function getCachedResponse(lookup) {
+  if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
+    return lookup.byKey.response;
+  }
+  return null;
+}
+
+/**
+ * @param {{status: number, headers?: Record<string, string>, body: string}} cached
+ * @returns {{status: number, headers: Record<string, string>, body: string}}
+ */
+export function prepareCachedResponse(cached) {
+  return {
+    ...cached,
+    headers: {
+      ...(cached.headers || {}),
+      "x-idempotent-replayed": "true"
+    }
+  };
+}
