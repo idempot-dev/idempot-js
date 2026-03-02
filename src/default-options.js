@@ -33,6 +33,9 @@ const DEFAULT_OPTIONS = {
   /** Maximum allowed length for the Idempotency-Key header value. Default is 255 characters. */
   maxKeyLength: 255,
 
+  /** Minimum allowed length for the Idempotency-Key header value. Default is 16 characters. */
+  minKeyLength: 16,
+
   /** Configuration for the circuit breaker and retry logic when interacting with the store. */
   resilience: {
     /** Timeout in milliseconds for each store operation. Default is 500ms. */
