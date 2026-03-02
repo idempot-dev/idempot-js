@@ -1,7 +1,6 @@
 import { generateFingerprint } from "./fingerprint.js";
 import { validateExcludeFields } from "./validation.js";
 import { withResilience } from "./resilience.js";
-import { createRequestAdapter, createResponseAdapter } from "./adapters/express.js";
 
 /**
  * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
@@ -56,8 +55,6 @@ export function idempotency(options = {}) {
   );
 
   return async (req, res, next) => {
-    const request = createRequestAdapter(req);
-    const response = createResponseAdapter(res);
     const method = req.method;
 
     if (method !== "POST" && method !== "PATCH") {
@@ -76,8 +73,10 @@ export function idempotency(options = {}) {
         return;
       }
 
-      const body = await request.body();
-      const fingerprint = await generateFingerprint(body, opts.excludeFields);
+      const bodyText = req.body 
+        ? (typeof req.body === "string" ? req.body : JSON.stringify(req.body))
+        : "";
+      const fingerprint = await generateFingerprint(bodyText, opts.excludeFields);
 
       let lookup;
       try {
