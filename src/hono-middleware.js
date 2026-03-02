@@ -105,7 +105,7 @@ export function idempotency(options = {}) {
 
     if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
       const cached = lookup.byKey.response;
-      return c.body(cached.body, /** @type {any} */ (cached.status), {
+      return c.body(cached.body, cached.status, {
         ...cached.headers,
         "x-idempotent-replayed": "true"
       });

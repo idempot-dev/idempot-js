@@ -115,10 +115,9 @@ export function idempotency(options = {}) {
       }
 
       const originalSend = res.send.bind(res);
-      /** @type {string} */
       let capturedBody = "";
 
-      res.send = (/** @type {any} */ body) => {
+      res.send = (body) => {
         capturedBody = typeof body === "string" ? body : JSON.stringify(body);
         return originalSend(body);
       };
@@ -130,10 +129,7 @@ export function idempotency(options = {}) {
           await resilientStore.complete(key, {
             status: res.statusCode,
             headers: Object.fromEntries(
-              Object.entries(res.getHeaders()).map(([k, v]) => [
-                k,
-                /** @type {string} */ (v)
-              ])
+              Object.entries(res.getHeaders()).map(([k, v]) => [k, v])
             ),
             body: capturedBody
           });

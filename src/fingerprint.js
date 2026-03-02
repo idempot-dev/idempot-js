@@ -26,7 +26,6 @@ export async function generateFingerprint(body, excludeFields = []) {
   validateExcludeFields(excludeFields);
   const hasher = await getXXHash();
 
-  /** @type {string} */
   let parsed;
   try {
     parsed = JSON.parse(body);
@@ -35,7 +34,6 @@ export async function generateFingerprint(body, excludeFields = []) {
   }
 
   // Exclude root-level fields
-  /** @type {Record<string, any> | undefined} */
   let parsedObj;
   if (typeof parsed === "object" && parsed !== null) {
     parsedObj = parsed;
@@ -64,7 +62,6 @@ export async function generateFingerprint(body, excludeFields = []) {
   }
 
   // Normalize: sort keys
-  /** @type {string} */
   const normalized = JSON.stringify(sortKeys(parsed));
 
   return hasher.h64ToString(normalized);
