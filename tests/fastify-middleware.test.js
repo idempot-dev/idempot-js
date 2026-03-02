@@ -191,3 +191,35 @@ test("returns 409 when same fingerprint was used with different key", async (t) 
   t.equal(response.statusCode, 409);
   t.match(response.json(), { error: /different idempotency key/ });
 });
+
+test("returns 422 when idempotency key reused with different payload", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.code(201).send({ id: "order-1" });
+    }
+  );
+
+  // First request with one key
+  await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "same-key" }
+  });
+
+  // New request with same key but different body
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "different" }, // Different fingerprint
+    headers: { "idempotency-key": "same-key" }
+  });
+
+  t.equal(response.statusCode, 422);
+  t.match(response.json(), { error: /different request payload/ });
+});
