@@ -41,7 +41,7 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const key = req.headers[HEADER_NAME];
+    const key = /** @type {string} */ (req.headers[HEADER_NAME]);
     if (key === undefined) {
       if (opts.required) {
         res.status(400).json({ error: "Idempotency-Key header is required" });
@@ -129,7 +129,10 @@ export function idempotency(options = {}) {
           await resilientStore.complete(key, {
             status: res.statusCode,
             headers: Object.fromEntries(
-              Object.entries(res.getHeaders()).map(([k, v]) => [k, v])
+              Object.entries(res.getHeaders()).map(([k, v]) => [
+                k,
+                /** @type {string} */ (v)
+              ])
             ),
             body: capturedBody
           });

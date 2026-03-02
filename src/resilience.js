@@ -1,7 +1,7 @@
 import CircuitBreaker from "opossum";
 
 /**
- * @typedef {import("./middleware.js").IdempotencyStore} IdempotencyStore
+ * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
  */
 
 /**
