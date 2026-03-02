@@ -1,5 +1,12 @@
 import { generateFingerprint } from "./fingerprint.js";
-import { validateExcludeFields } from "./validation.js";
+import {
+  validateExcludeFields,
+  validateIdempotencyKey,
+  checkLookupConflicts,
+  shouldProcessRequest,
+  getCachedResponse,
+  prepareCachedResponse
+} from "./validation.js";
 import { withResilience } from "./resilience.js";
 import { DEFAULT_OPTIONS } from "./default-options.js";
 
@@ -43,7 +50,7 @@ export function idempotency(options = {}) {
    */
   const middleware = async (c, next) => {
     const method = c.req.method;
-    if (method !== "POST" && method !== "PATCH") {
+    if (!shouldProcessRequest(method)) {
       await next();
       return;
     }
@@ -57,13 +64,9 @@ export function idempotency(options = {}) {
       return;
     }
 
-    if (key.length === 0 || key.length > opts.maxKeyLength) {
-      return c.json(
-        {
-          error: `Idempotency-Key must be between 1-${opts.maxKeyLength} characters`
-        },
-        400
-      );
+    const keyValidation = validateIdempotencyKey(key, opts.maxKeyLength);
+    if (!keyValidation.valid) {
+      return c.json({ error: keyValidation.error }, 400);
     }
 
     const body = await c.req.text();
@@ -76,39 +79,15 @@ export function idempotency(options = {}) {
       return c.json({ error: "Service temporarily unavailable" }, 503);
     }
 
-    if (lookup.byKey?.status === "processing") {
-      return c.json(
-        {
-          error:
-            "A request with this idempotency key is already being processed"
-        },
-        409
-      );
+    const conflict = checkLookupConflicts(lookup, key, fingerprint);
+    if (conflict.conflict) {
+      return c.json({ error: conflict.error }, conflict.status);
     }
 
-    if (lookup.byFingerprint && lookup.byFingerprint.key !== key) {
-      return c.json(
-        {
-          error:
-            "This request was already processed with a different idempotency key"
-        },
-        409
-      );
-    }
-
-    if (lookup.byKey && lookup.byKey.fingerprint !== fingerprint) {
-      return c.json(
-        { error: "Idempotency key reused with different request payload" },
-        422
-      );
-    }
-
-    if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
-      const cached = lookup.byKey.response;
-      return c.body(cached.body, cached.status, {
-        ...cached.headers,
-        "x-idempotent-replayed": "true"
-      });
+    const cached = getCachedResponse(lookup);
+    if (cached) {
+      const response = prepareCachedResponse(cached);
+      return c.body(response.body, response.status, response.headers);
     }
 
     if (!lookup.byKey && !lookup.byFingerprint) {

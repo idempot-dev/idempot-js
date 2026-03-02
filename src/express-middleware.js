@@ -1,5 +1,12 @@
 import { generateFingerprint } from "./fingerprint.js";
-import { validateExcludeFields } from "./validation.js";
+import {
+  validateExcludeFields,
+  validateIdempotencyKey,
+  checkLookupConflicts,
+  shouldProcessRequest,
+  getCachedResponse,
+  prepareCachedResponse
+} from "./validation.js";
 import { withResilience } from "./resilience.js";
 import { DEFAULT_OPTIONS } from "./default-options.js";
 
@@ -36,7 +43,7 @@ export function idempotency(options = {}) {
 
   return async (req, res, next) => {
     const method = req.method;
-    if (method !== "POST" && method !== "PATCH") {
+    if (!shouldProcessRequest(method)) {
       next();
       return;
     }
@@ -51,10 +58,9 @@ export function idempotency(options = {}) {
       return;
     }
 
-    if (key.length === 0 || key.length > opts.maxKeyLength) {
-      res.status(400).json({
-        error: `Idempotency-Key must be between 1-${opts.maxKeyLength} characters`
-      });
+    const keyValidation = validateIdempotencyKey(key, opts.maxKeyLength);
+    if (!keyValidation.valid) {
+      res.status(400).json({ error: keyValidation.error });
       return;
     }
 
@@ -73,36 +79,20 @@ export function idempotency(options = {}) {
       return;
     }
 
-    if (lookup.byKey?.status === "processing") {
-      res.status(409).json({
-        error: "A request with this idempotency key is already being processed"
-      });
+    const conflict = checkLookupConflicts(lookup, key, fingerprint);
+    if (conflict.conflict) {
+      res.status(conflict.status).json({ error: conflict.error });
       return;
     }
 
-    if (lookup.byFingerprint && lookup.byFingerprint.key !== key) {
-      res.status(409).json({
-        error:
-          "This request was already processed with a different idempotency key"
-      });
-      return;
-    }
-
-    if (lookup.byKey && lookup.byKey.fingerprint !== fingerprint) {
-      res.status(422).json({
-        error: "Idempotency key reused with different request payload"
-      });
-      return;
-    }
-
-    if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
-      const cached = lookup.byKey.response;
-      res.status(cached.status);
-      for (const [key, value] of Object.entries(cached.headers)) {
-        res.set(key, value);
+    const cached = getCachedResponse(lookup);
+    if (cached) {
+      const response = prepareCachedResponse(cached);
+      res.status(response.status);
+      for (const [headerKey, value] of Object.entries(response.headers)) {
+        res.set(headerKey, value);
       }
-      res.set("x-idempotent-replayed", "true");
-      res.send(cached.body);
+      res.send(response.body);
       return;
     }
 
