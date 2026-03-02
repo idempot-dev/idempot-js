@@ -231,3 +231,117 @@ test("exposes circuit breaker", async (t) => {
 
   t.ok(middleware.circuit);
 });
+
+test("throws when store is not provided", async (t) => {
+  t.throws(() => {
+    idempotency({});
+  }, /IdempotencyStore must be provided/);
+});
+
+test("POST without key when optional", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  let handlerCalled = false;
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store, required: false }) },
+    async (request, reply) => {
+      handlerCalled = true;
+      return reply.send({ ok: true });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" }
+  });
+
+  t.ok(handlerCalled);
+  t.equal(response.statusCode, 200);
+});
+
+test("returns 503 when lookup fails", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  // Override lookup to throw
+  store.lookup = async () => {
+    throw new Error("Store unavailable");
+  };
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send({ ok: true });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "test-key" }
+  });
+
+  t.equal(response.statusCode, 503);
+  t.match(response.json(), { error: /Service temporarily unavailable/ });
+});
+
+test("returns 503 when startProcessing fails", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  // Override startProcessing to throw
+  store.startProcessing = async () => {
+    throw new Error("Store unavailable");
+  };
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send({ ok: true });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "test-key" }
+  });
+
+  t.equal(response.statusCode, 503);
+  t.match(response.json(), { error: /Service temporarily unavailable/ });
+});
+
+test("handles complete failure gracefully", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  // Override complete to always fail
+  store.complete = async () => {
+    throw new Error("Connection failed");
+  };
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send({ ok: true });
+    }
+  );
+
+  // This should still return 200 even though complete fails
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "test-key" }
+  });
+
+  t.equal(response.statusCode, 200);
+});
