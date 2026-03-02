@@ -71,3 +71,22 @@ test("express adapter - createResponseAdapter returns headers", async (t) => {
   const adapter = createResponseAdapter(mockRes);
   t.equal(adapter.headers.get("content-type"), "application/json");
 });
+
+test("express adapter - createResponseAdapter returns headers as array", async (t) => {
+  const mockRes = {
+    statusCode: 200,
+    getHeaders: () => ({ "set-cookie": ["cookie1=val1", "cookie2=val2"] })
+  };
+  const adapter = createResponseAdapter(mockRes);
+  const cookies = adapter.headers.getSetCookie();
+  t.same(cookies, ["cookie1=val1", "cookie2=val2"]);
+});
+
+test("express adapter - createResponseAdapter converts numeric headers to string", async (t) => {
+  const mockRes = {
+    statusCode: 200,
+    getHeaders: () => ({ "content-length": 1234 })
+  };
+  const adapter = createResponseAdapter(mockRes);
+  t.equal(adapter.headers.get("content-length"), "1234");
+});

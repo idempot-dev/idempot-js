@@ -53,7 +53,11 @@ export function createResponseAdapter(res) {
       const headers = new Headers();
       const expressHeaders = res.getHeaders();
       for (const [key, value] of Object.entries(expressHeaders)) {
-        headers.set(key, /** @type {string} */ (value));
+        if (Array.isArray(value)) {
+          value.forEach(v => headers.append(key, v));
+        } else {
+          headers.set(key, String(value));
+        }
       }
       return headers;
     }
