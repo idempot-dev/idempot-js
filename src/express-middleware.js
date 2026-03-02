@@ -19,6 +19,14 @@ import { DEFAULT_OPTIONS } from "./default-options.js";
  */
 
 /**
+ * HTTP header name for idempotency key as defined in
+ * https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07
+ * @constant
+ * @type {string}
+ */
+const HEADER_NAME = "idempotency-key";
+
+/**
  * Express middleware for idempotency
  * @param {ExpressIdempotencyOptions} [options]
  * @returns {(req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => Promise<void>}
@@ -33,10 +41,7 @@ export function idempotency(options = {}) {
   }
   validateExcludeFields(opts.excludeFields);
   const store = opts.store;
-  const { store: resilientStore } = withResilience(
-    store,
-    opts.resilience
-  );
+  const { store: resilientStore } = withResilience(store, opts.resilience);
 
   return async (req, res, next) => {
     const method = req.method;
@@ -46,8 +51,7 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const HEADER_NAME = "Idempotency-Key";
-    const key = req.headers[HEADER_NAME.toLowerCase()];
+    const key = req.headers[HEADER_NAME];
 
     if (key !== undefined) {
       if (key.length === 0 || key.length > opts.maxKeyLength) {
@@ -57,10 +61,15 @@ export function idempotency(options = {}) {
         return;
       }
 
-      const bodyText = req.body 
-        ? (typeof req.body === "string" ? req.body : JSON.stringify(req.body))
+      const bodyText = req.body
+        ? typeof req.body === "string"
+          ? req.body
+          : JSON.stringify(req.body)
         : "";
-      const fingerprint = await generateFingerprint(bodyText, opts.excludeFields);
+      const fingerprint = await generateFingerprint(
+        bodyText,
+        opts.excludeFields
+      );
 
       let lookup;
       try {
@@ -72,14 +81,16 @@ export function idempotency(options = {}) {
 
       if (lookup.byKey?.status === "processing") {
         res.status(409).json({
-          error: "A request with this idempotency key is already being processed"
+          error:
+            "A request with this idempotency key is already being processed"
         });
         return;
       }
 
       if (lookup.byFingerprint && lookup.byFingerprint.key !== key) {
         res.status(409).json({
-          error: "This request was already processed with a different idempotency key"
+          error:
+            "This request was already processed with a different idempotency key"
         });
         return;
       }
@@ -126,7 +137,10 @@ export function idempotency(options = {}) {
             await resilientStore.complete(key, {
               status: res.statusCode,
               headers: Object.fromEntries(
-                Object.entries(res.getHeaders()).map(([k, v]) => [k, /** @type {string} */ (v)])
+                Object.entries(res.getHeaders()).map(([k, v]) => [
+                  k,
+                  /** @type {string} */ (v)
+                ])
               ),
               body: capturedBody
             });

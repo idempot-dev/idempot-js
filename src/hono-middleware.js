@@ -9,6 +9,14 @@ import { withResilience } from "./resilience.js";
 import { DEFAULT_OPTIONS } from "./default-options.js";
 
 /**
+ * HTTP header name for idempotency key as defined in
+ * https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07
+ * @constant
+ * @type {string}
+ */
+const HEADER_NAME = "idempotency-key";
+
+/**
  * @param {IdempotencyOptions} [options]
  * @returns {(c: any, next: any) => Promise<void>}
  */
@@ -40,7 +48,6 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const HEADER_NAME = "Idempotency-Key";
     const key = c.req.header(HEADER_NAME);
 
     // Check if key provided and validate
