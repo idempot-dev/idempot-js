@@ -10,6 +10,7 @@
  * @property {string[]} [excludeFields] - Body fields to exclude when generating the request fingerprint
  * @property {IdempotencyStore} [store] - The storage backend for persisting idempotency records
  * @property {number} [maxKeyLength] - Maximum allowed length for the Idempotency-Key header value
+ * @property {number} [minKeyLength] - Minimum allowed length for the Idempotency-Key header value (default: 16)
  * @property {ResilienceOptions} [resilience] - Circuit breaker and retry configuration for store operations
  */
 
