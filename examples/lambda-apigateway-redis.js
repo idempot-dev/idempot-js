@@ -1,7 +1,7 @@
 /**
  * AWS Lambda + API Gateway Example with Redis/ElastiCache
  *
- * This example shows how to deploy hono-idempotency middleware on AWS Lambda
+ * This example shows how to deploy idempot middleware on AWS Lambda
  * behind API Gateway using Redis (ElastiCache) for persistence.
  *
  * VPC CONFIGURATION REQUIRED:

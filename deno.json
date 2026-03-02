@@ -1,6 +1,6 @@
 {
   "imports": {
-    "hono-idempotency": "./src/index.js",
+    "idempot": "./src/index.js",
     "hono": "npm:hono@^4.11.5",
     "sqlite": "https://deno.land/x/sqlite/mod.ts",
     "@db/redis": "jsr:@db/redis",

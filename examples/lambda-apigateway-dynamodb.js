@@ -1,7 +1,7 @@
 /**
  * AWS Lambda + API Gateway Example with DynamoDB
  *
- * This example shows how to deploy hono-idempotency middleware on AWS Lambda
+ * This example shows how to deploy idempot middleware on AWS Lambda
  * behind API Gateway (REST API or HTTP API) using DynamoDB for persistence.
  *
  * REQUIRED IAM PERMISSIONS:

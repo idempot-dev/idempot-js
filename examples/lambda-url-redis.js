@@ -1,7 +1,7 @@
 /**
  * AWS Lambda Function URL Example with Redis/ElastiCache
  *
- * This example shows how to deploy hono-idempotency middleware on AWS Lambda
+ * This example shows how to deploy idempot middleware on AWS Lambda
  * with Function URLs using Redis (ElastiCache) for persistence.
  *
  * FUNCTION URL vs API GATEWAY:

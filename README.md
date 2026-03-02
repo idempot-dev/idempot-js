@@ -1,11 +1,11 @@
-# hono-idempotency
+# idempot
 
 Idempotency middleware for Hono with multiple storage backends, compliant with [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07) spec.
 
 ## Installation
 
 ```bash
-npm install hono-idempotency
+npm install idempot
 ```
 
 Choose a storage backend from the sections below.
@@ -45,13 +45,13 @@ The idempotency promise only works with persistence. If the storage backend does
 For local development
 
 ```bash
-npm install hono-idempotency
+npm install idempot
 npm install -D better-sqlite3
 ```
 
 ```javascript
 import { Hono } from "hono";
-import { idempotency, SqliteIdempotencyStore } from "hono-idempotency";
+import { idempotency, SqliteIdempotencyStore } from "idempot";
 
 const app = new Hono();
 const store = new SqliteIdempotencyStore({ path: ":memory:" });

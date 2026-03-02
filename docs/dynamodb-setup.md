@@ -1,6 +1,6 @@
 # DynamoDB Setup Guide
 
-Set up DynamoDB as the storage backend for hono-idempotency.
+Set up DynamoDB as the storage backend for idempot.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ Set up DynamoDB as the storage backend for hono-idempotency.
 ## Installation
 
 ```bash
-npm install hono-idempotency @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
+npm install idempot @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 ```
 
 ## Table Schema
@@ -243,7 +243,7 @@ aws dynamodb update-time-to-live \
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Hono } from "hono";
-import { idempotency, DynamoDbIdempotencyStore } from "hono-idempotency";
+import { idempotency, DynamoDbIdempotencyStore } from "idempot";
 
 const dynamoDBClient = new DynamoDBClient({
   region: process.env.AWS_REGION || "us-east-1"

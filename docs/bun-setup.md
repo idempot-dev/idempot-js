@@ -1,6 +1,6 @@
 # Bun Setup Guide
 
-Use hono-idempotency with the Bun JavaScript runtime.
+Use idempot with the Bun JavaScript runtime.
 
 ## Why Bun?
 
@@ -14,7 +14,7 @@ Bun offers several advantages:
 ## Installation
 
 ```bash
-bun add hono-idempotency
+bun add idempot
 ```
 
 Unlike Node.js, you don't need `better-sqlite3`. Bun's native SQLite is built-in.
@@ -27,7 +27,7 @@ Use `BunSqliteIdempotencyStore` for native performance:
 
 ```javascript
 import { Hono } from "hono";
-import { idempotency, BunSqliteIdempotencyStore } from "hono-idempotency";
+import { idempotency, BunSqliteIdempotencyStore } from "idempot";
 
 const app = new Hono();
 const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
@@ -59,7 +59,7 @@ bun add ioredis
 ```javascript
 import { Hono } from "hono";
 import Redis from "ioredis";
-import { idempotency, RedisIdempotencyStore } from "hono-idempotency";
+import { idempotency, RedisIdempotencyStore } from "idempot";
 
 const app = new Hono();
 const redis = new Redis({
@@ -92,7 +92,7 @@ bun add @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
 import { Hono } from "hono";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { idempotency, DynamoDbIdempotencyStore } from "hono-idempotency";
+import { idempotency, DynamoDbIdempotencyStore } from "idempot";
 
 const dynamoDBClient = new DynamoDBClient({
   region: process.env.AWS_REGION || "us-east-1"
@@ -187,7 +187,7 @@ For production deployments with file-based SQLite:
 
 ```javascript
 import { Hono } from "hono";
-import { idempotency, BunSqliteIdempotencyStore } from "hono-idempotency";
+import { idempotency, BunSqliteIdempotencyStore } from "idempot";
 
 const app = new Hono();
 const store = new BunSqliteIdempotencyStore({ path: "./data/idempotency.db" });
@@ -309,7 +309,7 @@ Use `.js` extensions in imports:
 
 ```javascript
 // Correct
-import { BunSqliteIdempotencyStore } from "hono-idempotency";
+import { BunSqliteIdempotencyStore } from "idempot";
 
 // Also correct
 import { idempotency } from "./middleware.js";
@@ -323,11 +323,11 @@ To migrate from Node.js to Bun:
 
    ```javascript
    // Before (Node.js)
-   import { SqliteIdempotencyStore } from "hono-idempotency";
+   import { SqliteIdempotencyStore } from "idempot";
    const store = new SqliteIdempotencyStore({ path: ":memory:" });
 
    // After (Bun)
-   import { BunSqliteIdempotencyStore } from "hono-idempotency";
+   import { BunSqliteIdempotencyStore } from "idempot";
    const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
    ```
 

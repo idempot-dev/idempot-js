@@ -1,6 +1,6 @@
 # AWS Lambda Setup Guide
 
-Deploy hono-idempotency middleware on AWS Lambda.
+Deploy idempot middleware on AWS Lambda.
 
 ## Why Lambda?
 
@@ -15,7 +15,7 @@ AWS Lambda offers several advantages:
 ## Installation
 
 ```bash
-npm install hono-idempotency hono
+npm install idempot hono
 ```
 
 Choose your storage backend:
@@ -85,7 +85,7 @@ import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { idempotency, DynamoDbIdempotencyStore } from "hono-idempotency";
+import { idempotency, DynamoDbIdempotencyStore } from "idempot";
 
 // Initialize outside handler for connection reuse
 const dynamoDBClient = new DynamoDBClient({
@@ -161,7 +161,7 @@ import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { idempotency, DynamoDbIdempotencyStore } from "hono-idempotency";
+import { idempotency, DynamoDbIdempotencyStore } from "idempot";
 
 const dynamoDBClient = new DynamoDBClient({ region: "us-east-1" });
 const documentClient = DynamoDBDocumentClient.from(dynamoDBClient);
@@ -207,7 +207,7 @@ aws lambda create-function-url-config \
 import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import Redis from "ioredis";
-import { idempotency, RedisIdempotencyStore } from "hono-idempotency";
+import { idempotency, RedisIdempotencyStore } from "idempot";
 
 // Lambda-optimized Redis configuration
 const redis = new Redis({
