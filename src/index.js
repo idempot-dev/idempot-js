@@ -1,6 +1,6 @@
 // Main middleware
 export { idempotency } from "./hono-middleware.js";
-export { idempotency } from "./express-middleware.js";
+export { idempotency as idempotencyExpress } from "./express-middleware.js";
 
 // Types (exported via TypeScript .d.ts generation)
 export {};
