@@ -3,7 +3,7 @@
 - Automatic changelog and versioning
 - Figure out how to publish the stores as independent packages
 - Review the examples
-- Example
+  - Need examples for express, fastify, hono
   - Every datastore with SQLite in-memory for development
   - Calling an endpoint multiple times
     - Same idempotency key, same payload
