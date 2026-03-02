@@ -425,6 +425,7 @@ git add . && git commit -m "test: add Express adapter tests for full coverage"
 ```js
 import { test } from "tap";
 import express from "express";
+import http from "http";
 import { idempotency } from "../../src/middleware-express.js";
 import { SqliteIdempotencyStore } from "../../src/store/sqlite.js";
 
@@ -444,21 +445,55 @@ test("middleware-express integration - replays cached response", async (t) => {
     }
   );
   
-  // Make first request
-  const firstResponse = await makeRequest(app, "/test", "key-1");
-  t.equal(firstResponse.status, 200);
-  t.equal(handlerCallCount, 1);
+  const server = http.createServer(app);
   
-  // Make second request with same key
-  const secondResponse = await makeRequest(app, "/test", "key-1");
-  t.equal(secondResponse.status, 200);
-  t.equal(handlerCallCount, 1); // Should not call handler
-  t.equal(secondResponse.headers["x-idempotent-replayed"], "true");
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+  
+  try {
+    // Make first request
+    const firstResponse = await makeRequest(port, "/test", "key-1", { foo: "bar" });
+    t.equal(firstResponse.status, 200);
+    t.equal(handlerCallCount, 1);
+    
+    // Make second request with same key
+    const secondResponse = await makeRequest(port, "/test", "key-1", { foo: "bar" });
+    t.equal(secondResponse.status, 200);
+    t.equal(handlerCallCount, 1); // Should not call handler
+    t.equal(secondResponse.headers["x-idempotent-replayed"], "true");
+  } finally {
+    server.close();
+  }
 });
 
-async function makeRequest(app, path, idempotencyKey) {
-  // Use supertest or node's http module
-  // ... implementation
+function makeRequest(port, path, idempotencyKey, body) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: "localhost",
+      port,
+      path,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey
+      }
+    };
+    
+    const req = http.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => data += chunk);
+      res.on("end", () => {
+        resolve({
+          status: res.statusCode,
+          headers: res.headers,
+          body: data
+        });
+      });
+    });
+    
+    req.write(JSON.stringify(body));
+    req.end();
+  });
 }
 ```
 
