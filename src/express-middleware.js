@@ -39,6 +39,7 @@ export function idempotency(options = {}) {
   }
   validateExcludeFields(opts.excludeFields);
   const store = opts.store;
+  const { minKeyLength, maxKeyLength } = opts;
   const { store: resilientStore } = withResilience(store, opts.resilience);
 
   return async (req, res, next) => {
@@ -59,8 +60,8 @@ export function idempotency(options = {}) {
     }
 
     const keyValidation = validateIdempotencyKey(key, {
-      minKeyLength: 1,
-      maxKeyLength: opts.maxKeyLength
+      minKeyLength,
+      maxKeyLength
     });
     if (!keyValidation.valid) {
       res.status(400).json({ error: keyValidation.error });
