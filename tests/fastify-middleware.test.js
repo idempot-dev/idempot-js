@@ -9,7 +9,7 @@ test("returns 400 if idempotency-key is missing and required", async (t) => {
 
   fastify.post(
     "/test",
-    idempotency({ store, required: true }),
+    { preHandler: idempotency({ store, required: true }) },
     async (request, reply) => {
       return reply.send({ ok: true });
     }
