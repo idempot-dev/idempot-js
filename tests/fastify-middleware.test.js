@@ -24,3 +24,26 @@ test("returns 400 if idempotency-key is missing and required", async (t) => {
   t.equal(response.statusCode, 400);
   t.match(response.json(), { error: /Idempotency-Key header is required/ });
 });
+
+test("passes through when idempotency-key is provided", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.code(201).send({ id: "order-123" });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "test-key-123" }
+  });
+
+  t.equal(response.statusCode, 201);
+  t.equal(response.json().id, "order-123");
+});
