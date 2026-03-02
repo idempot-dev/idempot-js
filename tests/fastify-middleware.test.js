@@ -158,3 +158,36 @@ test("returns 409 when same idempotency key is already processing", async (t) =>
   t.equal(response.statusCode, 409);
   t.match(response.json(), { error: /already being processed/ });
 });
+
+test("returns 409 when same fingerprint was used with different key", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  // Complete a request with one key first
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.code(201).send({ id: "order-1" });
+    }
+  );
+
+  // First request with key-1
+  await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "key-1" }
+  });
+
+  // New request with same body but different key
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" }, // Same fingerprint
+    headers: { "idempotency-key": "key-2" } // Different key
+  });
+
+  t.equal(response.statusCode, 409);
+  t.match(response.json(), { error: /different idempotency key/ });
+});
