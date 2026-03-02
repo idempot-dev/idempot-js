@@ -1,4 +1,6 @@
 import { generateFingerprint } from "./fingerprint.js";
+import { validateExcludeFields } from "./validation.js";
+import { withResilience } from "./resilience.js";
 import { DEFAULT_OPTIONS } from "./default-options.js";
 
 const HEADER_NAME = "idempotency-key";
@@ -11,9 +13,14 @@ export function idempotency(options = {}) {
         "Use SqliteIdempotencyStore({ path: ':memory:' }) for development"
     );
   }
+  validateExcludeFields(opts.excludeFields);
   const store = opts.store;
+  const { store: resilientStore, circuit } = withResilience(
+    store,
+    opts.resilience
+  );
 
-  return async (request, reply) => {
+  const middleware = async (request, reply) => {
     const method = request.method;
     if (method !== "POST" && method !== "PATCH") {
       return;
@@ -42,7 +49,12 @@ export function idempotency(options = {}) {
       : "";
     const fingerprint = await generateFingerprint(bodyText, opts.excludeFields);
 
-    const lookup = await store.lookup(key, fingerprint);
+    let lookup;
+    try {
+      lookup = await resilientStore.lookup(key, fingerprint);
+    } catch {
+      return reply.code(503).send({ error: "Service temporarily unavailable" });
+    }
 
     if (lookup.byKey?.status === "processing") {
       return reply.code(409).send({
@@ -74,7 +86,13 @@ export function idempotency(options = {}) {
     }
 
     if (!lookup.byKey && !lookup.byFingerprint) {
-      await store.startProcessing(key, fingerprint, opts.ttlMs);
+      try {
+        await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
+      } catch {
+        return reply
+          .code(503)
+          .send({ error: "Service temporarily unavailable" });
+      }
 
       // Store key for completion after response
       request.idempotencyKey = key;
@@ -92,7 +110,7 @@ export function idempotency(options = {}) {
       reply.then(
         () => {
           if (request.idempotencyKey) {
-            store
+            resilientStore
               .complete(request.idempotencyKey, {
                 status: reply.statusCode,
                 headers: Object.fromEntries(
@@ -109,4 +127,7 @@ export function idempotency(options = {}) {
       );
     }
   };
+
+  middleware.circuit = circuit;
+  return middleware;
 }

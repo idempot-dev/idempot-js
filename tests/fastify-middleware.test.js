@@ -223,3 +223,11 @@ test("returns 422 when idempotency key reused with different payload", async (t)
   t.equal(response.statusCode, 422);
   t.match(response.json(), { error: /different request payload/ });
 });
+
+test("exposes circuit breaker", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  const middleware = idempotency({ store });
+
+  t.ok(middleware.circuit);
+});
