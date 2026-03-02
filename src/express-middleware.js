@@ -45,118 +45,115 @@ export function idempotency(options = {}) {
 
   return async (req, res, next) => {
     const method = req.method;
-
     if (method !== "POST" && method !== "PATCH") {
       next();
       return;
     }
 
     const key = req.headers[HEADER_NAME];
-
-    if (key !== undefined) {
-      if (key.length === 0 || key.length > opts.maxKeyLength) {
-        res.status(400).json({
-          error: `Idempotency-Key must be between 1-${opts.maxKeyLength} characters`
-        });
+    if (key === undefined) {
+      if (opts.required) {
+        res.status(400).json({ error: "Idempotency-Key header is required" });
         return;
       }
+      next();
+      return;
+    }
 
-      const bodyText = req.body
-        ? typeof req.body === "string"
-          ? req.body
-          : JSON.stringify(req.body)
-        : "";
-      const fingerprint = await generateFingerprint(
-        bodyText,
-        opts.excludeFields
-      );
+    if (key.length === 0 || key.length > opts.maxKeyLength) {
+      res.status(400).json({
+        error: `Idempotency-Key must be between 1-${opts.maxKeyLength} characters`
+      });
+      return;
+    }
 
-      let lookup;
+    const bodyText = req.body
+      ? typeof req.body === "string"
+        ? req.body
+        : JSON.stringify(req.body)
+      : "";
+    const fingerprint = await generateFingerprint(
+      bodyText,
+      opts.excludeFields
+    );
+
+    let lookup;
+    try {
+      lookup = await resilientStore.lookup(key, fingerprint);
+    } catch {
+      res.status(503).json({ error: "Service temporarily unavailable" });
+      return;
+    }
+
+    if (lookup.byKey?.status === "processing") {
+      res.status(409).json({
+        error:
+          "A request with this idempotency key is already being processed"
+      });
+      return;
+    }
+
+    if (lookup.byFingerprint && lookup.byFingerprint.key !== key) {
+      res.status(409).json({
+        error:
+          "This request was already processed with a different idempotency key"
+      });
+      return;
+    }
+
+    if (lookup.byKey && lookup.byKey.fingerprint !== fingerprint) {
+      res.status(422).json({
+        error: "Idempotency key reused with different request payload"
+      });
+      return;
+    }
+
+    if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
+      const cached = lookup.byKey.response;
+      res.status(cached.status);
+      for (const [key, value] of Object.entries(cached.headers)) {
+        res.set(key, value);
+      }
+      res.set("x-idempotent-replayed", "true");
+      res.send(cached.body);
+      return;
+    }
+
+    if (!lookup.byKey && !lookup.byFingerprint) {
       try {
-        lookup = await resilientStore.lookup(key, fingerprint);
+        await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
       } catch {
         res.status(503).json({ error: "Service temporarily unavailable" });
         return;
       }
 
-      if (lookup.byKey?.status === "processing") {
-        res.status(409).json({
-          error:
-            "A request with this idempotency key is already being processed"
-        });
-        return;
-      }
+      const originalSend = res.send.bind(res);
+      /** @type {string} */
+      let capturedBody = "";
 
-      if (lookup.byFingerprint && lookup.byFingerprint.key !== key) {
-        res.status(409).json({
-          error:
-            "This request was already processed with a different idempotency key"
-        });
-        return;
-      }
-
-      if (lookup.byKey && lookup.byKey.fingerprint !== fingerprint) {
-        res.status(422).json({
-          error: "Idempotency key reused with different request payload"
-        });
-        return;
-      }
-
-      if (lookup.byKey?.status === "complete" && lookup.byKey.response) {
-        const cached = lookup.byKey.response;
-        res.status(cached.status);
-        for (const [key, value] of Object.entries(cached.headers)) {
-          res.set(key, value);
-        }
-        res.set("x-idempotent-replayed", "true");
-        res.send(cached.body);
-        return;
-      }
-
-      if (!lookup.byKey && !lookup.byFingerprint) {
-        try {
-          await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
-        } catch {
-          res.status(503).json({ error: "Service temporarily unavailable" });
-          return;
-        }
-
-        const originalSend = res.send.bind(res);
-        /** @type {string} */
-        let capturedBody = "";
-
-        res.send = (/** @type {any} */ body) => {
-          capturedBody = typeof body === "string" ? body : JSON.stringify(body);
-          return originalSend(body);
-        };
-
-        next();
-
-        res.on("finish", async () => {
-          try {
-            await resilientStore.complete(key, {
-              status: res.statusCode,
-              headers: Object.fromEntries(
-                Object.entries(res.getHeaders()).map(([k, v]) => [
-                  k,
-                  /** @type {string} */ (v)
-                ])
-              ),
-              body: capturedBody
-            });
-          } catch (err) {
-            console.error("Failed to cache response:", err);
-          }
-        });
-        return;
-      }
+      res.send = (/** @type {any} */ body) => {
+        capturedBody = typeof body === "string" ? body : JSON.stringify(body);
+        return originalSend(body);
+      };
 
       next();
-      return;
-    }
 
-    if (opts.required) {
-      res.status(400).json({ error: "Idempotency-Key header is required" });
+      res.on("finish", async () => {
+        try {
+          await resilientStore.complete(key, {
+            status: res.statusCode,
+            headers: Object.fromEntries(
+              Object.entries(res.getHeaders()).map(([k, v]) => [
+                k,
+                /** @type {string} */ (v)
+              ])
+            ),
+            body: capturedBody
+          });
+        } catch (err) {
+          console.error("Failed to cache response:", err);
+        }
+      });
       return;
     }
 
