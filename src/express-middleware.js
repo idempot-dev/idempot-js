@@ -1,6 +1,7 @@
 import { generateFingerprint } from "./fingerprint.js";
 import { validateExcludeFields } from "./validation.js";
 import { withResilience } from "./resilience.js";
+import { DEFAULT_OPTIONS } from "./default-options.js";
 
 /**
  * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
@@ -16,23 +17,6 @@ import { withResilience } from "./resilience.js";
  * @property {number} [maxKeyLength]
  * @property {ResilienceOptions} [resilience]
  */
-
-/** @type {Required<ExpressIdempotencyOptions>} */
-const DEFAULT_OPTIONS = {
-  required: false,
-  ttlMs: 86400000,
-  excludeFields: [],
-  store: /** @type {any} */ (null),
-  maxKeyLength: 255,
-  resilience: {
-    timeout: 500,
-    maxRetries: 3,
-    retryDelay: 100,
-    errorThresholdPercentage: 50,
-    resetTimeout: 30000,
-    volumeThreshold: 10
-  }
-};
 
 /**
  * Express middleware for idempotency
