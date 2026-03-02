@@ -1,7 +1,7 @@
 {
   "name": "idempot",
   "version": "0.1.0",
-  "description": "IETF-compliant idempotency middleware for Hono and Express with pluggable storage backends",
+  "description": "IETF-compliant idempotency middleware for Hono, Express, and Fastify with pluggable storage backends",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,6 +19,7 @@
   "keywords": [
     "hono",
     "express",
+    "fastify",
     "middleware",
     "idempotency",
     "idempotent",

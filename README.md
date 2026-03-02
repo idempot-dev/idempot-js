@@ -1,6 +1,6 @@
 # idempot
 
-Idempotency middleware for Hono with multiple storage backends, compliant with [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07) spec.
+Idempotency middleware for Hono, Express, and Fastify with multiple storage backends, compliant with [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07) spec.
 
 ## Installation
 
@@ -60,6 +60,30 @@ app.post("/orders", idempotency({ store }), async (c) => {
   // Your handler - protected from duplicate requests
   return c.json({ id: "order-123" }, 201);
 });
+```
+
+## Quick Start - Fastify
+
+```bash
+npm install idempot fastify
+npm install -D better-sqlite3
+```
+
+```javascript
+import Fastify from "fastify";
+import { idempotency, SqliteIdempotencyStore } from "idempot";
+
+const fastify = Fastify();
+const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+fastify.post(
+  "/orders",
+  { preHandler: idempotency({ store }) },
+  async (request, reply) => {
+    // Your handler - protected from duplicate requests
+    return reply.code(201).send({ id: "order-123" });
+  }
+);
 ```
 
 ## Core Features
