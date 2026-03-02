@@ -345,3 +345,132 @@ test("handles complete failure gracefully", async (t) => {
 
   t.equal(response.statusCode, 200);
 });
+
+test("handles string body", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send({ received: request.body });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: "plain text body",
+    headers: {
+      "idempotency-key": "string-body-key",
+      "content-type": "text/plain"
+    }
+  });
+
+  t.equal(response.statusCode, 200);
+  t.equal(response.json().received, "plain text body");
+});
+
+test("handles string response body", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send("text response");
+    }
+  );
+
+  // First request
+  const response1 = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "string-response-key" }
+  });
+
+  t.equal(response1.statusCode, 200);
+  t.equal(response1.body, "text response");
+
+  // Second request should replay cached response
+  const response2 = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "string-response-key" }
+  });
+
+  t.equal(response2.statusCode, 200);
+  t.equal(response2.headers["x-idempotent-replayed"], "true");
+  t.equal(response2.body, "text response");
+});
+
+test("handles empty body", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send({ ok: true });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    headers: { "idempotency-key": "empty-body-key" }
+  });
+
+  t.equal(response.statusCode, 200);
+});
+
+test("handles handler that returns value without calling send", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      // Return value directly without calling reply.send()
+      return { direct: "return" };
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "direct-return-key" }
+  });
+
+  t.equal(response.statusCode, 200);
+  t.equal(response.json().direct, "return");
+});
+
+test("handles handler that sends undefined", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send(undefined);
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "undefined-body-key" }
+  });
+
+  t.equal(response.statusCode, 200);
+});
