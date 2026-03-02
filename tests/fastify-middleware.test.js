@@ -70,3 +70,27 @@ test("GET requests pass through without idempotency processing", async (t) => {
   t.ok(handlerCalled);
   t.equal(response.statusCode, 200);
 });
+
+test("returns 400 if idempotency-key is too long", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send({ ok: true });
+    }
+  );
+
+  const longKey = "a".repeat(256);
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": longKey }
+  });
+
+  t.equal(response.statusCode, 400);
+  t.match(response.json(), { error: /between 1-/ });
+});

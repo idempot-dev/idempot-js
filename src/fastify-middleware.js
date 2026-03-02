@@ -17,5 +17,11 @@ export function idempotency(options = {}) {
         .code(400)
         .send({ error: "Idempotency-Key header is required" });
     }
+
+    if (key.length < 1 || key.length > opts.maxKeyLength) {
+      return reply.code(400).send({
+        error: `Idempotency-Key must be between 1-${opts.maxKeyLength} characters`
+      });
+    }
   };
 }
