@@ -6,16 +6,7 @@ import { DEFAULT_OPTIONS } from "./default-options.js";
 /**
  * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
  * @typedef {import("./resilience.js").ResilienceOptions} ResilienceOptions
- */
-
-/**
- * @typedef {Object} ExpressIdempotencyOptions
- * @property {boolean} [required]
- * @property {number} [ttlMs]
- * @property {string[]} [excludeFields]
- * @property {IdempotencyStore} [store]
- * @property {number} [maxKeyLength]
- * @property {ResilienceOptions} [resilience]
+ * @typedef {import("./default-options.js").IdempotencyOptions} IdempotencyOptions
  */
 
 /**
@@ -28,7 +19,7 @@ const HEADER_NAME = "idempotency-key";
 
 /**
  * Express middleware for idempotency
- * @param {ExpressIdempotencyOptions} [options]
+ * @param {IdempotencyOptions} [options]
  * @returns {(req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => Promise<void>}
  */
 export function idempotency(options = {}) {
@@ -72,10 +63,7 @@ export function idempotency(options = {}) {
         ? req.body
         : JSON.stringify(req.body)
       : "";
-    const fingerprint = await generateFingerprint(
-      bodyText,
-      opts.excludeFields
-    );
+    const fingerprint = await generateFingerprint(bodyText, opts.excludeFields);
 
     let lookup;
     try {
@@ -87,8 +75,7 @@ export function idempotency(options = {}) {
 
     if (lookup.byKey?.status === "processing") {
       res.status(409).json({
-        error:
-          "A request with this idempotency key is already being processed"
+        error: "A request with this idempotency key is already being processed"
       });
       return;
     }

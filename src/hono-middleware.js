@@ -1,12 +1,13 @@
-/**
- * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
- * @typedef {import("./resilience.js").ResilienceOptions} ResilienceOptions
- */
-
 import { generateFingerprint } from "./fingerprint.js";
 import { validateExcludeFields } from "./validation.js";
 import { withResilience } from "./resilience.js";
 import { DEFAULT_OPTIONS } from "./default-options.js";
+
+/**
+ * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
+ * @typedef {import("./resilience.js").ResilienceOptions} ResilienceOptions
+ * @typedef {import("./default-options.js").IdempotencyOptions} IdempotencyOptions
+ */
 
 /**
  * HTTP header name for idempotency key as defined in
@@ -17,6 +18,7 @@ import { DEFAULT_OPTIONS } from "./default-options.js";
 const HEADER_NAME = "idempotency-key";
 
 /**
+ * Hono middleware for idempotency
  * @param {IdempotencyOptions} [options]
  * @returns {(c: any, next: any) => Promise<void>}
  */
