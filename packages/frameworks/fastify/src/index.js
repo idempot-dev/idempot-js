@@ -53,7 +53,12 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const key = request.headers[HEADER_NAME];
+    /**
+     * Fastify returns duplicate headers as a comma-separated string per RFC 7230.
+     * The TypeScript type is string | string[] for compatibility, but Fastify
+     * normalizes to a single string at runtime.
+     */
+    const key = /** @type {string} */ (request.headers[HEADER_NAME]);
     if (key === undefined) {
       if (opts.required) {
         return reply
@@ -63,7 +68,7 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const keyValidation = validateIdempotencyKey(/** @type {string} */ (key), {
+    const keyValidation = validateIdempotencyKey(key, {
       minKeyLength: opts.minKeyLength,
       maxKeyLength: opts.maxKeyLength
     });
@@ -80,12 +85,12 @@ export function idempotency(options = {}) {
 
     let lookup;
     try {
-      lookup = await resilientStore.lookup(/** @type {string} */ (key), fingerprint);
+      lookup = await resilientStore.lookup(key, fingerprint);
     } catch {
       return reply.code(503).send({ error: "Service temporarily unavailable" });
     }
 
-    const conflict = checkLookupConflicts(lookup, /** @type {string} */ (key), fingerprint);
+    const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
       return reply.code(/** @type {number} */ (conflict.status)).send({ error: conflict.error });
     }
@@ -102,7 +107,7 @@ export function idempotency(options = {}) {
 
     if (!lookup.byKey && !lookup.byFingerprint) {
       try {
-        await resilientStore.startProcessing(/** @type {string} */ (key), fingerprint, opts.ttlMs);
+        await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
       } catch {
         return reply
           .code(503)
