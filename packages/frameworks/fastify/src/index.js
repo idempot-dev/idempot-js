@@ -48,6 +48,7 @@ export function idempotency(options = {}) {
    * @param {import("fastify").FastifyReply} reply
    */
   const middleware = async (request, reply) => {
+    const requestMeta = new WeakMap();
     const method = request.method;
     if (!shouldProcessRequest(method)) {
       return;
@@ -92,7 +93,9 @@ export function idempotency(options = {}) {
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
-      return reply.code(/** @type {number} */ (conflict.status)).send({ error: conflict.error });
+      return reply
+        .code(/** @type {number} */ (conflict.status))
+        .send({ error: conflict.error });
     }
 
     const cached = getCachedResponse(lookup);
@@ -114,22 +117,24 @@ export function idempotency(options = {}) {
           .send({ error: "Service temporarily unavailable" });
       }
 
-      /** @type {any} */ (request).idempotencyKey = key;
+      requestMeta.set(request, { idempotencyKey: key });
 
       const originalSend = reply.send.bind(reply);
-      reply.send = (/** @type {any} */ payload) => {
+      reply.send = (payload) => {
         const capturedBody =
           typeof payload === "string" ? payload : JSON.stringify(payload);
-        /** @type {any} */ (request).idempotencyBody = capturedBody;
+        const meta = requestMeta.get(request);
+        meta.idempotencyBody = capturedBody;
+        requestMeta.set(request, meta);
         return originalSend(payload);
       };
 
       reply.then(
         () => {
-          const req = /** @type {any} */ (request);
-          if (req.idempotencyKey) {
+          const meta = requestMeta.get(request);
+          if (meta?.idempotencyKey) {
             resilientStore
-              .complete(req.idempotencyKey, {
+              .complete(meta.idempotencyKey, {
                 status: reply.statusCode,
                 headers: Object.fromEntries(
                   Object.entries(reply.getHeaders()).map(([k, v]) => [
@@ -137,7 +142,7 @@ export function idempotency(options = {}) {
                     String(v)
                   ])
                 ),
-                body: req.idempotencyBody || ""
+                body: meta.idempotencyBody || ""
               })
               .catch((err) => {
                 console.error("Failed to cache response:", err);
