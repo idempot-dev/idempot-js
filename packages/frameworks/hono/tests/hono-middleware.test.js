@@ -450,3 +450,40 @@ test("continues response when complete fails", async (t) => {
 
   t.equal(res.status, 200, "should return 200 even if complete fails");
 });
+
+test("rejects keys containing commas", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = new Hono();
+  app.post("/", idempotency({ store }), (c) => c.text("ok"));
+
+  const res = await app.request("/", {
+    method: "POST",
+    headers: { "Idempotency-Key": "key-with,comma-16chars" },
+    body: "{}"
+  });
+
+  t.equal(res.status, 400, "should return 400 for comma-containing key");
+  const json = await res.json();
+  t.match(json.error, /cannot contain commas/, "should indicate comma error");
+});
+
+test("rejects multiple idempotency-key headers", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = new Hono();
+  app.post("/", idempotency({ store }), (c) => c.text("ok"));
+
+  // Simulate multiple headers using Headers API with append
+  const headers = new Headers();
+  headers.append("Idempotency-Key", "first-key-16chars");
+  headers.append("Idempotency-Key", "second-key-16chars");
+
+  const res = await app.request("/", {
+    method: "POST",
+    headers,
+    body: "{}"
+  });
+
+  t.equal(res.status, 400, "should return 400 for multiple headers");
+  const json = await res.json();
+  t.match(json.error, /cannot contain commas/, "should indicate multiple keys not allowed");
+});

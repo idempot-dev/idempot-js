@@ -474,3 +474,51 @@ test("handles handler that sends undefined", async (t) => {
 
   t.equal(response.statusCode, 200);
 });
+
+test("rejects keys containing commas", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send({ ok: true });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { "idempotency-key": "key-with,comma-16chars" }
+  });
+
+  t.equal(response.statusCode, 400);
+  t.match(response.json(), { error: /cannot contain commas/ });
+});
+
+test("rejects multiple idempotency-key headers", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const fastify = Fastify();
+
+  fastify.post(
+    "/test",
+    { preHandler: idempotency({ store }) },
+    async (request, reply) => {
+      return reply.send({ ok: true });
+    }
+  );
+
+  const response = await fastify.inject({
+    method: "POST",
+    url: "/test",
+    payload: { foo: "bar" },
+    headers: { 
+      "idempotency-key": ["first-key-16chars", "second-key-16chars"] 
+    }
+  });
+
+  t.equal(response.statusCode, 400);
+  t.match(response.json(), { error: /cannot contain commas/ });
+});

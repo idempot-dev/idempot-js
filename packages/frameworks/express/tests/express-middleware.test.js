@@ -634,3 +634,77 @@ test("middleware-express - handles non-string response body", async (t) => {
     server.close();
   }
 });
+
+test("middleware-express - rejects keys containing commas", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = express();
+  app.use(express.json());
+
+  app.post("/test", idempotency({ store }), (req, res) => {
+    res.json({ ok: true });
+  });
+
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+
+  try {
+    const res = await new Promise((resolve, reject) => {
+      const req = http.request(
+        { hostname: "localhost", port, path: "/test", method: "POST", headers: { "Content-Type": "application/json", "idempotency-key": "key-with,comma-16chars" } },
+        (response) => {
+          let body = "";
+          response.on("data", (chunk) => (body += chunk));
+          response.on("end", () => resolve({ status: response.statusCode, body }));
+        }
+      );
+      req.on("error", reject);
+      req.write(JSON.stringify({ data: "test" }));
+      req.end();
+    });
+
+    t.equal(res.status, 400, "should return 400 for comma-containing key");
+    t.match(res.body, /cannot contain commas/, "should indicate comma error");
+  } finally {
+    server.close();
+  }
+});
+
+test("middleware-express - rejects multiple idempotency-key headers", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = express();
+  app.use(express.json());
+
+  app.post("/test", idempotency({ store }), (req, res) => {
+    res.json({ ok: true });
+  });
+
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+
+  try {
+    // Multiple headers get combined with commas per RFC 7230
+    const res = await new Promise((resolve, reject) => {
+      const req = http.request(
+        { hostname: "localhost", port, path: "/test", method: "POST", headers: {
+          "Content-Type": "application/json",
+          "idempotency-key": "first-key-16chars, second-key-16chars"
+        } },
+        (response) => {
+          let body = "";
+          response.on("data", (chunk) => (body += chunk));
+          response.on("end", () => resolve({ status: response.statusCode, body }));
+        }
+      );
+      req.on("error", reject);
+      req.write(JSON.stringify({ data: "test" }));
+      req.end();
+    });
+
+    t.equal(res.status, 400, "should return 400 for multiple headers");
+    t.match(res.body, /cannot contain commas/, "should indicate multiple keys not allowed");
+  } finally {
+    server.close();
+  }
+});

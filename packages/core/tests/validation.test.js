@@ -101,6 +101,13 @@ test("validateIdempotencyKey - allows custom minKeyLength", (t) => {
   t.end();
 });
 
+test("validateIdempotencyKey - rejects keys containing commas", (t) => {
+  const result = validateIdempotencyKey("key-with,comma-16chars");
+  t.equal(result.valid, false);
+  t.match(result.error, /cannot contain commas/);
+  t.end();
+});
+
 // checkLookupConflicts tests
 test("checkLookupConflicts - no conflicts when lookup is empty", (t) => {
   const lookup = { byKey: null, byFingerprint: null };

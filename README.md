@@ -122,6 +122,32 @@ idempotency({
 
 **Note:** The IETF draft spec recommends 1-255 characters. We default to 16+ for security.
 
+## Key Format Restrictions
+
+### Commas Not Allowed
+
+Idempotency keys **cannot contain commas**. This restriction exists because:
+
+1. **RFC 7230 Compliance**: HTTP allows multiple headers with the same name to be combined with commas. When multiple `Idempotency-Key` headers are sent, frameworks combine them into a single comma-separated value.
+
+2. **Structured Field Values**: The IETF draft defines `Idempotency-Key` as an Item Structured Header (RFC 8941), which only allows a single value. Commas are used as list delimiters in Structured Fields.
+
+3. **Practical Indistinguishability**: A key containing a comma (e.g., `key,with,commas`) is indistinguishable from multiple headers (e.g., `key`, `with`, `commas`) after HTTP processing.
+
+**Error Response:**
+
+If a key contains commas, the middleware returns HTTP 400:
+
+```json
+{
+  "error": "Idempotency-Key cannot contain commas (multiple keys not allowed)"
+}
+```
+
+This applies whether the comma comes from:
+- A single header with commas in the value
+- Multiple headers combined by HTTP frameworks
+
 ## Resilience
 
 The middleware includes built-in resilience features using [opossum](https://nodeshift.dev/opossum/) circuit breaker to handle store failures gracefully.
