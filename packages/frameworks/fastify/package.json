@@ -4,15 +4,16 @@
   "description": "Fastify middleware for idempotency",
   "type": "module",
   "main": "./src/index.js",
-  "types": "./src/index.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./src/index.js"
     }
   },
   "files": [
     "src",
+    "dist",
     "README.md",
     "LICENSE"
   ],
@@ -29,7 +30,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "echo 'No build needed for ESM package'",
+    "build": "tsc",
     "test": "tap tests/"
   },
   "peerDependencies": {

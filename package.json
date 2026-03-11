@@ -22,7 +22,7 @@
   "license": "MIT",
   "scripts": {
     "build": "npm run build:types && npm run build:copy",
-    "build:types": "tsc",
+    "build:types": "pnpm -r build",
     "build:copy": "cp -r src/* dist/",
     "test": "tap",
     "test:coverage": "tap --show-full-coverage",
