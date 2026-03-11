@@ -2,20 +2,8 @@
   "name": "idempot",
   "version": "0.1.0",
   "description": "IETF-compliant idempotency middleware for Hono, Express, and Fastify with pluggable storage backends",
+  "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "keywords": [
     "hono",
     "express",
@@ -40,8 +28,8 @@
     "test:coverage": "tap --show-full-coverage",
     "test:coverage:html": "tap --coverage-report=html",
     "test:verify-coverage": "tap --statements=100 --branches=100 --functions=100 --lines=100",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
+    "lint": "eslint packages/*/src packages/frameworks/*/src packages/stores/*/src",
+    "lint:fix": "eslint packages/*/src packages/frameworks/*/src packages/stores/*/src --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,json,md}\"",
     "check": "npm run format:check && npm run lint",
@@ -54,12 +42,12 @@
     "example:bun:sqlite": "bun run examples/bun-sqlite-app.js",
     "example:lambda:apigateway": "node examples/lambda-apigateway-dynamodb.js",
     "example:lambda:url": "node examples/lambda-url-dynamodb.js",
-    "test:bun": "bun test test/bun/",
-    "test:bun:coverage": "bun test test/bun/ --coverage",
-    "test:lambda": "bun test test/lambda/",
-    "test:deno": "deno test test/deno/",
-    "example:deno:sqlite": "deno run --allow-write examples/deno-sqlite-app.ts",
-    "example:deno:redis": "deno run --allow-net examples/deno-redis-app.ts",
+    "test:bun": "bun test tests/runtime/bun/",
+    "test:bun:coverage": "bun test tests/runtime/bun/ --coverage",
+    "test:lambda": "bun test tests/runtime/lambda/",
+    "test:deno": "deno test tests/runtime/deno/",
+    "test:deno:sqlite": "deno run --allow-write examples/deno-sqlite-app.ts",
+    "test:deno:redis": "deno run --allow-net examples/deno-redis-app.ts",
     "example:cloudflare": "node examples/cloudflare-kv-app.js",
     "example:dynamodb": "node examples/dynamodb-app.js",
     "example:lambda:url:redis": "node examples/lambda-url-redis.js",

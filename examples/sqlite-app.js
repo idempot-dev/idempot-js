@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { idempotency } from "../src/hono-middleware.js";
-import { SqliteIdempotencyStore } from "../src/store/sqlite.js";
+import { idempotency } from "../packages/frameworks/hono/src/index.js";
+import { SqliteIdempotencyStore } from "../packages/stores/sqlite/src/index.js";
 
 const app = new Hono();
 const store = new SqliteIdempotencyStore({ path: "./data/idempotency.db" });

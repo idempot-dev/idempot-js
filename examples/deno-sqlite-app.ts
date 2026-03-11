@@ -1,7 +1,7 @@
 /// <reference types="deno" />
 import { Hono } from "hono";
-import { idempotency } from "../../src/index.js";
-import { DenoSqliteIdempotencyStore } from "../../src/store/deno-sqlite.js";
+import { idempotency } from "../packages/frameworks/hono/src/index.js";
+import { DenoSqliteIdempotencyStore } from "../packages/stores/sqlite/src/deno-sqlite.js";
 
 const app = new Hono();
 

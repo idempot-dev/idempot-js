@@ -1,0 +1,38 @@
+{
+  "name": "@idempot/bun-sqlite-store",
+  "version": "0.1.0",
+  "description": "Bun SQLite storage backend for idempotency",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "bun",
+    "sqlite",
+    "store",
+    "idempotency",
+    "idempotent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mroderick/idempot"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "echo 'No build needed for ESM package'",
+    "test": "echo 'Skipping tests - run with bun test runtime-tests/bun/' && exit 0"
+  },
+  "dependencies": {
+    "@idempot/core": "workspace:*"
+  }
+}

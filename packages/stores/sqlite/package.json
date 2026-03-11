@@ -1,0 +1,40 @@
+{
+  "name": "@idempot/sqlite-store",
+  "version": "0.1.0",
+  "description": "SQLite storage backend for idempotency",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "sqlite",
+    "store",
+    "idempotency",
+    "idempotent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mroderick/idempot"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "echo 'No build needed for ESM package'",
+    "test": "tap tests/"
+  },
+  "peerDependencies": {
+    "better-sqlite3": ">=8.0.0"
+  },
+  "dependencies": {
+    "@idempot/core": "workspace:*"
+  }
+}

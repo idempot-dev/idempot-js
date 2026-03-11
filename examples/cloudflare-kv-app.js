@@ -12,8 +12,8 @@
  */
 
 import { Hono } from "hono";
-import { idempotency } from "../src/hono-middleware.js";
-import { CloudflareKvIdempotencyStore } from "../src/store/cloudflare-kv.js";
+import { idempotency } from "../packages/frameworks/hono/src/index.js";
+import { CloudflareKvIdempotencyStore } from "../packages/stores/cloudflare-kv/src/index.js";
 
 const app = new Hono();
 

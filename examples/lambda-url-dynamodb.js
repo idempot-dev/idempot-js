@@ -35,8 +35,8 @@ import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { idempotency } from "../src/hono-middleware.js";
-import { DynamoDbIdempotencyStore } from "../src/store/dynamodb.js";
+import { idempotency } from "../packages/frameworks/hono/src/index.js";
+import { DynamoDbIdempotencyStore } from "../packages/stores/dynamodb/src/index.js";
 
 // Initialize clients OUTSIDE handler for connection reuse across warm invocations
 const dynamoDBClient = new DynamoDBClient({

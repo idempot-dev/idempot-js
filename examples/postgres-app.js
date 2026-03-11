@@ -1,8 +1,8 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import pg from "pg";
-import { idempotency } from "../src/hono-middleware.js";
-import { PostgresIdempotencyStore } from "../src/store/postgres.js";
+import { idempotency } from "../packages/frameworks/hono/src/index.js";
+import { PostgresIdempotencyStore } from "../packages/stores/postgres/src/index.js";
 
 const app = new Hono();
 

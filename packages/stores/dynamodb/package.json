@@ -1,0 +1,39 @@
+{
+  "name": "@idempot/dynamodb-store",
+  "version": "0.1.0",
+  "description": "DynamoDB storage backend for idempotency",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dynamodb",
+    "store",
+    "idempotency",
+    "idempotent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mroderick/idempot"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "echo 'No build needed for ESM package'",
+    "test": "tap tests/"
+  },
+  "dependencies": {
+    "@idempot/core": "workspace:*",
+    "@aws-sdk/client-dynamodb": "^3.975.0",
+    "@aws-sdk/lib-dynamodb": "^3.975.0"
+  }
+}

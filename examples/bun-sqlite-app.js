@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { idempotency } from "../src/hono-middleware.js";
-import { BunSqliteIdempotencyStore } from "../src/store/bun-sqlite.js";
+import { idempotency } from "../packages/frameworks/hono/src/index.js";
+import { BunSqliteIdempotencyStore } from "../packages/stores/bun-sqlite/src/index.js";
 
 const app = new Hono();
 const store = new BunSqliteIdempotencyStore({ path: "./data/idempotency.db" });

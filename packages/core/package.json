@@ -1,0 +1,40 @@
+{
+  "name": "@idempot/core",
+  "version": "0.1.0",
+  "description": "Core idempotency logic for idempot middleware",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "idempotency",
+    "idempotent",
+    "ietf",
+    "retry",
+    "duplicate-detection"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mroderick/idempot"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "echo 'No build needed for ESM package'",
+    "test": "tap tests/"
+  },
+  "dependencies": {
+    "jsonpath-plus": "^10.3.0",
+    "opossum": "^9.0.0",
+    "xxhash-wasm": "^1.1.0"
+  }
+}

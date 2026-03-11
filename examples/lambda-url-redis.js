@@ -31,8 +31,8 @@
 import { Hono } from "hono";
 import { handle } from "hono/aws-lambda";
 import Redis from "ioredis";
-import { idempotency } from "../src/hono-middleware.js";
-import { RedisIdempotencyStore } from "../src/store/redis.js";
+import { idempotency } from "../packages/frameworks/hono/src/index.js";
+import { RedisIdempotencyStore } from "../packages/stores/redis/src/index.js";
 
 // Initialize Redis client OUTSIDE handler for connection reuse
 const redis = new Redis({

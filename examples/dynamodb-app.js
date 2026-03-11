@@ -2,8 +2,8 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, Command } from "@aws-sdk/lib-dynamodb";
-import { idempotency } from "../src/hono-middleware.js";
-import { DynamoDbIdempotencyStore } from "../src/store/dynamodb.js";
+import { idempotency } from "../packages/frameworks/hono/src/index.js";
+import { DynamoDbIdempotencyStore } from "../packages/stores/dynamodb/src/index.js";
 
 const app = new Hono();
 
