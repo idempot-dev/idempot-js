@@ -11,9 +11,9 @@ import {
 } from "@idempot/core";
 
 /**
- * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
- * @typedef {import("./resilience.js").ResilienceOptions} ResilienceOptions
- * @typedef {import("./default-options.js").IdempotencyOptions} IdempotencyOptions
+ * @typedef {import("@idempot/core/store/interface.js").IdempotencyStore} IdempotencyStore
+ * @typedef {import("@idempot/core/resilience.js").ResilienceOptions} ResilienceOptions
+ * @typedef {import("@idempot/core/default-options.js").IdempotencyOptions} IdempotencyOptions
  */
 
 /**

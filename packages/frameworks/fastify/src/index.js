@@ -13,6 +13,12 @@ import {
 const HEADER_NAME = "idempotency-key";
 
 /**
+ * @typedef {import("@idempot/core/store/interface.js").IdempotencyStore} IdempotencyStore
+ * @typedef {import("@idempot/core/resilience.js").ResilienceOptions} ResilienceOptions
+ * @typedef {import("@idempot/core/default-options.js").IdempotencyOptions} IdempotencyOptions
+ */
+
+/**
  * Fastify middleware for idempotency
  * @param {Object} opts - Middleware options
  * @param {IdempotencyStore} opts.store - Storage backend

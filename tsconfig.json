@@ -10,7 +10,10 @@
     "module": "NodeNext",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@idempot/core/*": ["./packages/core/src/*"]
+    }
   },
   "exclude": ["node_modules", "dist", "examples", "tests"]
 }
