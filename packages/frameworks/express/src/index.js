@@ -89,7 +89,7 @@ export function idempotency(options = {}) {
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
-      res.status(conflict.status).json({ error: conflict.error });
+      res.status(/** @type {number} */ (conflict.status)).json({ error: conflict.error });
       return;
     }
 

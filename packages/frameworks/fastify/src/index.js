@@ -13,6 +13,7 @@ import {
 const HEADER_NAME = "idempotency-key";
 
 /**
+ * @typedef {import("@idempot/core/store/interface.js").IdempotencyRecord} IdempotencyRecord
  * @typedef {import("@idempot/core/store/interface.js").IdempotencyStore} IdempotencyStore
  * @typedef {import("@idempot/core/resilience.js").ResilienceOptions} ResilienceOptions
  * @typedef {import("@idempot/core/default-options.js").IdempotencyOptions} IdempotencyOptions
@@ -25,7 +26,7 @@ const HEADER_NAME = "idempotency-key";
  * @param {string} [opts.headerName="Idempotency-Key"] - Header name
  * @param {number} [opts.maxKeyLength=255] - Maximum key length
  * @param {number} [opts.minKeyLength=16] - Minimum key length (default: 16 for entropy)
- * @returns {(request: any, reply: any) => Promise<void>}
+ * @returns {(request: import("fastify").FastifyRequest, reply: import("fastify").FastifyReply) => Promise<void>}
  */
 export function idempotency(options = {}) {
   const opts = { ...defaultOptions, ...options };
@@ -42,14 +43,18 @@ export function idempotency(options = {}) {
     opts.resilience
   );
 
+  /**
+   * @param {import("fastify").FastifyRequest} request
+   * @param {import("fastify").FastifyReply} reply
+   */
   const middleware = async (request, reply) => {
     const method = request.method;
     if (!shouldProcessRequest(method)) {
       return;
     }
 
-    const key = request.headers[HEADER_NAME];
-    if (key === undefined) {
+    const headerValue = request.headers[HEADER_NAME];
+    if (headerValue === undefined) {
       if (opts.required) {
         return reply
           .code(400)
@@ -57,6 +62,8 @@ export function idempotency(options = {}) {
       }
       return;
     }
+
+    const key = Array.isArray(headerValue) ? headerValue[0] : headerValue;
 
     const keyValidation = validateIdempotencyKey(key, {
       minKeyLength: opts.minKeyLength,
@@ -82,7 +89,7 @@ export function idempotency(options = {}) {
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
-      return reply.code(conflict.status).send({ error: conflict.error });
+      return reply.code(/** @type {number} */ (conflict.status)).send({ error: conflict.error });
     }
 
     const cached = getCachedResponse(lookup);
@@ -90,7 +97,7 @@ export function idempotency(options = {}) {
       const response = prepareCachedResponse(cached);
       reply.code(response.status);
       for (const [headerKey, value] of Object.entries(response.headers)) {
-        reply.header(headerKey, value);
+        reply.header(headerKey, /** @type {string} */ (value));
       }
       return reply.send(response.body);
     }
@@ -104,26 +111,30 @@ export function idempotency(options = {}) {
           .send({ error: "Service temporarily unavailable" });
       }
 
-      request.idempotencyKey = key;
+      /** @type {any} */ (request).idempotencyKey = key;
 
       const originalSend = reply.send.bind(reply);
-      reply.send = (payload) => {
+      reply.send = (/** @type {any} */ payload) => {
         const capturedBody =
           typeof payload === "string" ? payload : JSON.stringify(payload);
-        request.idempotencyBody = capturedBody;
+        /** @type {any} */ (request).idempotencyBody = capturedBody;
         return originalSend(payload);
       };
 
       reply.then(
         () => {
-          if (request.idempotencyKey) {
+          const req = /** @type {any} */ (request);
+          if (req.idempotencyKey) {
             resilientStore
-              .complete(request.idempotencyKey, {
+              .complete(req.idempotencyKey, {
                 status: reply.statusCode,
                 headers: Object.fromEntries(
-                  Object.entries(reply.getHeaders()).map(([k, v]) => [k, v])
+                  Object.entries(reply.getHeaders()).map(([k, v]) => [
+                    k,
+                    String(v)
+                  ])
                 ),
-                body: request.idempotencyBody || ""
+                body: req.idempotencyBody || ""
               })
               .catch((err) => {
                 console.error("Failed to cache response:", err);
