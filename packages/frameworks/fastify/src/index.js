@@ -53,8 +53,8 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const headerValue = request.headers[HEADER_NAME];
-    if (headerValue === undefined) {
+    const key = request.headers[HEADER_NAME];
+    if (key === undefined) {
       if (opts.required) {
         return reply
           .code(400)
@@ -63,9 +63,7 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const key = Array.isArray(headerValue) ? headerValue[0] : headerValue;
-
-    const keyValidation = validateIdempotencyKey(key, {
+    const keyValidation = validateIdempotencyKey(/** @type {string} */ (key), {
       minKeyLength: opts.minKeyLength,
       maxKeyLength: opts.maxKeyLength
     });
@@ -82,12 +80,12 @@ export function idempotency(options = {}) {
 
     let lookup;
     try {
-      lookup = await resilientStore.lookup(key, fingerprint);
+      lookup = await resilientStore.lookup(/** @type {string} */ (key), fingerprint);
     } catch {
       return reply.code(503).send({ error: "Service temporarily unavailable" });
     }
 
-    const conflict = checkLookupConflicts(lookup, key, fingerprint);
+    const conflict = checkLookupConflicts(lookup, /** @type {string} */ (key), fingerprint);
     if (conflict.conflict) {
       return reply.code(/** @type {number} */ (conflict.status)).send({ error: conflict.error });
     }
@@ -104,7 +102,7 @@ export function idempotency(options = {}) {
 
     if (!lookup.byKey && !lookup.byFingerprint) {
       try {
-        await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
+        await resilientStore.startProcessing(/** @type {string} */ (key), fingerprint, opts.ttlMs);
       } catch {
         return reply
           .code(503)
