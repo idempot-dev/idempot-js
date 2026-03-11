@@ -4,7 +4,7 @@ import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { SqliteIdempotencyStore } from "../packages/stores/sqlite/src/index.js";
 
 const app = new Hono();
-const store = new SqliteIdempotencyStore({ path: "./data/idempotency.db" });
+const store = new SqliteIdempotencyStore({ path: "./examples/idempotency.db" });
 
 // Cleanup expired records every hour
 setInterval(
@@ -40,7 +40,7 @@ serve(
   },
   (info) => {
     console.log(`Server running at http://localhost:${info.port}`);
-    console.log("Using SQLite storage at ./data/idempotency.db");
+    console.log("Using SQLite storage at ./examples/idempotency.db");
     console.log("");
     console.log("Try these requests:");
     console.log("");

@@ -8,7 +8,7 @@ const app = new Hono();
 app.use(
   "*",
   idempotency({
-    store: new DenoSqliteIdempotencyStore({ path: "./idempotency.db" })
+    store: new DenoSqliteIdempotencyStore({ path: "./examples/idempotency.db" })
   })
 );
 
@@ -18,7 +18,7 @@ app.post("/users", async (c) => {
 });
 
 console.log("Server running at http://localhost:8000");
-console.log("Using SQLite storage at ./idempotency.db");
+console.log("Using SQLite storage at ./examples/idempotency.db");
 console.log("");
 console.log("Try these requests:");
 console.log("");

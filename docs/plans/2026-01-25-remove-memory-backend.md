@@ -271,7 +271,7 @@ Replace lines 59-71 with:
   - Persistent storage with SQLite
   - Periodic cleanup (hourly)
   - Graceful shutdown handling
-  - Database at `./data/idempotency.db`
+  - Database at `./examples/idempotency.db`
 ```
 
 **Step 3: Commit examples section update**
