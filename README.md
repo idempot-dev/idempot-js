@@ -100,7 +100,21 @@ idempotency({
 });
 ```
 
-Keys cannot contain commas (HTTP frameworks combine multiple headers with commas).
+Keys cannot contain commas. This restriction exists because:
+
+1. **RFC 7230 Compliance**: HTTP allows multiple headers with the same name to be combined with commas. When multiple `Idempotency-Key` headers are sent, frameworks combine them into a single comma-separated value.
+
+2. **Structured Field Values**: The IETF draft defines `Idempotency-Key` as an Item Structured Header (RFC 8941), which only allows a single value. Commas are used as list delimiters in Structured Fields.
+
+3. **Practical Indistinguishability**: A key containing a comma (e.g., `key,with,commas`) is indistinguishable from multiple headers (e.g., `key`, `with`, `commas`) after HTTP processing.
+
+If a key contains commas, the middleware returns HTTP 400:
+
+```json
+{
+  "error": "Idempotency-Key cannot contain commas (multiple keys not allowed)"
+}
+```
 
 ## Resilience
 
