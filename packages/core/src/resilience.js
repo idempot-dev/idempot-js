@@ -65,6 +65,7 @@ export function withResilience(store, options = {}) {
     /**
      * @param {string} key
      * @param {string} fingerprint
+     * @returns {Promise<{byKey: import("./interface.js").IdempotencyRecord | null, byFingerprint: import("./interface.js").IdempotencyRecord | null}>}
      */
     async lookup(key, fingerprint) {
       return breaker.fire(() => store.lookup(key, fingerprint));
@@ -74,6 +75,7 @@ export function withResilience(store, options = {}) {
      * @param {string} key
      * @param {string} fingerprint
      * @param {number} ttlMs
+     * @returns {Promise<void>}
      */
     async startProcessing(key, fingerprint, ttlMs) {
       return breaker.fire(() => store.startProcessing(key, fingerprint, ttlMs));
@@ -82,6 +84,7 @@ export function withResilience(store, options = {}) {
     /**
      * @param {string} key
      * @param {{status: number, headers: Record<string, string>, body: string}} response
+     * @returns {Promise<void>}
      */
     async complete(key, response) {
       return breaker.fire(() => store.complete(key, response));
