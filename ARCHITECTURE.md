@@ -2,11 +2,23 @@
 
 ## Overview
 
-`idempot` is a monorepo containing framework-agnostic idempotency middleware with pluggable storage backends. The architecture follows a **layered plugin pattern** where:
+`idempot` is a monorepo containing framework-agnostic idempotency middleware with pluggable storage backends. This project uses **pnpm workspaces** for package management. The architecture follows a **layered plugin pattern** where:
 
 - **Core** defines the idempotency logic and store interface
 - **Framework adapters** integrate the middleware into web frameworks
 - **Storage backends** persist idempotency records
+
+## Monorepo Structure (pnpm Workspaces)
+
+This project uses **pnpm workspaces** (not npm workspaces). Key implications:
+
+- Use `pnpm install` instead of `npm install`
+- Workspace packages are linked via `node_modules/@idempot/*`
+- Dependencies between packages use `workspace:*` protocol
+- Run `pnpm -r build` to build all packages
+- Each package has its own `package.json` with workspace dependencies
+
+When creating a git worktree, always run `pnpm install` in the worktree directory to properly link workspace packages.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -261,6 +273,49 @@ The middleware:
 5. Either returns cached response or calls handler
 
 ## Testing Strategy
+
+### Reusable Framework Adapter Test Suite
+
+All framework adapters (Hono, Express, Fastify) share a common test suite defined in `packages/core/tests/framework-adapter-suite.js`. This ensures consistent behavior across all adapters while reducing test code duplication by ~85%.
+
+**Usage:**
+
+```javascript
+import { runAdapterTests } from "@idempot/core/tests/framework-adapter-suite.js";
+
+runAdapterTests({
+  name: "framework-name",
+  setup: async () => ({
+    mount: (method, path, middleware, handler) => {
+      /* framework-specific */
+    },
+    request: async (options) => {
+      /* return { status, headers, body } */
+    },
+    teardown: async () => {
+      /* cleanup */
+    }
+  }),
+  createMiddleware: (options) => idempotency(options),
+  createStore: () => new SqliteIdempotencyStore({ path: ":memory:" })
+});
+```
+
+**Test Coverage (20 shared tests):**
+
+- HTTP method handling (GET pass-through)
+- Key validation (length, empty, commas, required/optional)
+- Caching behavior (first request, replay, call count)
+- Conflict detection (concurrent, payload mismatch, fingerprint collision)
+- Error handling (lookup failure, startProcessing failure, complete failure)
+- Configuration (field exclusion, PATCH method, body types)
+
+**Benefits:**
+
+- Consistent behavior across all adapters
+- ~85% reduction in test code (1,822 lines → ~280 lines)
+- Easy to add new framework adapters (only ~30 lines needed)
+- Single source of truth for idempotency behavior
 
 ### Unit Tests
 
