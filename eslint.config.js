@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import globals from "globals";
 import prettier from "eslint-config-prettier";
+import jsdoc from "eslint-plugin-jsdoc";
 
 export default [
   js.configs.recommended,
@@ -44,5 +45,26 @@ export default [
       yoda: "error"
     }
   },
-  prettier
+  prettier,
+  {
+    files: ["packages/*/src/**/*.js"],
+    plugins: { jsdoc },
+    rules: {
+      "jsdoc/require-jsdoc": [
+        "error",
+        {
+          publicOnly: true,
+          require: {
+            FunctionDeclaration: true,
+            MethodDefinition: true,
+            ClassDeclaration: true
+          },
+          checkConstructors: false,
+          checkGetters: false
+        }
+      ],
+      "jsdoc/require-param": ["error", { checkConstructors: false }],
+      "jsdoc/require-returns": ["error", { checkConstructors: false }]
+    }
+  }
 ];
