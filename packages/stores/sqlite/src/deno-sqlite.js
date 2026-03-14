@@ -120,10 +120,4 @@ export class DenoSqliteIdempotencyStore {
     );
   }
 
-  /**
-   * @returns {Promise<void>}
-   */
-  async cleanup() {
-    this.db.query("DELETE FROM idempotency_records WHERE expires_at <= ?", [Date.now()]);
-  }
 }

@@ -6,16 +6,6 @@ import { SqliteIdempotencyStore } from "../packages/stores/sqlite/src/index.js";
 const app = new Hono();
 const store = new SqliteIdempotencyStore({ path: "./examples/idempotency.db" });
 
-// Cleanup expired records every hour
-setInterval(
-  () => {
-    store.cleanup().then(() => {
-      console.log("Cleaned up expired idempotency records");
-    });
-  },
-  60 * 60 * 1000
-);
-
 // Basic usage with SQLite persistence
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();

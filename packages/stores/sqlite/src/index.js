@@ -14,7 +14,6 @@ import Database from "better-sqlite3";
  * @property {(key: string, fingerprint: string) => Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>} lookup
  * @property {(key: string, fingerprint: string, ttlMs: number) => Promise<void>} startProcessing
  * @property {(key: string, response: {status: number, headers: Record<string, string>, body: string}) => Promise<void>} complete
- * @property {() => Promise<void>} cleanup
  */
 
 /**
@@ -170,13 +169,4 @@ export class SqliteIdempotencyStore {
     }
   }
 
-  /**
-   * Clean up expired records
-   * @returns {Promise<void>}
-   */
-  async cleanup() {
-    this.db
-      .prepare("DELETE FROM idempotency_records WHERE expires_at <= ?")
-      .run(Date.now());
-  }
 }

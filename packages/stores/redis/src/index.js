@@ -14,7 +14,6 @@
  * @property {(key: string, fingerprint: string) => Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>} lookup
  * @property {(key: string, fingerprint: string, ttlMs: number) => Promise<void>} startProcessing
  * @property {(key: string, response: {status: number, headers: Record<string, string>, body: string}) => Promise<void>} complete
- * @property {() => Promise<void>} cleanup
  */
 
 /**
@@ -128,11 +127,4 @@ export class RedisIdempotencyStore {
     }
   }
 
-  /**
-   * Clean up expired records (no-op: Redis TTL handles cleanup automatically)
-   * @returns {Promise<void>}
-   */
-  async cleanup() {
-    // No-op: Redis TTL handles cleanup automatically
-  }
 }

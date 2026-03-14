@@ -137,10 +137,6 @@ export class DenoRedisIdempotencyStore {
     await this.redis.set(`${this.prefix}${key}`, JSON.stringify(updatedRecord), { expireIn: ttlSeconds });
   }
 
-  async cleanup() {
-    // Handled by Redis TTL
-  }
-
   /**
    * @returns {Promise<void>}
    */

@@ -102,16 +102,6 @@ app.patch("/orders/:id", idempotency({ store }), async (c) => {
   });
 });
 
-// Cleanup expired records every 10 minutes
-setInterval(
-  () => {
-    store.cleanup().then(() => {
-      console.log("Cleaned up expired idempotency records");
-    });
-  },
-  10 * 60 * 1000
-);
-
 serve(
   {
     fetch: app.fetch,

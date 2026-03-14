@@ -56,32 +56,6 @@ test("SqliteIdempotencyStore - complete updates record", async (t) => {
   store.close();
 });
 
-test("SqliteIdempotencyStore - cleanup removes expired records", async (t) => {
-  const store = new SqliteIdempotencyStore({ path: ":memory:" });
-
-  // Add expired record
-  await store.startProcessing("expired-key", "expired-fp", -1000);
-
-  // Add valid record
-  await store.startProcessing("valid-key", "valid-fp", 60000);
-
-  await store.cleanup();
-
-  const expired = await store.lookup("expired-key", "expired-fp");
-  const valid = await store.lookup("valid-key", "valid-fp");
-
-  t.equal(expired.byKey, null, "expired record should be removed by key");
-  t.equal(
-    expired.byFingerprint,
-    null,
-    "expired record should be removed by fingerprint"
-  );
-  t.ok(valid.byKey, "valid record should remain");
-  t.ok(valid.byFingerprint, "valid record should remain");
-
-  store.close();
-});
-
 test("SqliteIdempotencyStore - complete throws on missing key", async (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });
 
@@ -129,26 +103,6 @@ test("SqliteIdempotencyStore - persistence across instances", async (t) => {
   // For real persistence test, would need a temp file
 
   t.pass("persistence pattern implemented");
-});
-
-test("SqliteIdempotencyStore - limited cleanup during lookup", async (t) => {
-  const store = new SqliteIdempotencyStore({ path: ":memory:" });
-
-  // Add 20 expired records
-  for (let i = 0; i < 20; i++) {
-    await store.startProcessing(`expired-${i}`, `fp-${i}`, -1000);
-  }
-
-  // Call lookup (should clean up max 10)
-  await store.lookup("test", "test");
-
-  // Count remaining records - should be ~10
-  // Note: Can't easily test exact count without exposing DB
-  // Verification is implicit in that lookup completes quickly
-
-  t.pass("limited cleanup completed");
-
-  store.close();
 });
 
 test("SqliteIdempotencyStore - uses default path when no options provided", (t) => {
