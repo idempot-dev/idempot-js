@@ -2,6 +2,7 @@ export { generateFingerprint } from "./fingerprint.js";
 export {
   validateExcludeFields,
   validateIdempotencyKey,
+  validateIdempotencyOptions,
   checkLookupConflicts,
   shouldProcessRequest,
   getCachedResponse,

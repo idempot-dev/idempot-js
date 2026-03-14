@@ -2,6 +2,7 @@ import {
   generateFingerprint,
   validateExcludeFields,
   validateIdempotencyKey,
+  validateIdempotencyOptions,
   checkLookupConflicts,
   shouldProcessRequest,
   getCachedResponse,
@@ -30,7 +31,7 @@ const HEADER_NAME = "idempotency-key";
  * @param {IdempotencyStore} opts.store - Storage backend
  * @param {string} [opts.headerName="Idempotency-Key"] - Header name
  * @param {number} [opts.maxKeyLength=255] - Maximum key length
- * @param {number} [opts.minKeyLength=16] - Minimum key length (default: 16 for entropy)
+ * @param {number} [opts.minKeyLength=21] - Minimum key length (default: 21 for nanoid)
  * @returns {(req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => Promise<void>}
  */
 export function idempotency(options = {}) {
@@ -42,6 +43,7 @@ export function idempotency(options = {}) {
     );
   }
   validateExcludeFields(opts.excludeFields);
+  validateIdempotencyOptions(opts);
   const store = opts.store;
   const { minKeyLength, maxKeyLength } = opts;
   const { store: resilientStore } = withResilience(store, opts.resilience);

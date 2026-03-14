@@ -19,14 +19,28 @@ export function validateExcludeFields(fields) {
 }
 
 /**
+ * Validates idempotency options
+ * @param {Object} options
+ * @param {number} [options.minKeyLength]
+ * @param {number} [options.maxKeyLength]
+ * @throws {Error} if minKeyLength is below 21
+ */
+export function validateIdempotencyOptions(options = {}) {
+  const { minKeyLength } = options;
+  if (minKeyLength !== undefined && minKeyLength < 21) {
+    throw new Error("minKeyLength must be at least 21 (nanoid default)");
+  }
+}
+
+/**
  * @param {string} key
  * @param {Object} options
- * @param {number} [options.minKeyLength=16] - Minimum allowed key length (default: 16)
+ * @param {number} [options.minKeyLength=21] - Minimum allowed key length (default: 21 for nanoid)
  * @param {number} [options.maxKeyLength=255] - Maximum allowed key length (default: 255)
  * @returns {{valid: boolean, error?: string}}
  */
 export function validateIdempotencyKey(key, options = {}) {
-  const { minKeyLength = 16, maxKeyLength = 255 } = options;
+  const { minKeyLength = 21, maxKeyLength = 255 } = options;
   if (key.length < minKeyLength || key.length > maxKeyLength) {
     return {
       valid: false,

@@ -215,12 +215,12 @@ The library follows [draft-ietf-httpapi-idempotency-key-header-07](https://datat
 
 ### Key Length Requirements
 
-Default 16-255 character range provides ~95 bits of entropy, preventing:
+Default 21-255 character range (nanoid default) provides ~126 bits of entropy, preventing:
 
 - Key exhaustion attacks (short keys)
 - Collision attacks (insufficient entropy)
 
-Shorter keys can be configured but are **not recommended for production**.
+The minimum of 21 is enforced at middleware initialization - values below 21 will throw an error.
 
 ### Resilience Pattern
 

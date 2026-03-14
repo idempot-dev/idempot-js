@@ -2,6 +2,7 @@ import { test } from "tap";
 import {
   validateExcludeFields,
   validateIdempotencyKey,
+  validateIdempotencyOptions,
   checkLookupConflicts,
   shouldProcessRequest,
   getCachedResponse,
@@ -60,7 +61,7 @@ test("validateExcludeFields - throws for invalid JSONPath", (t) => {
 
 // validateIdempotencyKey tests
 test("validateIdempotencyKey - accepts valid key", (t) => {
-  const result = validateIdempotencyKey("valid-key-16-characters", {
+  const result = validateIdempotencyKey("valid-key-21-characters", {
     maxKeyLength: 255
   });
   t.equal(result.valid, true);
@@ -71,7 +72,7 @@ test("validateIdempotencyKey - accepts valid key", (t) => {
 test("validateIdempotencyKey - rejects key shorter than default minKeyLength", (t) => {
   const result = validateIdempotencyKey("short", { maxKeyLength: 255 });
   t.equal(result.valid, false);
-  t.equal(result.error, "Idempotency-Key must be between 16-255 characters");
+  t.equal(result.error, "Idempotency-Key must be between 21-255 characters");
   t.end();
 });
 
@@ -79,30 +80,30 @@ test("validateIdempotencyKey - rejects too long key", (t) => {
   const longKey = "x".repeat(256);
   const result = validateIdempotencyKey(longKey, { maxKeyLength: 255 });
   t.equal(result.valid, false);
-  t.match(result.error, /between 16-255 characters/i);
+  t.match(result.error, /between 21-255 characters/i);
   t.end();
 });
 
 test("validateIdempotencyKey - accepts key at minKeyLength boundary", (t) => {
-  const result = validateIdempotencyKey("exactly-16-chars", {
-    minKeyLength: 16,
+  const result = validateIdempotencyKey("exactly-21-characters", {
+    minKeyLength: 21,
     maxKeyLength: 255
   });
   t.equal(result.valid, true);
   t.end();
 });
 
-test("validateIdempotencyKey - allows custom minKeyLength", (t) => {
-  const result = validateIdempotencyKey("abc", {
-    minKeyLength: 3,
-    maxKeyLength: 255
+test("validateIdempotencyOptions - rejects minKeyLength below 21", (t) => {
+  t.throws(() => validateIdempotencyOptions({ minKeyLength: 20 }), {
+    message: "minKeyLength must be at least 21 (nanoid default)"
   });
-  t.equal(result.valid, true);
+  t.doesNotThrow(() => validateIdempotencyOptions({ minKeyLength: 21 }));
+  t.doesNotThrow(() => validateIdempotencyOptions({}));
   t.end();
 });
 
 test("validateIdempotencyKey - rejects keys containing commas", (t) => {
-  const result = validateIdempotencyKey("key-with,comma-16chars");
+  const result = validateIdempotencyKey("key-with,comma-21chars");
   t.equal(result.valid, false);
   t.match(result.error, /cannot contain commas/);
   t.end();

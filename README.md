@@ -88,14 +88,14 @@ Duplicate requests return cached responses with `x-idempotent-replayed: true`.
 
 ## Key Requirements
 
-Idempotency keys must be 16–255 characters by default (~95 bits of entropy). This accommodates UUID (36), ULID (26), CUID (25), and KSUID (27).
+Idempotency keys must be 21–255 characters by default (~126 bits of entropy). This accommodates popular key generators like UUID (36), ULID (26), CUID (25), KSUID (27) and nanoid (21).
 
-Customize if needed:
+The minimum of 21 is enforced - values below 21 will throw an error:
 
 ```javascript
 idempotency({
   store,
-  minKeyLength: 8,
+  minKeyLength: 21,  // default, must be at least 21
   maxKeyLength: 128
 });
 ```

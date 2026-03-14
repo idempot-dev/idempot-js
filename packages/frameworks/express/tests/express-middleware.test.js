@@ -152,7 +152,7 @@ test("middleware-express - first request with new key", async (t) => {
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "unique-key-00001", {
+    const res = await makeRequest(port, "/test", "POST", "unique-key-0000000001", {
       data: "test"
     });
     t.equal(res.status, 200, "should return handler response");
@@ -183,13 +183,13 @@ test("middleware-express - replays cached response", async (t) => {
   const port = server.address().port;
 
   try {
-    const res1 = await makeRequest(port, "/test", "POST", "replay-key-00001", {
+    const res1 = await makeRequest(port, "/test", "POST", "replay-key-0000000001", {
       data: "test"
     });
     t.equal(res1.status, 200, "first request should succeed");
     t.equal(callCount, 1, "handler should be called once");
 
-    const res2 = await makeRequest(port, "/test", "POST", "replay-key-00001", {
+    const res2 = await makeRequest(port, "/test", "POST", "replay-key-0000000001", {
       data: "test"
     });
     t.equal(res2.status, 200, "cached response should have same status");
@@ -221,11 +221,11 @@ test("middleware-express - detects concurrent processing", async (t) => {
   const port = server.address().port;
 
   try {
-    const promise1 = makeRequest(port, "/test", "POST", "concurrent-key-01", {
+    const promise1 = makeRequest(port, "/test", "POST", "concurrent-key-0000001", {
       data: "test"
     });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    const promise2 = makeRequest(port, "/test", "POST", "concurrent-key-01", {
+    const promise2 = makeRequest(port, "/test", "POST", "concurrent-key-0000001", {
       data: "test"
     });
 
@@ -258,10 +258,10 @@ test("middleware-express - detects same key with different payload", async (t) =
   const port = server.address().port;
 
   try {
-    await makeRequest(port, "/test", "POST", "payload-key-0001", {
+    await makeRequest(port, "/test", "POST", "payload-key-000000001", {
       data: "test1"
     });
-    const res2 = await makeRequest(port, "/test", "POST", "payload-key-0001", {
+    const res2 = await makeRequest(port, "/test", "POST", "payload-key-000000001", {
       data: "test2"
     });
     t.equal(res2.status, 422, "should return 422");
@@ -289,14 +289,14 @@ test("middleware-express - detects duplicate request with different key", async 
   const port = server.address().port;
 
   try {
-    await makeRequest(port, "/test", "POST", "fingerprint-key-01", {
+    await makeRequest(port, "/test", "POST", "fingerprint-key-0000001", {
       data: "test"
     });
     const res2 = await makeRequest(
       port,
       "/test",
       "POST",
-      "fingerprint-key-02",
+      "fingerprint-key-02000001",
       {
         data: "test"
       }
@@ -329,13 +329,13 @@ test("middleware-express - PATCH method is protected", async (t) => {
   const port = server.address().port;
 
   try {
-    const res1 = await makeRequest(port, "/test", "PATCH", "patch-key-000001", {
+    const res1 = await makeRequest(port, "/test", "PATCH", "patch-key-00000000001", {
       data: "test"
     });
     t.equal(res1.status, 200, "first request should succeed");
     t.equal(callCount, 1, "handler should be called once");
 
-    const res2 = await makeRequest(port, "/test", "PATCH", "patch-key-000001", {
+    const res2 = await makeRequest(port, "/test", "PATCH", "patch-key-00000000001", {
       data: "test"
     });
     t.equal(res2.status, 200, "cached response should be returned");
@@ -368,14 +368,14 @@ test("middleware-express - field exclusion works", async (t) => {
 
   try {
     let callCount = 0;
-    const res1 = await makeRequest(port, "/test", "POST", "exclude-key-0001", {
+    const res1 = await makeRequest(port, "/test", "POST", "exclude-key-000000001", {
       data: "test",
       timestamp: 123
     });
     t.equal(res1.status, 200, "first request should succeed");
     callCount++;
 
-    const res2 = await makeRequest(port, "/test", "POST", "exclude-key-0001", {
+    const res2 = await makeRequest(port, "/test", "POST", "exclude-key-000000001", {
       data: "test",
       timestamp: 456
     });
@@ -416,7 +416,7 @@ test("middleware-express - returns 503 when lookup fails", async (t) => {
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "test-key-00000001", {
+    const res = await makeRequest(port, "/test", "POST", "test-key-000000000001", {
       data: "test"
     });
     t.equal(res.status, 503, "should return 503 when lookup fails");
@@ -443,7 +443,7 @@ test("middleware-express - returns 503 when startProcessing fails", async (t) =>
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "test-key-00000001", {
+    const res = await makeRequest(port, "/test", "POST", "test-key-000000000001", {
       data: "test"
     });
     t.equal(res.status, 503, "should return 503 when startProcessing fails");
@@ -478,7 +478,7 @@ test("middleware-express - handles byKey with non-standard status passes through
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "test-key-00000001", {
+    const res = await makeRequest(port, "/test", "POST", "test-key-000000000001", {
       data: "test"
     });
     t.equal(res.status, 200, "handler should be called");
@@ -511,7 +511,7 @@ test("middleware-express - handles complete failure gracefully", async (t) => {
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "test-key-00000001", {
+    const res = await makeRequest(port, "/test", "POST", "test-key-000000000001", {
       data: "test"
     });
     t.equal(res.status, 200, "should return 200 even if complete fails");
@@ -543,7 +543,7 @@ test("middleware-express - handles string body", async (t) => {
         method: "POST",
         headers: {
           "Content-Type": "text/plain",
-          "Idempotency-Key": "string-body-key1"
+          "Idempotency-Key": "string-body-key-12345"
         }
       };
       const req = http.request(options, (res) => {
@@ -584,7 +584,7 @@ test("middleware-express - handles empty body", async (t) => {
         path: "/test",
         method: "POST",
         headers: {
-          "Idempotency-Key": "empty-body-key01"
+          "Idempotency-Key": "empty-body-key-123456"
         }
       };
       const req = http.request(options, (res) => {
@@ -616,12 +616,12 @@ test("middleware-express - handles non-string response body", async (t) => {
   const port = server.address().port;
 
   try {
-    const res1 = await makeRequest(port, "/test", "POST", "non-string-key-01", {
+    const res1 = await makeRequest(port, "/test", "POST", "non-string-key-0000001", {
       data: "test"
     });
     t.equal(res1.status, 200, "first request should succeed");
 
-    const res2 = await makeRequest(port, "/test", "POST", "non-string-key-01", {
+    const res2 = await makeRequest(port, "/test", "POST", "non-string-key-0000001", {
       data: "test"
     });
     t.equal(res2.status, 200, "replay should succeed");

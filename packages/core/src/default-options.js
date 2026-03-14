@@ -10,7 +10,7 @@
  * @property {string[]} [excludeFields] - Body fields to exclude when generating the request fingerprint
  * @property {IdempotencyStore} [store] - The storage backend for persisting idempotency records
  * @property {number} [maxKeyLength] - Maximum allowed length for the Idempotency-Key header value
- * @property {number} [minKeyLength] - Minimum allowed length for the Idempotency-Key header value (default: 16)
+ * @property {number} [minKeyLength] - Minimum allowed length for the Idempotency-Key header value (default: 21)
  * @property {ResilienceOptions} [resilience] - Circuit breaker and retry configuration for store operations
  */
 
@@ -34,8 +34,8 @@ const DEFAULT_OPTIONS = {
   /** Maximum allowed length for the Idempotency-Key header value. Default is 255 characters. */
   maxKeyLength: 255,
 
-  /** Minimum allowed length for the Idempotency-Key header value. Default is 16 characters. */
-  minKeyLength: 16,
+  /** Minimum allowed length for the Idempotency-Key header value. Default is 21 characters (nanoid default). */
+  minKeyLength: 21,
 
   /** Configuration for the circuit breaker and retry logic when interacting with the store. */
   resilience: {
