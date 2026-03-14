@@ -2,6 +2,51 @@
 
 Idempotency middleware for Hono, Express, and Fastify.
 
+## Why Idempotency Matters
+
+Duplicate requests happen more often than you'd think:
+
+| Cause            | Example                            |
+| ---------------- | ---------------------------------- |
+| User behavior    | Double-clicking submit             |
+| Client retries   | Automatic retry on timeout         |
+| Network issues   | Request succeeds, response lost    |
+| Load balancer    | Backend timeout triggers retry     |
+| Webhook delivery | Provider retries failed deliveries |
+
+Without idempotency protection, these can cause duplicate payments, orders, or records.
+
+## The Key Pattern
+
+The standard approach used by Stripe, PayPal, and major APIs:
+
+1. **Client generates a unique key** — typically a UUID for each unique operation
+2. **Sends as header** — `Idempotency-Key: <uuid>`
+3. **Server stores key + response** — in your database or Redis
+4. **On duplicate request** — returns cached response instead of reprocessing
+
+### Request Flow
+
+```
+Client                      Server
+   │                          │
+   ├── POST + Idempotency-Key ──→ │
+   │                          ├── Generate fingerprint from request
+   │                          ├── Check: key exists?
+   │                          │    ├── No: Process request, store response
+   │                          │    └── Yes: Check fingerprint
+   │                          │         ├── Match: Return cached response
+   │                          │         └── Conflict: Return 409
+   │                          ←── 201 Created (+ x-idempotent-replayed: false)
+   │                          │
+   ├── POST + same Key ──→    │
+   │                          ├── Generate fingerprint
+   │                          ├── Key exists + fingerprint matches
+   │                          ←── 201 Created (+ x-idempotent-replayed: true)
+```
+
+This library adds **request fingerprinting** to detect conflicts when the same idempotency key is used with different request payloads — a common source of bugs.
+
 ## Features
 
 - IETF-compliant with [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07)
@@ -32,7 +77,7 @@ Idempotency middleware for Hono, Express, and Fastify.
 
 Use your existing database for idempotency if possible. For high-volume systems or shared backends, use Redis.
 
-**Important:** Idempotency requires persistent storage. Without it, the system risks accepting duplicates.
+**Important:** Idempotency requires _persistent_ storage. Without it, the system risks accepting duplicates.
 
 - Redis: Enable `AOF` (and `RDB`) for persistence. See [Redis persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
 - SQLite: Persist the database between deployments. Use [Litestream](https://litestream.io).

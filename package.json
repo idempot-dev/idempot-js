@@ -21,9 +21,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "npm run build:types && npm run build:copy",
-    "build:types": "pnpm -r build",
-    "build:copy": "cp -r src/* dist/",
+    "build": "pnpm -r build",
     "test": "tap",
     "test:coverage": "tap --show-full-coverage",
     "test:coverage:html": "tap --coverage-report=html",
