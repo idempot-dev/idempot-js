@@ -697,4 +697,39 @@ export function runAdapterTests(adapter) {
 
     await teardown();
   });
+
+  // Test: Resilience retries until success
+  test(`${adapter.name} - withResilience retries until success`, async (t) => {
+    let attempts = 0;
+    const flakyStore = {
+      lookup: () => {
+        attempts++;
+        if (attempts < 3) throw new Error("Transient error");
+        return Promise.resolve({ byKey: null, byFingerprint: null });
+      },
+      startProcessing: () => Promise.resolve(),
+      complete: () => Promise.resolve()
+    };
+
+    const { mount, request, teardown } = await adapter.setup();
+    const middleware = adapter.createMiddleware({ store: flakyStore });
+
+    mount("POST", "/test", middleware, async (req, res) => {
+      return res.send({ ok: true });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "test-key-123456789012" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 200, "should succeed after retries");
+    t.equal(attempts, 3, "should retry 3 times");
+
+    await teardown();
+  });
 }
