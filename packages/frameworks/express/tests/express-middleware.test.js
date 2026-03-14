@@ -152,9 +152,15 @@ test("middleware-express - first request with new key", async (t) => {
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "unique-key-0000000001", {
-      data: "test"
-    });
+    const res = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "unique-key-0000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res.status, 200, "should return handler response");
     t.same(
       JSON.parse(res.body),
@@ -183,15 +189,27 @@ test("middleware-express - replays cached response", async (t) => {
   const port = server.address().port;
 
   try {
-    const res1 = await makeRequest(port, "/test", "POST", "replay-key-0000000001", {
-      data: "test"
-    });
+    const res1 = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "replay-key-0000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res1.status, 200, "first request should succeed");
     t.equal(callCount, 1, "handler should be called once");
 
-    const res2 = await makeRequest(port, "/test", "POST", "replay-key-0000000001", {
-      data: "test"
-    });
+    const res2 = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "replay-key-0000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res2.status, 200, "cached response should have same status");
     t.equal(callCount, 1, "handler should not be called again");
     t.equal(
@@ -221,13 +239,25 @@ test("middleware-express - detects concurrent processing", async (t) => {
   const port = server.address().port;
 
   try {
-    const promise1 = makeRequest(port, "/test", "POST", "concurrent-key-0000001", {
-      data: "test"
-    });
+    const promise1 = makeRequest(
+      port,
+      "/test",
+      "POST",
+      "concurrent-key-0000001",
+      {
+        data: "test"
+      }
+    );
     await new Promise((resolve) => setTimeout(resolve, 10));
-    const promise2 = makeRequest(port, "/test", "POST", "concurrent-key-0000001", {
-      data: "test"
-    });
+    const promise2 = makeRequest(
+      port,
+      "/test",
+      "POST",
+      "concurrent-key-0000001",
+      {
+        data: "test"
+      }
+    );
 
     const [res1, res2] = await Promise.all([promise1, promise2]);
     const statuses = [res1.status, res2.status].sort();
@@ -261,9 +291,15 @@ test("middleware-express - detects same key with different payload", async (t) =
     await makeRequest(port, "/test", "POST", "payload-key-000000001", {
       data: "test1"
     });
-    const res2 = await makeRequest(port, "/test", "POST", "payload-key-000000001", {
-      data: "test2"
-    });
+    const res2 = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "payload-key-000000001",
+      {
+        data: "test2"
+      }
+    );
     t.equal(res2.status, 422, "should return 422");
     const json = JSON.parse(res2.body);
     t.match(
@@ -329,15 +365,27 @@ test("middleware-express - PATCH method is protected", async (t) => {
   const port = server.address().port;
 
   try {
-    const res1 = await makeRequest(port, "/test", "PATCH", "patch-key-00000000001", {
-      data: "test"
-    });
+    const res1 = await makeRequest(
+      port,
+      "/test",
+      "PATCH",
+      "patch-key-00000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res1.status, 200, "first request should succeed");
     t.equal(callCount, 1, "handler should be called once");
 
-    const res2 = await makeRequest(port, "/test", "PATCH", "patch-key-00000000001", {
-      data: "test"
-    });
+    const res2 = await makeRequest(
+      port,
+      "/test",
+      "PATCH",
+      "patch-key-00000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res2.status, 200, "cached response should be returned");
     t.equal(callCount, 1, "handler should not be called again");
     t.equal(
@@ -368,17 +416,29 @@ test("middleware-express - field exclusion works", async (t) => {
 
   try {
     let callCount = 0;
-    const res1 = await makeRequest(port, "/test", "POST", "exclude-key-000000001", {
-      data: "test",
-      timestamp: 123
-    });
+    const res1 = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "exclude-key-000000001",
+      {
+        data: "test",
+        timestamp: 123
+      }
+    );
     t.equal(res1.status, 200, "first request should succeed");
     callCount++;
 
-    const res2 = await makeRequest(port, "/test", "POST", "exclude-key-000000001", {
-      data: "test",
-      timestamp: 456
-    });
+    const res2 = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "exclude-key-000000001",
+      {
+        data: "test",
+        timestamp: 456
+      }
+    );
     t.equal(res2.status, 200, "should replay despite timestamp difference");
     t.equal(callCount, 1, "handler should not be called again");
   } finally {
@@ -416,9 +476,15 @@ test("middleware-express - returns 503 when lookup fails", async (t) => {
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "test-key-000000000001", {
-      data: "test"
-    });
+    const res = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "test-key-000000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res.status, 503, "should return 503 when lookup fails");
   } finally {
     server.close();
@@ -443,9 +509,15 @@ test("middleware-express - returns 503 when startProcessing fails", async (t) =>
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "test-key-000000000001", {
-      data: "test"
-    });
+    const res = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "test-key-000000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res.status, 503, "should return 503 when startProcessing fails");
   } finally {
     server.close();
@@ -477,9 +549,15 @@ test("middleware-express - handles byKey with non-standard status passes through
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "test-key-000000000001", {
-      data: "test"
-    });
+    const res = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "test-key-000000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res.status, 200, "handler should be called");
     t.equal(callCount, 1, "should pass through");
   } finally {
@@ -509,9 +587,15 @@ test("middleware-express - handles complete failure gracefully", async (t) => {
   const port = server.address().port;
 
   try {
-    const res = await makeRequest(port, "/test", "POST", "test-key-000000000001", {
-      data: "test"
-    });
+    const res = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "test-key-000000000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res.status, 200, "should return 200 even if complete fails");
     t.equal(callCount, 1, "handler should be called");
   } finally {
@@ -614,14 +698,26 @@ test("middleware-express - handles non-string response body", async (t) => {
   const port = server.address().port;
 
   try {
-    const res1 = await makeRequest(port, "/test", "POST", "non-string-key-0000001", {
-      data: "test"
-    });
+    const res1 = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "non-string-key-0000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res1.status, 200, "first request should succeed");
 
-    const res2 = await makeRequest(port, "/test", "POST", "non-string-key-0000001", {
-      data: "test"
-    });
+    const res2 = await makeRequest(
+      port,
+      "/test",
+      "POST",
+      "non-string-key-0000001",
+      {
+        data: "test"
+      }
+    );
     t.equal(res2.status, 200, "replay should succeed");
     t.equal(
       res2.headers["x-idempotent-replayed"],
@@ -649,11 +745,22 @@ test("middleware-express - rejects keys containing commas", async (t) => {
   try {
     const res = await new Promise((resolve, reject) => {
       const req = http.request(
-        { hostname: "localhost", port, path: "/test", method: "POST", headers: { "Content-Type": "application/json", "idempotency-key": "key-with,comma-16chars" } },
+        {
+          hostname: "localhost",
+          port,
+          path: "/test",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "idempotency-key": "key-with,comma-16chars"
+          }
+        },
         (response) => {
           let body = "";
           response.on("data", (chunk) => (body += chunk));
-          response.on("end", () => resolve({ status: response.statusCode, body }));
+          response.on("end", () =>
+            resolve({ status: response.statusCode, body })
+          );
         }
       );
       req.on("error", reject);
@@ -685,14 +792,22 @@ test("middleware-express - rejects multiple idempotency-key headers", async (t) 
     // Multiple headers get combined with commas per RFC 7230
     const res = await new Promise((resolve, reject) => {
       const req = http.request(
-        { hostname: "localhost", port, path: "/test", method: "POST", headers: {
-          "Content-Type": "application/json",
-          "idempotency-key": "first-key-16chars, second-key-16chars"
-        } },
+        {
+          hostname: "localhost",
+          port,
+          path: "/test",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "idempotency-key": "first-key-16chars, second-key-16chars"
+          }
+        },
         (response) => {
           let body = "";
           response.on("data", (chunk) => (body += chunk));
-          response.on("end", () => resolve({ status: response.statusCode, body }));
+          response.on("end", () =>
+            resolve({ status: response.statusCode, body })
+          );
         }
       );
       req.on("error", reject);
@@ -701,7 +816,11 @@ test("middleware-express - rejects multiple idempotency-key headers", async (t) 
     });
 
     t.equal(res.status, 400, "should return 400 for multiple headers");
-    t.match(res.body, /cannot contain commas/, "should indicate multiple keys not allowed");
+    t.match(
+      res.body,
+      /cannot contain commas/,
+      "should indicate multiple keys not allowed"
+    );
   } finally {
     server.close();
   }

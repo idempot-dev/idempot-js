@@ -95,7 +95,7 @@ The minimum of 21 is enforced — values below 21 throw an error:
 ```javascript
 idempotency({
   store,
-  minKeyLength: 21,  // default, must be at least 21
+  minKeyLength: 21, // default, must be at least 21
   maxKeyLength: 128
 });
 ```

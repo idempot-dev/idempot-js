@@ -36,8 +36,12 @@ export class DenoSqliteIdempotencyStore {
         expires_at INTEGER NOT NULL
       )
     `);
-    this.db.query(`CREATE INDEX IF NOT EXISTS idx_fingerprint ON idempotency_records(fingerprint)`);
-    this.db.query(`CREATE INDEX IF NOT EXISTS idx_expires_at ON idempotency_records(expires_at)`);
+    this.db.query(
+      `CREATE INDEX IF NOT EXISTS idx_fingerprint ON idempotency_records(fingerprint)`
+    );
+    this.db.query(
+      `CREATE INDEX IF NOT EXISTS idx_expires_at ON idempotency_records(expires_at)`
+    );
   }
 
   /**
@@ -76,13 +80,24 @@ export class DenoSqliteIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
-    this.db.query("DELETE FROM idempotency_records WHERE expires_at <= ?", [Date.now()]);
+    this.db.query("DELETE FROM idempotency_records WHERE expires_at <= ?", [
+      Date.now()
+    ]);
 
-    const byKeyRows = this.db.queryEntries("SELECT * FROM idempotency_records WHERE key = ?", [key]);
-    const byFingerprintRows = this.db.queryEntries("SELECT * FROM idempotency_records WHERE fingerprint = ?", [fingerprint]);
+    const byKeyRows = this.db.queryEntries(
+      "SELECT * FROM idempotency_records WHERE key = ?",
+      [key]
+    );
+    const byFingerprintRows = this.db.queryEntries(
+      "SELECT * FROM idempotency_records WHERE fingerprint = ?",
+      [fingerprint]
+    );
 
     const byKey = byKeyRows.length > 0 ? this.parseRecord(byKeyRows[0]) : null;
-    const byFingerprint = byFingerprintRows.length > 0 ? this.parseRecord(byFingerprintRows[0]) : null;
+    const byFingerprint =
+      byFingerprintRows.length > 0
+        ? this.parseRecord(byFingerprintRows[0])
+        : null;
 
     return {
       byKey,
@@ -109,15 +124,17 @@ export class DenoSqliteIdempotencyStore {
    * @returns {Promise<void>}
    */
   async complete(key, response) {
-    const existing = this.db.queryEntries("SELECT * FROM idempotency_records WHERE key = ?", [key]);
+    const existing = this.db.queryEntries(
+      "SELECT * FROM idempotency_records WHERE key = ?",
+      [key]
+    );
     if (!existing || existing.length === 0) {
       throw new Error(`No record found for key: ${key}`);
     }
-    
+
     this.db.query(
       `UPDATE idempotency_records SET status = 'complete', response_status = ?, response_headers = ?, response_body = ? WHERE key = ?`,
       [response.status, JSON.stringify(response.headers), response.body, key]
     );
   }
-
 }

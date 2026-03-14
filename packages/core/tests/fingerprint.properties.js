@@ -19,21 +19,18 @@ test("fingerprint - determinism (same input produces same output)", async (t) =>
 
 test("fingerprint - order independence (object key order doesn't matter)", async (t) => {
   await fc.assert(
-    fc.asyncProperty(
-      fc.dictionary(fc.string(), fc.json()),
-      async (obj) => {
-        const entries = Object.entries(obj);
-        if (entries.length === 0) return true;
+    fc.asyncProperty(fc.dictionary(fc.string(), fc.json()), async (obj) => {
+      const entries = Object.entries(obj);
+      if (entries.length === 0) return true;
 
-        const body1 = toBody(obj);
-        const body2 = toBody(
-          Object.fromEntries(entries.sort(([a], [b]) => b.localeCompare(a)))
-        );
-        const fp1 = await generateFingerprint(body1);
-        const fp2 = await generateFingerprint(body2);
-        return fp1 === fp2;
-      }
-    ),
+      const body1 = toBody(obj);
+      const body2 = toBody(
+        Object.fromEntries(entries.sort(([a], [b]) => b.localeCompare(a)))
+      );
+      const fp1 = await generateFingerprint(body1);
+      const fp2 = await generateFingerprint(body2);
+      return fp1 === fp2;
+    }),
     { numRuns: 100 }
   );
   t.pass("order independence invariant holds");

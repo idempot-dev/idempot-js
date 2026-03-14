@@ -154,5 +154,4 @@ export class PostgresIdempotencyStore {
       throw new Error(`No record found for key: ${key}`);
     }
   }
-
 }

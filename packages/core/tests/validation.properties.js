@@ -58,10 +58,13 @@ test("validation - exclude fields accepts strings/null/undefined", async (t) => 
 test("validation - exclude fields rejects non-string primitives", async (t) => {
   await fc.assert(
     fc.property(
-      fc.array(fc.oneof(fc.integer(), fc.boolean(), fc.constant({}), fc.constant([])), {
-        minLength: 1,
-        maxLength: 5
-      }),
+      fc.array(
+        fc.oneof(fc.integer(), fc.boolean(), fc.constant({}), fc.constant([])),
+        {
+          minLength: 1,
+          maxLength: 5
+        }
+      ),
       (fields) => {
         try {
           validateExcludeFields(fields);

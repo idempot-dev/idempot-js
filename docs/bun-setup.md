@@ -190,7 +190,9 @@ import { Hono } from "hono";
 import { idempotency, BunSqliteIdempotencyStore } from "idempot";
 
 const app = new Hono();
-const store = new BunSqliteIdempotencyStore({ path: "./examples/idempotency.db" });
+const store = new BunSqliteIdempotencyStore({
+  path: "./examples/idempotency.db"
+});
 
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();

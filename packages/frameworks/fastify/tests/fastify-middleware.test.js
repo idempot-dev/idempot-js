@@ -514,8 +514,8 @@ test("rejects multiple idempotency-key headers", async (t) => {
     method: "POST",
     url: "/test",
     payload: { foo: "bar" },
-    headers: { 
-      "idempotency-key": ["first-key-16charsxxxx", "second-key-16charsxxxx"] 
+    headers: {
+      "idempotency-key": ["first-key-16charsxxxx", "second-key-16charsxxxx"]
     }
   });
 

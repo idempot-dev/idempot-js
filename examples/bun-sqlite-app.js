@@ -3,7 +3,9 @@ import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { BunSqliteIdempotencyStore } from "../packages/stores/bun-sqlite/src/index.js";
 
 const app = new Hono();
-const store = new BunSqliteIdempotencyStore({ path: "./examples/idempotency.db" });
+const store = new BunSqliteIdempotencyStore({
+  path: "./examples/idempotency.db"
+});
 
 // Basic usage with SQLite persistence
 app.post("/orders", idempotency({ store }), async (c) => {
@@ -23,7 +25,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 });
 
 console.log("Server running at http://localhost:3000");
-    console.log("Using SQLite storage at ./examples/idempotency.db");
+console.log("Using SQLite storage at ./examples/idempotency.db");
 console.log("");
 console.log("Try these requests:");
 console.log("");

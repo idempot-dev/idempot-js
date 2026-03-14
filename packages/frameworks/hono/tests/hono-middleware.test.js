@@ -463,5 +463,9 @@ test("rejects multiple idempotency-key headers", async (t) => {
 
   t.equal(res.status, 400, "should return 400 for multiple headers");
   const json = await res.json();
-  t.match(json.error, /cannot contain commas/, "should indicate multiple keys not allowed");
+  t.match(
+    json.error,
+    /cannot contain commas/,
+    "should indicate multiple keys not allowed"
+  );
 });
