@@ -651,4 +651,50 @@ export function runAdapterTests(adapter) {
 
     await teardown();
   });
+
+  // Test: Circuit breaker exposure
+  test(`${adapter.name} - exposes circuit breaker`, async (t) => {
+    const store = adapter.createStore();
+    const middleware = adapter.createMiddleware({ store });
+    t.ok(middleware.circuit, "should expose circuit breaker");
+  });
+
+  // Test: String response body with caching
+  test(`${adapter.name} - handles string response body`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({ store });
+
+    mount("POST", "/test", middleware, async (req, res) => {
+      return res.send("text response");
+    });
+
+    const response1 = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "string-response-key-123" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response1.status, 200);
+    t.equal(response1.body, "text response");
+
+    const response2 = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "string-response-key-123" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response2.status, 200);
+    t.equal(response2.headers["x-idempotent-replayed"], "true");
+    t.equal(response2.body, "text response");
+
+    await teardown();
+  });
 }

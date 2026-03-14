@@ -46,9 +46,12 @@ export function idempotency(options = {}) {
   validateIdempotencyOptions(opts);
   const store = opts.store;
   const { minKeyLength, maxKeyLength } = opts;
-  const { store: resilientStore } = withResilience(store, opts.resilience);
+  const { store: resilientStore, circuit } = withResilience(
+    store,
+    opts.resilience
+  );
 
-  return async (req, res, next) => {
+  const middleware = async (req, res, next) => {
     const method = req.method;
     if (!shouldProcessRequest(method)) {
       next();
@@ -147,4 +150,8 @@ export function idempotency(options = {}) {
 
     next();
   };
+
+  middleware.circuit = circuit;
+
+  return middleware;
 }
