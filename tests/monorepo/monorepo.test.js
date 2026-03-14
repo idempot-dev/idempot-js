@@ -55,8 +55,8 @@ test("framework packages structure exists", async (t) => {
       `packages/frameworks/${framework}/package.json exists`
     );
     t.ok(
-      existsSync(join(frameworkDir, "src")),
-      `packages/frameworks/${framework}/src directory exists`
+      existsSync(join(frameworkDir, "index.js")),
+      `packages/frameworks/${framework}/index.js exists`
     );
     t.ok(
       existsSync(join(frameworkDir, "tests")),
