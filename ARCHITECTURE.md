@@ -11,9 +11,9 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │             Storage Backend Layer                           │
-│  ┌──────────┐  ┌──────┐  ┌─────────┐  ┌─────────────┐       │
-│  │  Redis   │  │SQLite│  │ Postgres│  │Cloudflare KV|       │
-│  └──────────┘  └──────┘  └─────────┘  └─────────────┘       │
+│  ┌──────────┐  ┌──────┐  ┌─────────┐                     │
+│  │  Redis   │  │SQLite│  │ Postgres│                     │
+│  └──────────┘  └──────┘  └─────────┘                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -40,7 +40,6 @@ idempot/
 │       ├── sqlite/
 │       ├── redis/
 │       ├── postgres/
-│       ├── cloudflare-kv/
 │       └── bun-sqlite/
 │
 ├── examples/                    # Usage examples
@@ -155,18 +154,6 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 - JSONB type for headers (more efficient than TEXT)
 - Connection pooling via `pg.Pool`
 
-### Cloudflare KV (`packages/stores/cloudflare-kv/`)
-
-**Best for:** Cloudflare Workers
-
-**Implementation:**
-
-- Uses Cloudflare Workers KV API
-- Eventual consistency model (read-after-write not guaranteed)
-- Key-value pairs with TTL
-
-**Limitations:** KV is eventually consistent; not suitable for high-concurrency scenarios requiring strong consistency.
-
 ### Bun SQLite (`packages/stores/bun-sqlite/`)
 
 **Best for:** Bun runtime applications
@@ -249,8 +236,8 @@ The circuit breaker pattern provides graceful degradation:
 - **Node.js**: Full support via better-sqlite3, ioredis, pg
 - **Bun**: Native SQLite via `bun:sqlite`, ioredis support
 - **Deno**: Native SQLite via `deno-sqlite`, native Redis support
-- **Cloudflare Workers**: KV storage via Workers API
 - **AWS Lambda**: Planned (DynamoDB or Redis via AWS SDK)
+- **Cloudflare Workers**: Planned (KV storage)
 
 ### Store Interface Design
 
@@ -291,7 +278,7 @@ The middleware:
 
 - Bun-specific tests run with Bun runtime
 - Deno-specific tests run with Deno
-- Cloudflare Workers tests run in worker environment
+- AWS Lambda and Cloudflare Workers tests planned
 
 ## Extensibility
 

@@ -13,27 +13,26 @@ See the [documentation site](https://mroderick.github.io/idempot/) for full deta
 
 ## Supported Runtimes, Frameworks, and Stores
 
-| Category       | Options                                                     |
-| -------------- | ----------------------------------------------------------- |
-| **Runtimes**   | Node.js, Bun, Deno, Cloudflare Workers (Lambda planned)     |
-| **Frameworks** | Express, Hono, Fastify                                      |
-| **Stores**     | Redis, PostgreSQL, SQLite, Cloudflare KV (DynamoDB planned) |
+| Category       | Options                                                      |
+| -------------- | ------------------------------------------------------------ |
+| **Runtimes**   | Node.js, Bun, Deno (Lambda & Cloudflare Workers planned)     |
+| **Frameworks** | Express, Hono, Fastify                                       |
+| **Stores**     | Redis, PostgreSQL, SQLite (DynamoDB & Cloudflare KV planned) |
 
 ## Runtime vs Storage Support
 
-| Store         | Node | Bun | Deno | Workers |
-| ------------- | ---- | --- | ---- | ------- |
-| Redis         | ✅   | ✅  | ✅   | 🔄      |
-| Postgres      | ✅   | ✅  | ✅   | 🔄      |
-| SQLite        | ✅   | ✅  | ✅   | ❌      |
-| Bun SQLite    | ❌   | ✅  | ❌   | ❌      |
-| Cloudflare KV | ❌   | ❌  | ❌   | ✅      |
+| Store      | Node | Bun | Deno |
+| ---------- | ---- | --- | ---- |
+| Redis      | ✅   | ✅  | ✅   |
+| Postgres   | ✅   | ✅  | ✅   |
+| SQLite     | ✅   | ✅  | ✅   |
+| Bun SQLite | ❌   | ✅  | ❌   |
 
 ✅ = Supported | 🔄 = Untested (contributions welcome) | ❌ = Not supported
 
 ## Choosing a Storage Backend
 
-Use your existing database for idempotency if possible. For high-volume systems or shared backends, use Redis or Cloudflare KV.
+Use your existing database for idempotency if possible. For high-volume systems or shared backends, use Redis.
 
 **Important:** Idempotency requires persistent storage. Without it, the system risks accepting duplicates.
 

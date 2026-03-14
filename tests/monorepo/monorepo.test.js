@@ -66,7 +66,7 @@ test("framework packages structure exists", async (t) => {
 });
 
 test("store packages structure exists", async (t) => {
-  const stores = ["redis", "postgres", "sqlite", "bun-sqlite", "cloudflare-kv"];
+  const stores = ["redis", "postgres", "sqlite", "bun-sqlite"];
 
   for (const store of stores) {
     const storeDir = join(rootDir, "packages", "stores", store);
@@ -95,8 +95,7 @@ test("each package has valid package.json", async (t) => {
     "packages/stores/redis",
     "packages/stores/postgres",
     "packages/stores/sqlite",
-    "packages/stores/bun-sqlite",
-    "packages/stores/cloudflare-kv"
+    "packages/stores/bun-sqlite"
   ];
 
   for (const pkgDir of packageDirs) {

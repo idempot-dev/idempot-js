@@ -6,8 +6,8 @@ This directory contains example applications demonstrating various ways to use t
 
 The examples showcase:
 
-- **Multiple Storage Backends**: SQLite, Redis, PostgreSQL, Cloudflare KV (DynamoDB planned)
-- **Deployment Patterns**: Node.js servers, Deno, Bun (AWS Lambda planned)
+- **Multiple Storage Backends**: SQLite, Redis, PostgreSQL (DynamoDB & Cloudflare KV planned)
+- **Deployment Patterns**: Node.js servers, Deno, Bun (AWS Lambda & Cloudflare Workers planned)
 - **Idempotency Features**: Optional/required keys, field exclusions, custom headers
 
 ## Quick Start
@@ -43,12 +43,6 @@ All examples follow a similar pattern. To run any example:
 | -------------------- | ------------------- | ----------------------------------- |
 | `deno-sqlite-app.ts` | SQLite (file-based) | Deno runtime with SQLite storage    |
 | `deno-redis-app.ts`  | Redis               | Deno runtime with Redis persistence |
-
-### Cloudflare Examples
-
-| File                   | Storage       | Description                        |
-| ---------------------- | ------------- | ---------------------------------- |
-| `cloudflare-kv-app.js` | Cloudflare KV | Cloudflare Workers with KV storage |
 
 ### Setup Scripts
 
@@ -133,10 +127,6 @@ Run the setup script to create the required table:
 ```bash
 psql -d your_database -f examples/postgres-setup.sh
 ```
-
-### Cloudflare KV
-
-Requires a Cloudflare Workers project with KV namespace binding.
 
 ## Feature Demonstrations
 
