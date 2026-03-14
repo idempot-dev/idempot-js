@@ -1,5 +1,8 @@
 # TODO
 
+- More framework adapters
+  - SvelteKit
+  - NestJS
 - Re-structure the tests, so tests for stores and adapters are reusable and not per store.
   - This makes it easier to ensure that new adapters and stores are easy to add, because the author does not need to write tests
 - Automatic changelog and versioning

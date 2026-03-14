@@ -400,6 +400,48 @@ export function runAdapterTests(adapter) {
     await teardown();
   });
 
+  // Test: Non-standard lookup status passes through to handler
+  test(`${adapter.name} - handles byKey with non-standard status passes through`, async (t) => {
+    const store = {
+      lookup: async (key, fingerprint) => {
+        return {
+          byKey: { key: key, fingerprint: fingerprint, status: "unknown" },
+          byFingerprint: null
+        };
+      },
+      startProcessing: async () => {},
+      complete: async () => {}
+    };
+
+    const { mount, request, teardown } = await adapter.setup();
+    const middleware = adapter.createMiddleware({ store });
+
+    let callCount = 0;
+    mount("POST", "/test", middleware, async (req, res) => {
+      callCount++;
+      return res.send({ message: "created" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "test-key-123456789012" },
+        body: { data: "test" }
+      })
+    );
+
+    t.equal(response.status, 200, "should pass through to handler");
+    t.equal(callCount, 1, "handler should be called");
+    t.equal(
+      response.body?.message,
+      "created",
+      "should return handler response"
+    );
+
+    await teardown();
+  });
+
   // Test: Lookup failure
   test(`${adapter.name} - returns 503 when lookup fails`, async (t) => {
     const store = adapter.createStore();
