@@ -1,6 +1,5 @@
 # TODO
 
-- Refactor: refuse to accept key configuration shorter than 16 characters (nanoId)
 - Automatic changelog and versioning
 - Figure out how to publish the stores as independent packages
 - Review the examples
