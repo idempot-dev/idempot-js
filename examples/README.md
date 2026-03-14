@@ -41,8 +41,8 @@ All examples follow a similar pattern. To run any example:
 
 | File                 | Storage             | Description                         |
 | -------------------- | ------------------- | ----------------------------------- |
-| `deno-sqlite-app.ts` | SQLite (file-based) | Deno runtime with SQLite storage    |
-| `deno-redis-app.ts`  | Redis               | Deno runtime with Redis persistence |
+| `deno-sqlite-app.js` | SQLite (file-based) | Deno runtime with SQLite storage    |
+| `deno-redis-app.js`  | Redis               | Deno runtime with Redis persistence |
 
 ### Setup Scripts
 
@@ -95,7 +95,7 @@ Environment variables:
 ### Deno Example
 
 ```bash
-deno run --allow-all examples/deno-sqlite-app.ts
+deno run --allow-all examples/deno-sqlite-app.js
 ```
 
 ### Bun Example

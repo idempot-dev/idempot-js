@@ -1,4 +1,3 @@
-/// <reference types="deno" />
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { DenoRedisIdempotencyStore } from "../packages/stores/redis/src/deno-redis.js";
