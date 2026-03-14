@@ -2,8 +2,6 @@
 
 Idempotency middleware for Hono, Express, and Fastify.
 
-See the [documentation site](https://mroderick.github.io/idempot/) for full details.
-
 ## Features
 
 - IETF-compliant with [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07)
