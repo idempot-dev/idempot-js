@@ -3,16 +3,16 @@
   "version": "0.1.0",
   "description": "Bun SQLite storage backend for idempotency",
   "type": "module",
-  "main": "./src/index.js",
+  "main": "./index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./src/index.js"
+      "import": "./index.js"
     }
   },
   "files": [
-    "src",
+    "index.js",
     "dist",
     "README.md",
     "LICENSE"
