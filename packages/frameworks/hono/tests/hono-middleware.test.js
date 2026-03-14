@@ -328,8 +328,7 @@ test("middleware - handles byKey with non-standard status passes through", async
       };
     },
     startProcessing: async () => {},
-    complete: async () => {},
-    cleanup: async () => {}
+    complete: async () => {}
   };
 
   const app = new Hono();
@@ -358,8 +357,7 @@ test("withResilience retries until success", async (t) => {
       return Promise.resolve({ byKey: null, byFingerprint: null });
     },
     startProcessing: () => Promise.resolve(),
-    complete: () => Promise.resolve(),
-    cleanup: () => Promise.resolve()
+    complete: () => Promise.resolve()
   };
 
   const { store } = withResilience(flakyStore, { maxRetries: 3 });
@@ -368,31 +366,13 @@ test("withResilience retries until success", async (t) => {
   t.equal(attempts, 3, "should retry 3 times before success");
 });
 
-test("withResilience cleanup is not wrapped", async (t) => {
-  let cleanupCalled = false;
-  const mockStore = {
-    lookup: () => Promise.resolve({ byKey: null, byFingerprint: null }),
-    startProcessing: () => Promise.resolve(),
-    complete: () => Promise.resolve(),
-    cleanup: () => {
-      cleanupCalled = true;
-    }
-  };
-
-  const { store } = withResilience(mockStore);
-  await store.cleanup();
-
-  t.ok(cleanupCalled, "cleanup should be called directly");
-});
-
 test("returns 503 when startProcessing fails after lookup", async (t) => {
   const store = {
     lookup: async () => ({ byKey: null, byFingerprint: null }),
     startProcessing: async () => {
       throw new Error("Connection refused");
     },
-    complete: async () => {},
-    cleanup: async () => {}
+    complete: async () => {}
   };
 
   const app = new Hono();
@@ -413,8 +393,7 @@ test("returns 503 when lookup fails", async (t) => {
       throw new Error("Connection refused");
     },
     async startProcessing() {},
-    async complete() {},
-    async cleanup() {}
+    async complete() {}
   };
 
   const app = new Hono();
@@ -435,8 +414,7 @@ test("continues response when complete fails", async (t) => {
     startProcessing: async () => {},
     complete: async () => {
       throw new Error("Connection refused");
-    },
-    cleanup: async () => {}
+    }
   };
 
   const app = new Hono();

@@ -122,34 +122,6 @@ describe("BunSqliteIdempotencyStore", () => {
     });
   });
 
-  describe("cleanup", () => {
-    test("removes expired records", async () => {
-      await store.startProcessing("expired1", "fp1", -1000);
-      await store.startProcessing("expired2", "fp2", -1000);
-      await store.startProcessing("active", "fp3", 60000);
-
-      await store.cleanup();
-
-      const expired1 = await store.lookup("expired1", "fp1");
-      const expired2 = await store.lookup("expired2", "fp2");
-      const active = await store.lookup("active", "fp3");
-
-      expect(expired1.byKey).toBeNull();
-      expect(expired2.byKey).toBeNull();
-      expect(active.byKey).not.toBeNull();
-    });
-
-    test("keeps non-expired records", async () => {
-      await store.startProcessing("key1", "fp1", 60000);
-
-      await store.cleanup();
-
-      const result = await store.lookup("key1", "fp1");
-
-      expect(result.byKey).not.toBeNull();
-    });
-  });
-
   describe("close", () => {
     test("closes database connection", () => {
       const tempStore = new BunSqliteIdempotencyStore({ path: ":memory:" });

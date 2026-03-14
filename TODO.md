@@ -1,6 +1,5 @@
 # TODO
 
-- Remove cleanup function from all stores. It is built-in and does not need to be run manually
 - Refactor: refuse to accept key configuration shorter than 16 characters (nanoId)
 - Automatic changelog and versioning
 - Figure out how to publish the stores as independent packages

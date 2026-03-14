@@ -14,7 +14,6 @@
  * @property {(key: string, fingerprint: string) => Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>} lookup
  * @property {(key: string, fingerprint: string, ttlMs: number) => Promise<void>} startProcessing
  * @property {(key: string, response: {status: number, headers: Record<string, string>, body: string}) => Promise<void>} complete
- * @property {() => Promise<void>} cleanup
  */
 
 /**
@@ -156,14 +155,4 @@ export class PostgresIdempotencyStore {
     }
   }
 
-  /**
-   * Clean up expired records
-   * @returns {Promise<void>}
-   */
-  async cleanup() {
-    await this.pool.query(
-      "DELETE FROM idempotency_records WHERE expires_at <= $1",
-      [Date.now()]
-    );
-  }
 }

@@ -15,8 +15,7 @@ test("withResilience - wraps store operations", async (t) => {
     },
     complete: async () => {
       completeCalled = true;
-    },
-    cleanup: async () => {}
+    }
   };
 
   const { store } = withResilience(mockStore);
@@ -40,8 +39,7 @@ test("withResilience - retries on failure", async (t) => {
       return { byKey: null, byFingerprint: null };
     },
     startProcessing: async () => {},
-    complete: async () => {},
-    cleanup: async () => {}
+    complete: async () => {}
   };
 
   const { store } = withResilience(flakyStore, { maxRetries: 3 });
@@ -58,8 +56,7 @@ test("withResilience - throws after max retries", async (t) => {
       throw new Error("Permanent failure");
     },
     startProcessing: async () => {},
-    complete: async () => {},
-    cleanup: async () => {}
+    complete: async () => {}
   };
 
   const { store } = withResilience(alwaysFailingStore, { maxRetries: 3 });
@@ -73,23 +70,6 @@ test("withResilience - throws after max retries", async (t) => {
   }
 });
 
-test("withResilience - cleanup is not wrapped", async (t) => {
-  let cleanupCalled = false;
-  const mockStore = {
-    lookup: async () => ({ byKey: null, byFingerprint: null }),
-    startProcessing: async () => {},
-    complete: async () => {},
-    cleanup: async () => {
-      cleanupCalled = true;
-    }
-  };
-
-  const { store } = withResilience(mockStore);
-  await store.cleanup();
-
-  t.ok(cleanupCalled, "should call original cleanup directly");
-});
-
 test("withResilience - respects timeout", async (t) => {
   const slowStore = {
     lookup: async () => {
@@ -97,8 +77,7 @@ test("withResilience - respects timeout", async (t) => {
       return { byKey: null, byFingerprint: null };
     },
     startProcessing: async () => {},
-    complete: async () => {},
-    cleanup: async () => {}
+    complete: async () => {}
   };
 
   const { store, circuit } = withResilience(slowStore, { timeoutMs: 100 });
@@ -119,8 +98,7 @@ test("withResilience - circuit breaker opens after failures", async (t) => {
       throw new Error("Failure");
     },
     startProcessing: async () => {},
-    complete: async () => {},
-    cleanup: async () => {}
+    complete: async () => {}
   };
 
   const { store, circuit } = withResilience(failingStore, {

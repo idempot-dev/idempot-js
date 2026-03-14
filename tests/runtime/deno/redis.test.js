@@ -45,10 +45,4 @@ Deno.test(
   }
 );
 
-Deno.test("DenoRedisIdempotencyStore cleanup is no-op", async () => {
-  const store = new DenoRedisIdempotencyStore({ testMode: true });
 
-  await store.cleanup();
-
-  store.close();
-});

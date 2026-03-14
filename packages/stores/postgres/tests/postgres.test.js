@@ -192,22 +192,6 @@ test("PostgresIdempotencyStore - complete updates record", async (t) => {
   t.end();
 });
 
-test("PostgresIdempotencyStore - cleanup removes expired records", async (t) => {
-  const mockPool = createMockPool([{ rows: [], rowCount: 0 }]);
-  const store = new PostgresIdempotencyStore({
-    pool: mockPool
-  });
-
-  await store.cleanup();
-
-  t.ok(mockPool._calls.length > 0, "should have called query");
-  const call = mockPool._calls[0];
-  t.ok(call.sql.includes("DELETE"), "should be delete query");
-
-  await store.close();
-  t.end();
-});
-
 test("PostgresIdempotencyStore - complete throws on missing key", async (t) => {
   const mockPool = createMockPool([{ rows: [], rowCount: 0 }]);
   const store = new PostgresIdempotencyStore({

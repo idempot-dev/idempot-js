@@ -67,21 +67,6 @@ test("RedisIdempotencyStore - complete updates record", async (t) => {
   );
 });
 
-test("RedisIdempotencyStore - cleanup is no-op", async (t) => {
-  const redis = new RedisMock();
-  const store = new RedisIdempotencyStore({ client: redis });
-
-  // Add record (Redis mock doesn't actually expire keys)
-  await store.startProcessing("test-key", "test-fp", 60000);
-
-  // Cleanup should not throw
-  await store.cleanup();
-
-  // Record should still exist (mock doesn't expire)
-  const result = await store.lookup("test-key", "test-fp");
-  t.ok(result.byKey, "record should still exist after cleanup");
-});
-
 test("RedisIdempotencyStore - complete throws on missing key", async (t) => {
   const redis = new RedisMock();
   const store = new RedisIdempotencyStore({ client: redis });

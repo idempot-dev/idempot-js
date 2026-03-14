@@ -461,8 +461,7 @@ test("middleware-express - handles byKey with non-standard status passes through
       };
     },
     startProcessing: async () => {},
-    complete: async () => {},
-    cleanup: async () => {}
+    complete: async () => {}
   };
   const app = express();
   app.use(express.json());
@@ -494,8 +493,7 @@ test("middleware-express - handles complete failure gracefully", async (t) => {
     startProcessing: async () => {},
     complete: async () => {
       throw new Error("Connection failed");
-    },
-    cleanup: async () => {}
+    }
   };
   const app = express();
   app.use(express.json());
