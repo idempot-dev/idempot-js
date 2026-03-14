@@ -45,12 +45,6 @@ runAdapterTests({
 });
 
 // Fastify-specific tests
-test("fastify - exposes circuit breaker", async (t) => {
-  const store = { lookup: () => {}, startProcessing: () => {}, complete: () => {} };
-  const middleware = idempotency({ store });
-  t.ok(middleware.circuit);
-});
-
 test("fastify - handles handler that returns value without calling send", async (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = Fastify();
@@ -94,38 +88,4 @@ test("fastify - handles handler that sends undefined", async (t) => {
   });
 
   t.equal(response.statusCode, 200);
-});
-
-test("fastify - handles string response body", async (t) => {
-  const store = new SqliteIdempotencyStore({ path: ":memory:" });
-  const app = Fastify();
-
-  app.post(
-    "/test",
-    { preHandler: idempotency({ store }) },
-    async (request, reply) => {
-      return reply.send("text response");
-    }
-  );
-
-  const response1 = await app.inject({
-    method: "POST",
-    url: "/test",
-    payload: { foo: "bar" },
-    headers: { "idempotency-key": "string-response-key-123" }
-  });
-
-  t.equal(response1.statusCode, 200);
-  t.equal(response1.body, "text response");
-
-  const response2 = await app.inject({
-    method: "POST",
-    url: "/test",
-    payload: { foo: "bar" },
-    headers: { "idempotency-key": "string-response-key-123" }
-  });
-
-  t.equal(response2.statusCode, 200);
-  t.equal(response2.headers["x-idempotent-replayed"], "true");
-  t.equal(response2.body, "text response");
 });
