@@ -4,7 +4,7 @@ Idempotency middleware for Hono, Express, and Fastify.
 
 ## Why Idempotency Matters
 
-Duplicate requests happen more often than you'd think:
+Duplicate requests happen often:
 
 | Cause            | Example                            |
 | ---------------- | ---------------------------------- |
@@ -14,11 +14,11 @@ Duplicate requests happen more often than you'd think:
 | Load balancer    | Backend timeout triggers retry     |
 | Webhook delivery | Provider retries failed deliveries |
 
-Without idempotency protection, these can cause duplicate payments, orders, or records.
+Without idempotency protection, these cause duplicate payments, orders, or records.
 
 ## The Key Pattern
 
-The standard approach used by Stripe, PayPal, and major APIs:
+Stripe, PayPal, and major APIs use this standard approach:
 
 1. **Client generates a unique key** — typically a UUID for each unique operation
 2. **Sends as header** — `Idempotency-Key: <uuid>`
@@ -75,9 +75,9 @@ This library adds **request fingerprinting** to detect conflicts when the same i
 
 ## Choosing a Storage Backend
 
-Use your existing database for idempotency if possible. For high-volume systems or shared backends, use Redis.
+Use your existing database for idempotency when possible. For high-volume systems or shared backends, use Redis.
 
-**Important:** Idempotency requires _persistent_ storage. Without it, the system risks accepting duplicates.
+**Important:** Idempotency requires _persistent_ storage. Without persistence, the system risks accepting duplicates.
 
 - Redis: Enable `AOF` (and `RDB`) for persistence. See [Redis persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
 - SQLite: Persist the database between deployments. Use [Litestream](https://litestream.io).
@@ -90,7 +90,7 @@ Duplicate requests return cached responses with `x-idempotent-replayed: true`.
 
 Idempotency keys must be 21–255 characters by default (~126 bits of entropy). This accommodates popular key generators like UUID (36), ULID (26), CUID (25), KSUID (27) and nanoid (21).
 
-The minimum of 21 is enforced - values below 21 will throw an error:
+The minimum of 21 is enforced — values below 21 throw an error:
 
 ```javascript
 idempotency({
@@ -100,11 +100,11 @@ idempotency({
 });
 ```
 
-Keys cannot contain commas. This restriction exists because:
+Keys must not contain commas. This restriction exists because:
 
 1. **RFC 7230 Compliance**: HTTP allows multiple headers with the same name to be combined with commas. When multiple `Idempotency-Key` headers are sent, frameworks combine them into a single comma-separated value.
 
-2. **Structured Field Values**: The IETF draft defines `Idempotency-Key` as an Item Structured Header (RFC 8941), which only allows a single value. Commas are used as list delimiters in Structured Fields.
+2. **Structured Field Values**: The IETF draft defines `Idempotency-Key` as an Item Structured Header (RFC 8941), which allows only a single value. Commas are used as list delimiters in Structured Fields.
 
 3. **Practical Indistinguishability**: A key containing a comma (e.g., `key,with,commas`) is indistinguishable from multiple headers (e.g., `key`, `with`, `commas`) after HTTP processing.
 
