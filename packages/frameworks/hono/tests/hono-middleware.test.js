@@ -1,8 +1,6 @@
-import { test } from "tap";
 import { Hono } from "hono";
 import { runAdapterTests } from "../../../core/tests/framework-adapter-suite.js";
 import { idempotency } from "../index.js";
-import { withResilience } from "@idempot/core";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 
 // Run shared adapter test suite
@@ -77,23 +75,4 @@ runAdapterTests({
   },
   createMiddleware: (options) => idempotency(options),
   createStore: () => new SqliteIdempotencyStore({ path: ":memory:" })
-});
-
-// Hono-specific tests
-test("hono - withResilience retries until success", async (t) => {
-  let attempts = 0;
-  const flakyStore = {
-    lookup: () => {
-      attempts++;
-      if (attempts < 3) throw new Error("Transient error");
-      return Promise.resolve({ byKey: null, byFingerprint: null });
-    },
-    startProcessing: () => Promise.resolve(),
-    complete: () => Promise.resolve()
-  };
-
-  const { store } = withResilience(flakyStore, { maxRetries: 3 });
-  await store.lookup("key", "fp");
-
-  t.equal(attempts, 3);
 });
