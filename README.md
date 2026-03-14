@@ -25,7 +25,7 @@ Stripe, PayPal, and major APIs use this standard approach:
 3. **Server stores key + response** — in your database or Redis
 4. **On duplicate request** — returns cached response instead of reprocessing
 
-### Request Flow
+## Request Flow
 
 ```
 Client                      Server
