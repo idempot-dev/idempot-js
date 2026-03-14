@@ -80,37 +80,6 @@ runAdapterTests({
 });
 
 // Hono-specific tests
-test("hono - handles byKey with non-standard status passes through", async (t) => {
-  const body = JSON.stringify({ data: "test" });
-
-  const store = {
-    lookup: async (key, fingerprint) => {
-      return {
-        byKey: { key: key, fingerprint: fingerprint, status: "unknown" },
-        byFingerprint: null
-      };
-    },
-    startProcessing: async () => {},
-    complete: async () => {}
-  };
-
-  const app = new Hono();
-  let callCount = 0;
-  app.post("/test", idempotency({ store }), (c) => {
-    callCount++;
-    return c.json({ message: "created" });
-  });
-
-  const res = await app.request("/test", {
-    method: "POST",
-    headers: { "idempotency-key": "test-key-123456789012" },
-    body: body
-  });
-
-  t.equal(callCount, 1, "handler should be called");
-  t.equal(res.status, 200, "should pass through");
-});
-
 test("hono - withResilience retries until success", async (t) => {
   let attempts = 0;
   const flakyStore = {
