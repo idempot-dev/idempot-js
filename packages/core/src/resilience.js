@@ -85,10 +85,6 @@ export function withResilience(store, options = {}) {
      */
     async complete(key, response) {
       return breaker.fire(() => store.complete(key, response));
-    },
-
-    async cleanup() {
-      return store.cleanup();
     }
   };
 

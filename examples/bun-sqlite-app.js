@@ -5,16 +5,6 @@ import { BunSqliteIdempotencyStore } from "../packages/stores/bun-sqlite/src/ind
 const app = new Hono();
 const store = new BunSqliteIdempotencyStore({ path: "./examples/idempotency.db" });
 
-// Cleanup expired records every hour
-setInterval(
-  () => {
-    store.cleanup().then(() => {
-      console.log("Cleaned up expired idempotency records");
-    });
-  },
-  60 * 60 * 1000
-);
-
 // Basic usage with SQLite persistence
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();

@@ -79,7 +79,7 @@ Provides resilience against storage backend failures using [opossum](https://nod
 
 ### interface.js
 
-Defines the `IdempotencyStore` interface that all storage backends must implement. The interface includes methods for lookup, startProcessing, complete, and cleanup.
+Defines the `IdempotencyStore` interface that all storage backends must implement. The interface includes methods for lookup, startProcessing, and complete.
 
 ## Framework Adapters
 
