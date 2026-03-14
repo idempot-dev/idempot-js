@@ -45,6 +45,14 @@ runAdapterTests({
 });
 
 // Fastify-specific tests
+// These tests cover Fastify-specific handler patterns that differ from the
+// generic (req, res) interface used by the shared test suite.
+
+/**
+ * Fastify allows handlers to return a value directly instead of calling reply.send().
+ * This test verifies the middleware properly captures and caches responses when
+ * the handler uses Fastify's "return value" pattern rather than the explicit send() pattern.
+ */
 test("fastify - handles handler that returns value without calling send", async (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = Fastify();
@@ -68,6 +76,12 @@ test("fastify - handles handler that returns value without calling send", async 
   t.equal(response.json().direct, "return");
 });
 
+/**
+ * Fastify handles undefined bodies specially - it doesn't send a response body
+ * but still completes the request successfully. This test ensures the middleware
+ * doesn't break when the handler calls reply.send(undefined) and that the
+ * response is still properly cached for idempotency.
+ */
 test("fastify - handles handler that sends undefined", async (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });
   const app = Fastify();
