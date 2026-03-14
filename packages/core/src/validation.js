@@ -47,10 +47,10 @@ export function validateIdempotencyKey(key, options = {}) {
       error: `Idempotency-Key must be between ${minKeyLength}-${maxKeyLength} characters`
     };
   }
-  if (key.includes(',')) {
+  if (key.includes(",")) {
     return {
       valid: false,
-      error: 'Idempotency-Key cannot contain commas (multiple keys not allowed)'
+      error: "Idempotency-Key cannot contain commas (multiple keys not allowed)"
     };
   }
   return { valid: true };

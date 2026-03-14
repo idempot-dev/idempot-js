@@ -168,5 +168,4 @@ export class SqliteIdempotencyStore {
       throw new Error(`No record found for key: ${key}`);
     }
   }
-
 }

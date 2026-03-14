@@ -44,5 +44,3 @@ Deno.test(
     store.close();
   }
 );
-
-

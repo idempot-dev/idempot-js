@@ -50,7 +50,7 @@ export class DenoRedisIdempotencyStore {
         byFingerprint: this.#testStore.get(`fp:${fingerprint}`) ?? null
       };
     }
-    
+
     await this.init();
     const [byKey, byFingerprint] = await Promise.all([
       this.redis.get(`${this.prefix}${key}`),
@@ -81,7 +81,7 @@ export class DenoRedisIdempotencyStore {
       this.#testStore.set(`fp:${fingerprint}`, record);
       return;
     }
-    
+
     await this.init();
     const ttlSeconds = Math.ceil(ttlMs / 1000);
     const record = {
@@ -92,8 +92,14 @@ export class DenoRedisIdempotencyStore {
     };
 
     await Promise.all([
-      this.redis.set(`${this.prefix}${key}`, JSON.stringify(record), { expireIn: ttlSeconds }),
-      this.redis.set(`${this.prefix}fp:${fingerprint}`, JSON.stringify(record), { expireIn: ttlSeconds })
+      this.redis.set(`${this.prefix}${key}`, JSON.stringify(record), {
+        expireIn: ttlSeconds
+      }),
+      this.redis.set(
+        `${this.prefix}fp:${fingerprint}`,
+        JSON.stringify(record),
+        { expireIn: ttlSeconds }
+      )
     ]);
   }
 
@@ -117,7 +123,7 @@ export class DenoRedisIdempotencyStore {
       this.#testStore.set(`fp:${existing.fingerprint}`, record);
       return;
     }
-    
+
     await this.init();
     const existing = await this.redis.get(`${this.prefix}${key}`);
     if (!existing) {
@@ -127,14 +133,18 @@ export class DenoRedisIdempotencyStore {
     const record = JSON.parse(existing);
     const ttlMs = record.expiresAt - Date.now();
     const ttlSeconds = Math.ceil(ttlMs / 1000);
-    
+
     const updatedRecord = {
       ...record,
       status: "complete",
       response
     };
 
-    await this.redis.set(`${this.prefix}${key}`, JSON.stringify(updatedRecord), { expireIn: ttlSeconds });
+    await this.redis.set(
+      `${this.prefix}${key}`,
+      JSON.stringify(updatedRecord),
+      { expireIn: ttlSeconds }
+    );
   }
 
   /**

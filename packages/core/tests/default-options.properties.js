@@ -34,8 +34,15 @@ test("default-options - ttlMs is positive", async (t) => {
 });
 
 test("default-options - excludeFields is an array", async (t) => {
-  t.ok(Array.isArray(defaultOptions.excludeFields), "excludeFields should be an array");
-  t.equal(defaultOptions.excludeFields.length, 0, "excludeFields should be empty by default");
+  t.ok(
+    Array.isArray(defaultOptions.excludeFields),
+    "excludeFields should be an array"
+  );
+  t.equal(
+    defaultOptions.excludeFields.length,
+    0,
+    "excludeFields should be empty by default"
+  );
 });
 
 test("default-options - key length constraints are valid", async (t) => {
@@ -45,12 +52,21 @@ test("default-options - key length constraints are valid", async (t) => {
     defaultOptions.minKeyLength < defaultOptions.maxKeyLength,
     "minKeyLength should be less than maxKeyLength"
   );
-  t.ok(Number.isInteger(defaultOptions.minKeyLength), "minKeyLength should be an integer");
-  t.ok(Number.isInteger(defaultOptions.maxKeyLength), "maxKeyLength should be an integer");
+  t.ok(
+    Number.isInteger(defaultOptions.minKeyLength),
+    "minKeyLength should be an integer"
+  );
+  t.ok(
+    Number.isInteger(defaultOptions.maxKeyLength),
+    "maxKeyLength should be an integer"
+  );
 });
 
 test("default-options - minKeyLength is at least 21", async (t) => {
-  t.ok(defaultOptions.minKeyLength >= 21, "minKeyLength should be at least 21 (nanoid default)");
+  t.ok(
+    defaultOptions.minKeyLength >= 21,
+    "minKeyLength should be at least 21 (nanoid default)"
+  );
 });
 
 test("default-options - resilience has all required properties", async (t) => {
@@ -64,23 +80,41 @@ test("default-options - resilience has all required properties", async (t) => {
   ];
 
   for (const prop of requiredResilienceProps) {
-    t.ok(prop in defaultOptions.resilience, `resilience should have ${prop} property`);
+    t.ok(
+      prop in defaultOptions.resilience,
+      `resilience should have ${prop} property`
+    );
   }
 });
 
 test("default-options - resilience timeoutMs is positive", async (t) => {
   t.ok(defaultOptions.resilience.timeoutMs > 0, "timeoutMs should be positive");
-  t.ok(Number.isInteger(defaultOptions.resilience.timeoutMs), "timeoutMs should be an integer");
+  t.ok(
+    Number.isInteger(defaultOptions.resilience.timeoutMs),
+    "timeoutMs should be an integer"
+  );
 });
 
 test("default-options - resilience maxRetries is positive", async (t) => {
-  t.ok(defaultOptions.resilience.maxRetries > 0, "maxRetries should be positive");
-  t.ok(Number.isInteger(defaultOptions.resilience.maxRetries), "maxRetries should be an integer");
+  t.ok(
+    defaultOptions.resilience.maxRetries > 0,
+    "maxRetries should be positive"
+  );
+  t.ok(
+    Number.isInteger(defaultOptions.resilience.maxRetries),
+    "maxRetries should be an integer"
+  );
 });
 
 test("default-options - resilience retryDelayMs is non-negative", async (t) => {
-  t.ok(defaultOptions.resilience.retryDelayMs >= 0, "retryDelayMs should be non-negative");
-  t.ok(Number.isInteger(defaultOptions.resilience.retryDelayMs), "retryDelayMs should be an integer");
+  t.ok(
+    defaultOptions.resilience.retryDelayMs >= 0,
+    "retryDelayMs should be non-negative"
+  );
+  t.ok(
+    Number.isInteger(defaultOptions.resilience.retryDelayMs),
+    "retryDelayMs should be an integer"
+  );
 });
 
 test("default-options - resilience errorThresholdPercentage is between 0 and 100", async (t) => {
@@ -99,7 +133,10 @@ test("default-options - resilience errorThresholdPercentage is between 0 and 100
 });
 
 test("default-options - resilience resetTimeoutMs is positive", async (t) => {
-  t.ok(defaultOptions.resilience.resetTimeoutMs > 0, "resetTimeoutMs should be positive");
+  t.ok(
+    defaultOptions.resilience.resetTimeoutMs > 0,
+    "resetTimeoutMs should be positive"
+  );
   t.ok(
     Number.isInteger(defaultOptions.resilience.resetTimeoutMs),
     "resetTimeoutMs should be an integer"
@@ -107,7 +144,10 @@ test("default-options - resilience resetTimeoutMs is positive", async (t) => {
 });
 
 test("default-options - resilience volumeThreshold is positive", async (t) => {
-  t.ok(defaultOptions.resilience.volumeThreshold > 0, "volumeThreshold should be positive");
+  t.ok(
+    defaultOptions.resilience.volumeThreshold > 0,
+    "volumeThreshold should be positive"
+  );
   t.ok(
     Number.isInteger(defaultOptions.resilience.volumeThreshold),
     "volumeThreshold should be an integer"

@@ -126,5 +126,4 @@ export class RedisIdempotencyStore {
       throw new Error(`Record expired or missing for key: ${key}`);
     }
   }
-
 }

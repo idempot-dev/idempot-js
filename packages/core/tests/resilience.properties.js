@@ -42,30 +42,30 @@ const createFailingStore = () => ({
 
 test("resilience - never exceeds maxRetries", async (t) => {
   await fc.assert(
-    fc.asyncProperty(
-      fc.integer({ min: 1, max: 3 }),
-      async (maxRetries) => {
-        let attempts = 0;
-        const store = {
-          lookup: async () => {
-            attempts++;
-            throw new Error("Always fails");
-          },
-          startProcessing: async () => {},
-          complete: async () => {}
-        };
+    fc.asyncProperty(fc.integer({ min: 1, max: 3 }), async (maxRetries) => {
+      let attempts = 0;
+      const store = {
+        lookup: async () => {
+          attempts++;
+          throw new Error("Always fails");
+        },
+        startProcessing: async () => {},
+        complete: async () => {}
+      };
 
-        const { store: wrapped } = withResilience(store, { maxRetries, retryDelayMs: 1 });
+      const { store: wrapped } = withResilience(store, {
+        maxRetries,
+        retryDelayMs: 1
+      });
 
-        try {
-          await wrapped.lookup("key", "fp");
-        } catch {
-          // Expected
-        }
-
-        return attempts <= maxRetries;
+      try {
+        await wrapped.lookup("key", "fp");
+      } catch {
+        // Expected
       }
-    ),
+
+      return attempts <= maxRetries;
+    }),
     { numRuns: 20 }
   );
   t.pass("retry count invariant holds");
@@ -73,25 +73,25 @@ test("resilience - never exceeds maxRetries", async (t) => {
 
 test("resilience - success on first attempt does not retry", async (t) => {
   await fc.assert(
-    fc.asyncProperty(
-      fc.integer({ min: 1, max: 3 }),
-      async (maxRetries) => {
-        let attempts = 0;
-        const store = {
-          lookup: async () => {
-            attempts++;
-            return { byKey: null, byFingerprint: null };
-          },
-          startProcessing: async () => {},
-          complete: async () => {}
-        };
+    fc.asyncProperty(fc.integer({ min: 1, max: 3 }), async (maxRetries) => {
+      let attempts = 0;
+      const store = {
+        lookup: async () => {
+          attempts++;
+          return { byKey: null, byFingerprint: null };
+        },
+        startProcessing: async () => {},
+        complete: async () => {}
+      };
 
-        const { store: wrapped } = withResilience(store, { maxRetries, retryDelayMs: 1 });
-        await wrapped.lookup("key", "fp");
+      const { store: wrapped } = withResilience(store, {
+        maxRetries,
+        retryDelayMs: 1
+      });
+      await wrapped.lookup("key", "fp");
 
-        return attempts === 1;
-      }
-    ),
+      return attempts === 1;
+    }),
     { numRuns: 20 }
   );
   t.pass("no retry on success invariant holds");
@@ -118,7 +118,10 @@ test("resilience - succeeds if failure count is less than maxRetries", async (t)
           complete: async () => {}
         };
 
-        const { store: wrapped } = withResilience(store, { maxRetries, retryDelayMs: 1 });
+        const { store: wrapped } = withResilience(store, {
+          maxRetries,
+          retryDelayMs: 1
+        });
 
         try {
           await wrapped.lookup("key", "fp");
@@ -135,27 +138,27 @@ test("resilience - succeeds if failure count is less than maxRetries", async (t)
 
 test("resilience - throws when failures >= maxRetries", async (t) => {
   await fc.assert(
-    fc.asyncProperty(
-      fc.integer({ min: 1, max: 3 }),
-      async (maxRetries) => {
-        const store = {
-          lookup: async () => {
-            throw new Error("Always fails");
-          },
-          startProcessing: async () => {},
-          complete: async () => {}
-        };
+    fc.asyncProperty(fc.integer({ min: 1, max: 3 }), async (maxRetries) => {
+      const store = {
+        lookup: async () => {
+          throw new Error("Always fails");
+        },
+        startProcessing: async () => {},
+        complete: async () => {}
+      };
 
-        const { store: wrapped } = withResilience(store, { maxRetries, retryDelayMs: 1 });
+      const { store: wrapped } = withResilience(store, {
+        maxRetries,
+        retryDelayMs: 1
+      });
 
-        try {
-          await wrapped.lookup("key", "fp");
-          return false;
-        } catch {
-          return true;
-        }
+      try {
+        await wrapped.lookup("key", "fp");
+        return false;
+      } catch {
+        return true;
       }
-    ),
+    }),
     { numRuns: 20 }
   );
   t.pass("throws when failures >= maxRetries invariant holds");
@@ -163,28 +166,27 @@ test("resilience - throws when failures >= maxRetries", async (t) => {
 
 test("resilience - successful operations are deterministic", async (t) => {
   await fc.assert(
-    fc.asyncProperty(
-      fc.string(),
-      fc.string(),
-      async (key, fingerprint) => {
-        let callCount = 0;
-        const store = {
-          lookup: async () => {
-            callCount++;
-            return { byKey: null, byFingerprint: null, callCount };
-          },
-          startProcessing: async () => {},
-          complete: async () => {}
-        };
+    fc.asyncProperty(fc.string(), fc.string(), async (key, fingerprint) => {
+      let callCount = 0;
+      const store = {
+        lookup: async () => {
+          callCount++;
+          return { byKey: null, byFingerprint: null, callCount };
+        },
+        startProcessing: async () => {},
+        complete: async () => {}
+      };
 
-        const { store: wrapped } = withResilience(store, { maxRetries: 3, retryDelayMs: 1 });
+      const { store: wrapped } = withResilience(store, {
+        maxRetries: 3,
+        retryDelayMs: 1
+      });
 
-        const result1 = await wrapped.lookup(key, fingerprint);
-        const result2 = await wrapped.lookup(key, fingerprint);
+      const result1 = await wrapped.lookup(key, fingerprint);
+      const result2 = await wrapped.lookup(key, fingerprint);
 
-        return result1.callCount === 1 && result2.callCount === 2;
-      }
-    ),
+      return result1.callCount === 1 && result2.callCount === 2;
+    }),
     { numRuns: 30 }
   );
   t.pass("successful operations are deterministic");
