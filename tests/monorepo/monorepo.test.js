@@ -66,14 +66,7 @@ test("framework packages structure exists", async (t) => {
 });
 
 test("store packages structure exists", async (t) => {
-  const stores = [
-    "redis",
-    "dynamodb",
-    "postgres",
-    "sqlite",
-    "bun-sqlite",
-    "cloudflare-kv"
-  ];
+  const stores = ["redis", "postgres", "sqlite", "bun-sqlite", "cloudflare-kv"];
 
   for (const store of stores) {
     const storeDir = join(rootDir, "packages", "stores", store);
@@ -100,7 +93,6 @@ test("each package has valid package.json", async (t) => {
     "packages/frameworks/express",
     "packages/frameworks/fastify",
     "packages/stores/redis",
-    "packages/stores/dynamodb",
     "packages/stores/postgres",
     "packages/stores/sqlite",
     "packages/stores/bun-sqlite",

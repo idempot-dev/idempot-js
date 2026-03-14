@@ -40,18 +40,12 @@
     "example:redis": "node examples/redis-app.js",
     "example:bun": "bun run examples/bun-basic-app.js",
     "example:bun:sqlite": "bun run examples/bun-sqlite-app.js",
-    "example:lambda:apigateway": "node examples/lambda-apigateway-dynamodb.js",
-    "example:lambda:url": "node examples/lambda-url-dynamodb.js",
     "test:bun": "bun test tests/runtime/bun/",
     "test:bun:coverage": "bun test tests/runtime/bun/ --coverage",
-    "test:lambda": "bun test tests/runtime/lambda/",
     "test:deno": "deno test tests/runtime/deno/",
     "test:deno:sqlite": "deno run --allow-write examples/deno-sqlite-app.ts",
     "test:deno:redis": "deno run --allow-net examples/deno-redis-app.ts",
-    "example:cloudflare": "node examples/cloudflare-kv-app.js",
-    "example:dynamodb": "node examples/dynamodb-app.js",
-    "example:lambda:url:redis": "node examples/lambda-url-redis.js",
-    "example:lambda:apigateway:redis": "node examples/lambda-apigateway-redis.js"
+    "example:cloudflare": "node examples/cloudflare-kv-app.js"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",
@@ -62,8 +56,6 @@
     "hono": ">=4.0.0"
   },
   "devDependencies": {
-    "@aws-sdk/client-dynamodb": "^3.975.0",
-    "@aws-sdk/lib-dynamodb": "^3.975.0",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@eslint/js": "^9.39.2",
@@ -76,7 +68,6 @@
     "@types/opossum": "^8.1.9",
     "@types/pg": "^8.16.0",
     "@types/tap": "^15.0.12",
-    "aws-sdk-client-mock": "^4.1.0",
     "better-sqlite3": "^12.6.2",
     "eslint": "^10.0.0",
     "fastify": "^5.0.0",

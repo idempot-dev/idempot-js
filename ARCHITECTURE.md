@@ -10,32 +10,10 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    User Application                         │
-│          (Hono/Express/Fastify + Storage Backend)           │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Framework Adapter Layer                        │
-│  ┌──────────┐  ┌────────────┐  ┌──────────────┐            │
-│  │  Hono    │  │  Express   │  │  Fastify     │            │
-│  └──────────┘  └────────────┘  └──────────────┘            │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Core Layer                                 │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌──────────┐  │
-│  │Fingerprint│ │Validation│ │Resilience  │ │Interface │  │
-│  └──────────┘  └──────────┘  └────────────┘  └──────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
 │             Storage Backend Layer                           │
-│  ┌──────────┐  ┌──────┐  ┌─────────┐  ┌─────────┐          │
-│  │  Redis   │  │SQLite│  │ DynamoDB│  │ Postgres│          │
-│  └──────────┘  └──────┘  └─────────┘  └─────────┘          │
+│  ┌──────────┐  ┌──────┐  ┌─────────┐  ┌─────────────┐       │
+│  │  Redis   │  │SQLite│  │ Postgres│  │Cloudflare KV|       │
+│  └──────────┘  └──────┘  └─────────┘  └─────────────┘       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -61,7 +39,6 @@ idempot/
 │   └── stores/                  # Storage backend implementations
 │       ├── sqlite/
 │       ├── redis/
-│       ├── dynamodb/
 │       ├── postgres/
 │       ├── cloudflare-kv/
 │       └── bun-sqlite/
@@ -79,6 +56,7 @@ The core package contains the framework-agnostic idempotency logic. All framewor
 Generates a deterministic fingerprint from the request body. This fingerprint detects when the same idempotency key is used with different payloads.
 
 **Key features:**
+
 - Uses SHA-256 hashing for collision resistance
 - Supports JSONPath expressions for field exclusion
 - Handles non-JSON payloads (plain text, etc.)
@@ -93,6 +71,7 @@ Handles request validation and conflict detection. Functions include idempotency
 Provides resilience against storage backend failures using [opossum](https://nodeshift.dev/opossum/) circuit breaker:
 
 **Features:**
+
 - **Retry logic**: Failed operations retry up to 3 times with configurable delay
 - **Timeout**: Operations timeout after 500ms (configurable) to prevent hanging
 - **Circuit breaker**: Opens after 50% failure rate over 10 requests
@@ -110,6 +89,7 @@ Each framework adapter implements the idempotency middleware pattern for its fra
 ### Hono Adapter (`packages/frameworks/hono/`)
 
 **Key characteristics:**
+
 - Uses Hono's middleware pattern
 - Accesses request via `c.req` context
 - Returns responses via `c.json()` or `c.body()`
@@ -118,6 +98,7 @@ Each framework adapter implements the idempotency middleware pattern for its fra
 ### Express Adapter (`packages/frameworks/express/`)
 
 **Key characteristics:**
+
 - Uses Express middleware pattern (`(req, res, next)`)
 - Accesses request via `req` and `res` objects
 - Handles async handlers properly
@@ -126,6 +107,7 @@ Each framework adapter implements the idempotency middleware pattern for its fra
 ### Fastify Adapter (`packages/frameworks/fastify/`)
 
 **Key characteristics:**
+
 - Uses Fastify's `preHandler` hook
 - Handles both sync and async handlers
 - Properly clones responses for caching
@@ -139,6 +121,7 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 **Best for:** Single-server, local development, lightweight applications
 
 **Implementation:**
+
 - Uses `better-sqlite3` (synchronous, high-performance)
 - Stores records in a single table with indexes on `fingerprint` and `expires_at`
 - JSON-serializes response headers for storage
@@ -150,37 +133,25 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 **Best for:** High-performance, distributed systems, microservices
 
 **Implementation:**
+
 - Uses `ioredis` client
 - Stores two keys per request: one by key, one by fingerprint
 - Uses Redis TTL for automatic expiration
 
 **Persistence considerations:** Configure AOF (Append Only File) for reliability.
 
-### DynamoDB (`packages/stores/dynamodb/`)
-
-**Best for:** AWS serverless, managed services, Lambda functions
-
-**Implementation:**
-- Uses AWS SDK v3
-- Single-table design with GSI for fingerprint lookups
-- Leverages DynamoDB TTL for expiration
-
-**Table schema:**
-- Primary key: `idempotency_key` (String)
-- TTL attribute: `expiration` (Number)
-
-**IAM permissions required:** GetItem, PutItem, UpdateItem, Query
-
 ### PostgreSQL (`packages/stores/postgres/`)
 
 **Best for:** Multi-server deployments, existing Postgres infrastructure
 
 **Implementation:**
+
 - Uses `pg` pool for connection management
 - JSONB column for response headers
 - Indexed queries on key and fingerprint
 
 **Similar schema to SQLite but with:**
+
 - JSONB type for headers (more efficient than TEXT)
 - Connection pooling via `pg.Pool`
 
@@ -189,6 +160,7 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 **Best for:** Cloudflare Workers
 
 **Implementation:**
+
 - Uses Cloudflare Workers KV API
 - Eventual consistency model (read-after-write not guaranteed)
 - Key-value pairs with TTL
@@ -200,6 +172,7 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 **Best for:** Bun runtime applications
 
 **Implementation:**
+
 - Uses Bun's built-in SQLite via `bun:sqlite`
 - Same schema as Node.js SQLite
 - Maximum performance for Bun environment
@@ -228,18 +201,11 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 
 ### Duplicate Request (Same Key, Same Payload)
 
-1-7. Same as above
-8. Core detects byKey exists with same fingerprint
-9. Core extracts cached response
-10. Core adds x-idempotent-replayed: true header
-11. Framework adapter returns cached response without calling handler
+1-7. Same as above 8. Core detects byKey exists with same fingerprint 9. Core extracts cached response 10. Core adds x-idempotent-replayed: true header 11. Framework adapter returns cached response without calling handler
 
 ### Conflict Scenario (Same Key, Different Payload)
 
-1-7. Same as above
-8. Core detects byKey exists with different fingerprint
-9. Core returns 422 Unprocessable Entity with error message
-10. Framework adapter returns error response
+1-7. Same as above 8. Core detects byKey exists with different fingerprint 9. Core returns 422 Unprocessable Entity with error message 10. Framework adapter returns error response
 
 ### Concurrent Request (Same Key, Simultaneous Requests)
 
@@ -263,6 +229,7 @@ The library follows [draft-ietf-httpapi-idempotency-key-header-07](https://datat
 ### Key Length Requirements
 
 Default 16-255 character range provides ~95 bits of entropy, preventing:
+
 - Key exhaustion attacks (short keys)
 - Collision attacks (insufficient entropy)
 
@@ -279,11 +246,11 @@ The circuit breaker pattern provides graceful degradation:
 
 ### Runtime Support Strategy
 
-- **Node.js**: Full support via better-sqlite3, ioredis, AWS SDK, pg
+- **Node.js**: Full support via better-sqlite3, ioredis, pg
 - **Bun**: Native SQLite via `bun:sqlite`, ioredis support
 - **Deno**: Native SQLite via `deno-sqlite`, native Redis support
 - **Cloudflare Workers**: KV storage via Workers API
-- **AWS Lambda**: DynamoDB or Redis via AWS SDK
+- **AWS Lambda**: Planned (DynamoDB or Redis via AWS SDK)
 
 ### Store Interface Design
 
@@ -299,6 +266,7 @@ The `IdempotencyStore` interface is intentionally simple:
 Framework adapters follow middleware patterns where idempotency wraps the handler and can be combined with other middleware like authentication.
 
 The middleware:
+
 1. Checks request method (only POST/PATCH protected)
 2. Validates idempotency key (if present)
 3. Generates fingerprint
