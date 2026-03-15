@@ -37,3 +37,4 @@ dist/
 .worktrees/
 data/
 *.db
+docs/plans/
