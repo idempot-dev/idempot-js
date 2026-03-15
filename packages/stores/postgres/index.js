@@ -22,11 +22,13 @@ const require = createRequire(import.meta.url);
  * @typedef {Object} PostgresIdempotencyStoreOptions
  * @property {string} [connectionString] - PostgreSQL connection string
  * @property {import("pg").PoolConfig} [connection] - Connection pool options (passed to pg.Pool)
+ * @property {string} [schema="public"] - Database schema for the idempotency table
  */
 
 /**
  * @implements {IdempotencyStore}
  */
+
 export class PostgresIdempotencyStore {
   /**
    * @type {import("pg").Pool}
@@ -34,10 +36,17 @@ export class PostgresIdempotencyStore {
   pool;
 
   /**
+   * @type {string}
+   */
+  schema;
+
+  /**
    * @param {PostgresIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
     const { Pool } = require("pg");
+    this.schema = options.schema ?? "public";
+    this.quotedSchemaIdentifier = `"${this.schema.replace(/"/g, '""')}"`;
     this.pool = new Pool(options);
     this.initSchema();
   }
@@ -47,20 +56,28 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<void>}
    */
   async initSchema() {
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS idempotency_records (
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS ${this.quotedSchemaIdentifier}.idempotency_records (
         key TEXT PRIMARY KEY,
         fingerprint TEXT NOT NULL,
         status TEXT NOT NULL CHECK (status IN ('processing', 'complete')),
         response_status INTEGER,
         response_headers TEXT,
         response_body TEXT,
-        expires_at INTEGER NOT NULL
-      );
+        expires_at BIGINT NOT NULL
+      )
+    `;
+    await this.pool.query(
+      `CREATE SCHEMA IF NOT EXISTS ${this.quotedSchemaIdentifier}`
+    );
+    await this.pool.query(createTableSQL);
 
-      CREATE INDEX IF NOT EXISTS idx_fingerprint ON idempotency_records(fingerprint);
-      CREATE INDEX IF NOT EXISTS idx_expires_at ON idempotency_records(expires_at);
-    `);
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_fingerprint ON ${this.quotedSchemaIdentifier}.idempotency_records(fingerprint)`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_expires_at ON ${this.quotedSchemaIdentifier}.idempotency_records(expires_at)`
+    );
   }
 
   /**
@@ -103,16 +120,17 @@ export class PostgresIdempotencyStore {
    */
   async lookup(key, fingerprint) {
     await this.pool.query(
-      "DELETE FROM idempotency_records WHERE expires_at <= $1 LIMIT 10",
+      `DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE expires_at <= $1`,
       [Date.now()]
     );
 
     const [byKeyResult, byFingerprintResult] = await Promise.all([
-      this.pool.query("SELECT * FROM idempotency_records WHERE key = $1", [
-        key
-      ]),
       this.pool.query(
-        "SELECT * FROM idempotency_records WHERE fingerprint = $1",
+        `SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE key = $1`,
+        [key]
+      ),
+      this.pool.query(
+        `SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE fingerprint = $1`,
         [fingerprint]
       )
     ]);
@@ -132,7 +150,7 @@ export class PostgresIdempotencyStore {
    */
   async startProcessing(key, fingerprint, ttlMs) {
     await this.pool.query(
-      `INSERT INTO idempotency_records (key, fingerprint, status, expires_at)
+      `INSERT INTO ${this.quotedSchemaIdentifier}.idempotency_records (key, fingerprint, status, expires_at)
        VALUES ($1, $2, 'processing', $3)`,
       [key, fingerprint, Date.now() + ttlMs]
     );
@@ -146,7 +164,7 @@ export class PostgresIdempotencyStore {
    */
   async complete(key, response) {
     const result = await this.pool.query(
-      `UPDATE idempotency_records
+      `UPDATE ${this.quotedSchemaIdentifier}.idempotency_records
        SET status = 'complete',
            response_status = $1,
            response_headers = $2,

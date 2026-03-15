@@ -42,7 +42,10 @@
     "test:bun:coverage": "bun test tests/runtime/bun/ --coverage",
     "test:deno": "deno test tests/runtime/deno/",
     "test:deno:sqlite": "deno run --allow-write examples/deno-sqlite-app.ts",
-    "test:deno:redis": "deno run --allow-net examples/deno-redis-app.js"
+    "test:deno:redis": "deno run --allow-net examples/deno-redis-app.js",
+    "test:integration": "tap tests/integration/",
+    "test:integration:start": "node tests/integration/shared/setup.js start",
+    "test:integration:stop": "node tests/integration/shared/setup.js stop"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",
@@ -80,6 +83,7 @@
     "pgmock": "^1.0.3",
     "prettier": "^3.8.1",
     "tap": "^21.5.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "ulid": "^3.0.2"
   }
 }
