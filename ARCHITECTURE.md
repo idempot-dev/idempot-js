@@ -2,7 +2,7 @@
 
 ## Overview
 
-`idempot` is a monorepo containing framework-agnostic idempotency middleware with pluggable storage backends. This project uses **pnpm workspaces** for package management. The architecture follows a **layered plugin pattern** where:
+`idempot-js` is a monorepo containing framework-agnostic idempotency middleware with pluggable storage backends. This project uses **pnpm workspaces** for package management. The architecture follows a **layered plugin pattern** where:
 
 - **Core** defines the idempotency logic and store interface
 - **Framework adapters** integrate the middleware into web frameworks
@@ -32,7 +32,7 @@ When creating a git worktree, always run `pnpm install` in the worktree director
 ## Directory Structure
 
 ```
-idempot/
+idempot-js/
 ├── packages/
 │   ├── core/                    # Framework-agnostic idempotency logic
 │   │   ├── src/

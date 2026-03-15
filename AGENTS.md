@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-IETF-compliant idempotency middleware for Hono with pluggable storage backends.
+idempot-js: IETF-compliant idempotency middleware for Hono with pluggable storage backends.
 
 ## Quality Requirements
 
