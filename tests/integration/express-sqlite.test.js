@@ -1,39 +1,29 @@
 import t from "tap";
 import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
-import {
-  createPostgresSchema,
-  dropPostgresSchema,
-  generateTestId
-} from "./shared/setup.js";
+import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
 import { makeRequest } from "./shared/request.js";
-import { createPostgresStore } from "./shared/postgres.js";
 
-function createPostgresExpressApp(store) {
+function createExpressSqliteApp(store) {
   const app = express();
   app.use(express.json());
   app.use(idempotency({ store }));
   app.post("/api", async (req, res) => {
-    await store.pool.query(
-      `INSERT INTO ${store.quotedSchema}.orders (data) VALUES ($1)`,
-      [JSON.stringify(req.body)]
-    );
+    store.db
+      .prepare("INSERT INTO orders (data) VALUES (?)")
+      .run(JSON.stringify(req.body));
     res.json({ success: true, body: req.body });
   });
   return app;
 }
 
 t.beforeEach(async (t) => {
-  const schema = `t${generateTestId()}`;
-  await createPostgresSchema(schema);
-
-  const store = createPostgresStore(schema);
-  const app = createPostgresExpressApp(store);
+  const store = createSqliteStore();
+  const app = createExpressSqliteApp(store);
   const server = app.listen(0);
   await new Promise((resolve) => server.on("listening", resolve));
   const port = server.address().port;
 
-  t.context.schema = schema;
   t.context.store = store;
   t.context.server = server;
   t.context.port = port;
@@ -41,12 +31,12 @@ t.beforeEach(async (t) => {
 
 t.afterEach(async (t) => {
   await t.context.store.close();
-  await dropPostgresSchema(t.context.schema);
   t.context.server.close();
+  await cleanupSqlite();
 });
 
-t.test("Express + Postgres - first request creates record", async (t) => {
-  const { store, port, schema } = t.context;
+t.test("Express + SQLite - first request creates record", async (t) => {
+  const { store, port } = t.context;
 
   const response = await makeRequest(port, {
     idempotencyKey: "test-key-12345678901234567890",
@@ -60,27 +50,22 @@ t.test("Express + Postgres - first request creates record", async (t) => {
     "should return correct body"
   );
 
-  const records = await store.pool.query(
-    `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-    ["test-key-12345678901234567890"]
-  );
+  const records = store.db
+    .prepare("SELECT * FROM idempotency_records WHERE key = ?")
+    .all("test-key-12345678901234567890");
 
-  t.equal(records.rows.length, 1, "should have one idempotency record");
-  t.equal(
-    records.rows[0].key,
-    "test-key-12345678901234567890",
-    "key should match"
-  );
-  t.equal(records.rows[0].status, "complete", "status should be complete");
+  t.equal(records.length, 1, "should have one idempotency record");
+  t.equal(records[0].key, "test-key-12345678901234567890", "key should match");
+  t.equal(records[0].status, "complete", "status should be complete");
 
-  const orders = await store.pool.query(`SELECT * FROM ${schema}.orders`);
-  t.equal(orders.rows.length, 1, "should have one order created");
+  const orders = store.db.prepare("SELECT * FROM orders").all();
+  t.equal(orders.length, 1, "should have one order created");
 });
 
 t.test(
-  "Express + Postgres - duplicate request returns cached response and does not create duplicate records",
+  "Express + SQLite - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
-    const { store, port, schema } = t.context;
+    const { store, port } = t.context;
 
     const response1 = await makeRequest(port, {
       idempotencyKey: "test-key-dupe-123456789012345",
@@ -99,20 +84,19 @@ t.test(
       "duplicate should have replay header"
     );
 
-    const idempotencyRecords = await store.pool.query(
-      `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-      ["test-key-dupe-123456789012345"]
-    );
+    const idempotencyRecords = store.db
+      .prepare("SELECT * FROM idempotency_records WHERE key = ?")
+      .all("test-key-dupe-123456789012345");
 
     t.equal(
-      idempotencyRecords.rows.length,
+      idempotencyRecords.length,
       1,
       "should still have one idempotency record"
     );
 
-    const orders = await store.pool.query(`SELECT * FROM ${schema}.orders`);
+    const orders = store.db.prepare("SELECT * FROM orders").all();
     t.equal(
-      orders.rows.length,
+      orders.length,
       1,
       "should only have ONE order - duplicate request did not create another"
     );
@@ -120,9 +104,9 @@ t.test(
 );
 
 t.test(
-  "Express + Postgres - conflict with same fingerprint different key",
+  "Express + SQLite - conflict with same fingerprint different key",
   async (t) => {
-    const { store, port, schema } = t.context;
+    const { store, port } = t.context;
 
     await makeRequest(port, {
       idempotencyKey: "test-key-conflict-a-123456789",
@@ -135,9 +119,9 @@ t.test(
 
     t.equal(response2.status, 409, "should return 409 conflict");
 
-    const orders = await store.pool.query(`SELECT * FROM ${schema}.orders`);
+    const orders = store.db.prepare("SELECT * FROM orders").all();
     t.equal(
-      orders.rows.length,
+      orders.length,
       1,
       "should only have one order despite two different idempotency keys (same fingerprint)"
     );

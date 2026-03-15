@@ -13,7 +13,7 @@ export function postgresOptions(schema) {
 
 export function createPostgresStore(schema) {
   const store = new PostgresIdempotencyStore(postgresOptions(schema));
-  const quotedSchema = store.quotedSchema;
+  const quotedSchema = store.quotedSchemaIdentifier;
   store.pool.query(`
     CREATE TABLE IF NOT EXISTS ${quotedSchema}.orders (
       id SERIAL PRIMARY KEY,

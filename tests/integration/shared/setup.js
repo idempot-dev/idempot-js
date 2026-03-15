@@ -12,7 +12,7 @@ const REDIS_PORT = 6379;
 export async function startServices() {
   console.log("Starting local Postgres...");
   try {
-    execSync("brew services start postgresql@16", { stdio: "inherit" });
+    execSync("brew services start postgresql@14", { stdio: "inherit" });
   } catch {
     // might already be running
   }
@@ -32,7 +32,7 @@ export async function startServices() {
 export async function stopServices() {
   console.log("Stopping services...");
   try {
-    execSync("brew services stop postgresql@16", { stdio: "inherit" });
+    execSync("brew services stop postgresql@14", { stdio: "inherit" });
   } catch {}
   try {
     execSync("brew services stop redis", { stdio: "inherit" });
