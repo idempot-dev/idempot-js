@@ -506,9 +506,9 @@ export function idempotency(options = {}) {
 
       const response = await resolve(event);
 
-      // Guard against body already being consumed (e.g., streaming responses)
-      // If body is already used, we can't cache it but still return the response
-      if (!response.bodyUsed) {
+      // Attempt to clone and cache the response
+      // Note: This may fail for streaming responses where body is already consumed
+      try {
         const clonedResponse = response.clone();
         const responseData = {
           status: response.status,
@@ -521,9 +521,10 @@ export function idempotency(options = {}) {
         } catch (err) {
           console.error("Failed to cache response:", err);
         }
+      } catch (err) {
+        // Streaming responses may have already consumed the body - we can't cache these
+        console.error("Failed to clone response for caching:", err);
       }
-
-      return response;
     }
 
     return await resolve(event);
