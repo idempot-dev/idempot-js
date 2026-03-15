@@ -31,7 +31,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "test": "tap tests/"
+    "test": "tap fastify-middleware.test.js"
   },
   "peerDependencies": {
     "fastify": ">=4.0.0"

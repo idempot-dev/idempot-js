@@ -59,8 +59,8 @@ test("framework packages structure exists", async (t) => {
       `packages/frameworks/${framework}/index.js exists`
     );
     t.ok(
-      existsSync(join(frameworkDir, "tests")),
-      `packages/frameworks/${framework}/tests directory exists`
+      existsSync(join(frameworkDir, `${framework}-middleware.test.js`)),
+      `packages/frameworks/${framework}/${framework}-middleware.test.js exists`
     );
   }
 });
