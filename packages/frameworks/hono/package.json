@@ -31,7 +31,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "test": "tap tests/"
+    "test": "tap hono-middleware.test.js"
   },
   "peerDependencies": {
     "hono": ">=4.0.0"

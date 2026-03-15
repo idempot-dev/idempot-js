@@ -31,7 +31,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "test": "tap tests/"
+    "test": "tap express-middleware.test.js"
   },
   "peerDependencies": {
     "express": ">=4.0.0"
