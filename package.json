@@ -1,5 +1,5 @@
 {
-  "name": "idempot",
+  "name": "idempot-js",
   "version": "0.1.0",
   "description": "IETF-compliant idempotency middleware for Hono, Express, and Fastify with pluggable storage backends",
   "private": true,
@@ -17,7 +17,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mroderick/idempot"
+    "url": "https://github.com/idempot-dev/idempot-js"
   },
   "license": "MIT",
   "scripts": {
