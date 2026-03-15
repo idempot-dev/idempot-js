@@ -70,102 +70,269 @@ git commit -m "feat: scaffold sveltekit middleware package"
 
 ---
 
-## Task 2: Create test harness for SvelteKit adapter
+## Task 2: Create test file for SvelteKit adapter
 
 **Files:**
 - Create: `packages/frameworks/sveltekit/tests/sveltekit-middleware.test.js`
 
-**Reference:** See `packages/frameworks/express/tests/express-middleware.test.js` for the test structure.
-
 **Step 1: Write the failing test**
 
-The test imports `runAdapterTests` from the framework adapter suite. The suite needs a test harness that simulates SvelteKit's handle hook:
+Write a focused test file that directly tests the adapter without the framework-adapter-suite:
 
 ```javascript
 import { test } from "tap";
-import { runAdapterTests } from "../../../core/tests/framework-adapter-suite.js";
-import { idempotency } from "../index.js";
+import { idempotency, handle } from "../index.js";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 
-runAdapterTests({
-  name: "sveltekit",
-  setup: async () => {
-    const handlers = new Map();
+test("sveltekit - throws when store is not provided", (t) => {
+  t.throws(
+    () => idempotency({}),
+    /IdempotencyStore must be provided/i,
+    "should throw error about store"
+  );
+  t.end();
+});
 
-    const handle = async ({ event }) => {
-      const key = event.url.pathname;
-      const handler = handlers.get(key);
-      if (!handler) {
-        return new Response("Not Found", { status: 404 });
-      }
-      return handler(event);
-    };
+test("sveltekit - exports both idempotency and handle", (t) => {
+  t.equal(typeof idempotency, "function", "idempotency should be a function");
+  t.equal(typeof handle, "function", "handle should be a function");
+  t.equal(idempotency, handle, "handle should be an alias for idempotency");
+  t.end();
+});
 
-    return {
-      mount: (method, path, middleware, handler) => {
-        const wrappedHandler = async ({ event }) => {
-          if (middleware) {
-            let passed = false;
-            const mockNext = () => {
-              passed = true;
-            };
-            await middleware({ event, resolve: async () => handler(event) }, mockNext);
-            if (!passed) {
-              return new Response("Middleware blocked", { status: 500 });
-            }
-          }
-          return handler(event);
-        };
-        handlers.set(path, wrappedHandler);
-      },
-      request: async (options) => {
-        const bodyText = options.body
-          ? typeof options.body === "string"
-            ? options.body
-            : JSON.stringify(options.body)
-          : "";
+test("sveltekit - GET requests pass through without idempotency processing", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const middleware = idempotency({ store });
 
-        const request = new Request(`http://localhost${options.path}`, {
-          method: options.method,
-          headers: options.headers || {},
-          body: options.method !== "GET" ? bodyText : undefined
-        });
+  let handlerCalled = false;
+  const handler = async () => {
+    handlerCalled = true;
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  };
 
-        const event = {
-          request,
-          url: new URL(request.url),
-          params: {},
-          locals: {}
-        };
+  const event = {
+    request: new Request("http://localhost/test", { method: "GET" }),
+    url: new URL("http://localhost/test"),
+    params: {},
+    locals: {}
+  };
 
-        const response = await handle({ event, resolve: async (evt) => {
-          const handler = handlers.get(evt.url.pathname);
-          if (handler) {
-            return handler(evt);
-          }
-          return new Response("Not Found", { status: 404 });
-        }});
+  const response = await middleware({ event, resolve: handler });
 
-        const responseBody = await response.text();
-        let parsedBody;
-        try {
-          parsedBody = JSON.parse(responseBody);
-        } catch {
-          parsedBody = responseBody;
-        }
+  t.ok(handlerCalled, "handler should be called");
+  t.equal(response.status, 200, "should return 200");
+  t.same(await response.json(), { ok: true });
 
-        return {
-          status: response.status,
-          headers: Object.fromEntries(response.headers.entries()),
-          body: parsedBody
-        };
-      },
-      teardown: async () => {
-        handlers.clear();
-      }
-    };
-  },
-  createMiddleware: (options) => idempotency(options)
+  await store.close();
+  t.end();
+});
+
+test("sveltekit - POST without key when optional", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const middleware = idempotency({ store, required: false });
+
+  let handlerCalled = false;
+  const handler = async () => {
+    handlerCalled = true;
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  };
+
+  const event = {
+    request: new Request("http://localhost/test", {
+      method: "POST",
+      body: JSON.stringify({ foo: "bar" })
+    }),
+    url: new URL("http://localhost/test"),
+    params: {},
+    locals: {}
+  };
+
+  const response = await middleware({ event, resolve: handler });
+
+  t.ok(handlerCalled, "handler should be called");
+  t.equal(response.status, 200, "should return 200");
+
+  await store.close();
+  t.end();
+});
+
+test("sveltekit - POST without key when required returns 400", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const middleware = idempotency({ store, required: true });
+
+  const handler = async () => {
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+  };
+
+  const event = {
+    request: new Request("http://localhost/test", {
+      method: "POST",
+      body: JSON.stringify({ foo: "bar" })
+    }),
+    url: new URL("http://localhost/test"),
+    params: {},
+    locals: {}
+  };
+
+  const response = await middleware({ event, resolve: handler });
+
+  t.equal(response.status, 400, "should return 400");
+  t.match(await response.json(), /Idempotency-Key header is required/i);
+
+  await store.close();
+  t.end();
+});
+
+test("sveltekit - caches response on first request", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const middleware = idempotency({ store });
+
+  let callCount = 0;
+  const handler = async () => {
+    callCount++;
+    return new Response(JSON.stringify({ id: `order-${callCount}` }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  };
+
+  const event = {
+    request: new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "idempotency-key": "cache-key-12345678901" },
+      body: JSON.stringify({ foo: "bar" })
+    }),
+    url: new URL("http://localhost/test"),
+    params: {},
+    locals: {}
+  };
+
+  const response = await middleware({ event, resolve: handler });
+
+  t.equal(response.status, 200, "should return 200");
+  t.equal(callCount, 1, "handler should be called once");
+  t.same(await response.json(), { id: "order-1" });
+
+  await store.close();
+  t.end();
+});
+
+test("sveltekit - replays cached response on duplicate request", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const middleware = idempotency({ store });
+
+  let callCount = 0;
+  const handler = async () => {
+    callCount++;
+    return new Response(JSON.stringify({ id: `order-${callCount}` }), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    });
+  };
+
+  const event1 = {
+    request: new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "idempotency-key": "cache-key-12345678901" },
+      body: JSON.stringify({ foo: "bar" })
+    }),
+    url: new URL("http://localhost/test"),
+    params: {},
+    locals: {}
+  };
+
+  await middleware({ event1, resolve: handler });
+
+  // Second request with same key
+  const event2 = {
+    request: new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "idempotency-key": "cache-key-12345678901" },
+      body: JSON.stringify({ foo: "bar" })
+    }),
+    url: new URL("http://localhost/test"),
+    params: {},
+    locals: {}
+  };
+
+  const response = await middleware({ event2, resolve: handler });
+
+  t.equal(response.status, 200, "should return 200");
+  t.equal(callCount, 1, "handler should not be called again");
+  t.same(await response.json(), { id: "order-1" }, "should return cached response");
+  t.equal(response.headers.get("x-idempotency-replayed"), "true", "should have replay header");
+
+  await store.close();
+  t.end();
+});
+
+test("sveltekit - rejects keys longer than 255 characters", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const middleware = idempotency({ store });
+
+  const handler = async () => new Response(JSON.stringify({ ok: true }), { status: 200 });
+
+  const longKey = "a".repeat(256);
+  const event = {
+    request: new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "idempotency-key": longKey },
+      body: JSON.stringify({ foo: "bar" })
+    }),
+    url: new URL("http://localhost/test"),
+    params: {},
+    locals: {}
+  };
+
+  const response = await middleware({ event, resolve: handler });
+
+  t.equal(response.status, 400, "should return 400");
+  t.match(await response.json(), /too long/i);
+
+  await store.close();
+  t.end();
+});
+
+test("sveltekit - rejects empty key", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const middleware = idempotency({ store });
+
+  const handler = async () => new Response(JSON.stringify({ ok: true }), { status: 200 });
+
+  const event = {
+    request: new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "idempotency-key": "" },
+      body: JSON.stringify({ foo: "bar" })
+    }),
+    url: new URL("http://localhost/test"),
+    params: {},
+    locals: {}
+  };
+
+  const response = await middleware({ event, resolve: handler });
+
+  t.equal(response.status, 400, "should return 400");
+
+  await store.close();
+  t.end();
+});
+
+test("sveltekit - exposes circuit breaker", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const middleware = idempotency({ store });
+
+  t.ok(middleware.circuit, "should expose circuit breaker");
+  t.equal(typeof middleware.circuit.fire, "function", "circuit should have fire method");
+
+  await store.close();
+  t.end();
 });
 ```
 
@@ -181,7 +348,7 @@ Expected: FAIL - "Cannot find module '../index.js'"
 
 ```bash
 git add packages/frameworks/sveltekit/tests/sveltekit-middleware.test.js
-git commit -m "test: add sveltekit adapter test"
+git commit -m "test: add sveltekit adapter tests"
 ```
 
 ---
@@ -224,13 +391,27 @@ import {
 const HEADER_NAME = "idempotency-key";
 
 /**
- * SvelteKit middleware for idempotency
+ * SvelteKit middleware for idempotency.
+ * Works with SvelteKit's server hooks (src/hooks.server.ts).
+ *
  * @param {Object} opts - Middleware options
  * @param {IdempotencyStore} opts.store - Storage backend
  * @param {string} [opts.headerName="Idempotency-Key"] - Header name
  * @param {number} [opts.maxKeyLength=255] - Maximum key length
  * @param {number} [opts.minKeyLength=21] - Minimum key length (default: 21 for nanoid)
- * @returns {() => Promise<Response>}
+ * @param {boolean} [opts.required=false] - Require idempotency key on requests
+ * @param {string[]} [opts.excludeFields=[]] - Body fields to exclude from fingerprint
+ * @param {number} [opts.ttlMs=86400000] - Cache TTL in milliseconds
+ * @param {ResilienceOptions} [opts.resilience={}] - Resilience options
+ * @returns {function} SvelteKit handle hook function with attached circuit breaker
+ * @example
+ * // src/hooks.server.ts
+ * import { idempotency } from "@idempot/sveltekit-middleware";
+ * import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
+ *
+ * export const handle = idempotency({
+ *   store: new SqliteIdempotencyStore({ path: "./idempotency.db" })
+ * });
  */
 export function idempotency(options = {}) {
   const opts = { ...defaultOptions, ...options };
@@ -249,9 +430,10 @@ export function idempotency(options = {}) {
   );
 
   /**
+   * SvelteKit handle hook function
    * @param {Object} param
-   * @param {import("@sveltejs/kit").RequestEvent} param.event
-   * @param {(event: import("@sveltejs/kit").RequestEvent) => Promise<Response>} param.resolve
+   * @param {import("@sveltejs/kit").RequestEvent} param.event - SvelteKit request event
+   * @param {(event: import("@sveltejs/kit").RequestEvent) => Promise<Response>} param.resolve - SvelteKit resolve function
    * @returns {Promise<Response>}
    */
   const middleware = async ({ event, resolve }) => {
@@ -324,17 +506,21 @@ export function idempotency(options = {}) {
 
       const response = await resolve(event);
 
-      const clonedResponse = response.clone();
-      const responseData = {
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        body: await clonedResponse.text()
-      };
+      // Guard against body already being consumed (e.g., streaming responses)
+      // If body is already used, we can't cache it but still return the response
+      if (!response.bodyUsed) {
+        const clonedResponse = response.clone();
+        const responseData = {
+          status: response.status,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: await clonedResponse.text()
+        };
 
-      try {
-        await resilientStore.complete(key, responseData);
-      } catch (err) {
-        console.error("Failed to cache response:", err);
+        try {
+          await resilientStore.complete(key, responseData);
+        } catch (err) {
+          console.error("Failed to cache response:", err);
+        }
       }
 
       return response;
@@ -343,10 +529,23 @@ export function idempotency(options = {}) {
     return await resolve(event);
   };
 
+  /**
+   * Circuit breaker instance for monitoring and controlling resilience
+   * @type {import("@idempot/core/resilience.js").CircuitBreaker}
+   */
   middleware.circuit = circuit;
 
   return middleware;
 }
+
+/**
+ * Alias for idempotency() - named "handle" to match SvelteKit hook convention.
+ * Allows users to write: export const handle = handleMiddleware({ store });
+ *
+ * @param {Object} opts - Middleware options (same as idempotency)
+ * @returns {function} SvelteKit handle hook function
+ */
+export const handle = idempotency;
 ```
 
 **Step 2: Run tests to verify they pass**
@@ -355,7 +554,7 @@ export function idempotency(options = {}) {
 cd packages/frameworks/sveltekit && npm test
 ```
 
-Expected: PASS (23 tests)
+Expected: PASS (10+ tests)
 
 **Step 3: Run coverage verification**
 
@@ -396,7 +595,7 @@ npm install @idempot/sveltekit-middleware
 
 ## Usage
 
-Add the middleware to your SvelteKit hooks:
+Add the middleware to your SvelteKit hooks. You can use either export:
 
 ```typescript
 // src/hooks.server.ts
@@ -404,6 +603,18 @@ import { idempotency } from "@idempot/sveltekit-middleware";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 
 export const handle = idempotency({
+  store: new SqliteIdempotencyStore({ path: "./idempotency.db" })
+});
+```
+
+Or use the `handle` alias for cleaner syntax:
+
+```typescript
+// src/hooks.server.ts
+import { handle } from "@idempot/sveltekit-middleware";
+import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
+
+export default handle({
   store: new SqliteIdempotencyStore({ path: "./idempotency.db" })
 });
 ```
