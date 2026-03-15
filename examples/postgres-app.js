@@ -1,20 +1,15 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import pg from "pg";
 import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { PostgresIdempotencyStore } from "../packages/stores/postgres/src/index.js";
 
 const app = new Hono();
 
-// Configure PostgreSQL pool
-const pool = new pg.Pool({
+// Create store - pool is created automatically
+const store = new PostgresIdempotencyStore({
   connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : false
 });
-
-const store = new PostgresIdempotencyStore({ pool });
-await store.init();
 
 // Basic usage with PostgreSQL persistence
 app.post("/orders", idempotency({ store }), async (c) => {
@@ -87,6 +82,6 @@ serve(
 // Graceful shutdown
 process.on("SIGINT", () => {
   console.log("\nShutting down...");
-  pool.end();
+  store.close();
   process.exit(0);
 });

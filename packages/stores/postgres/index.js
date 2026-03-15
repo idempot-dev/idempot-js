@@ -1,4 +1,6 @@
-/** @typedef {import("pg").Pool} Pool */
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 /**
  * @typedef {Object} IdempotencyRecord
@@ -18,7 +20,8 @@
 
 /**
  * @typedef {Object} PostgresIdempotencyStoreOptions
- * @property {Pool} pool - Postgres pool instance
+ * @property {string} [connectionString] - PostgreSQL connection string
+ * @property {import("pg").PoolConfig} [connection] - Connection pool options (passed to pg.Pool)
  */
 
 /**
@@ -26,22 +29,24 @@
  */
 export class PostgresIdempotencyStore {
   /**
-   * @type {Pool}
+   * @type {import("pg").Pool}
    */
   pool;
 
   /**
-   * @param {PostgresIdempotencyStoreOptions} options
+   * @param {PostgresIdempotencyStoreOptions} [options]
    */
-  constructor(options) {
-    this.pool = options.pool;
+  constructor(options = {}) {
+    const { Pool } = require("pg");
+    this.pool = new Pool(options);
+    this.initSchema();
   }
 
   /**
    * Initialize the database schema
    * @returns {Promise<void>}
    */
-  async init() {
+  async initSchema() {
     await this.pool.query(`
       CREATE TABLE IF NOT EXISTS idempotency_records (
         key TEXT PRIMARY KEY,
