@@ -60,7 +60,9 @@ const createInMemoryMockPool = () => {
       }
 
       if (sql.includes("SELECT") && sql.includes("WHERE fingerprint")) {
-        const row = Object.values(records).find(r => r.fingerprint === params[0]);
+        const row = Object.values(records).find(
+          (r) => r.fingerprint === params[0]
+        );
         return { rows: row ? [row] : [], rowCount: row ? 1 : 0 };
       }
 
@@ -81,7 +83,11 @@ require.cache[pgPath] = {
   id: pgPath,
   filename: pgPath,
   loaded: true,
-  exports: { Pool: function() { return mockPool; } }
+  exports: {
+    Pool: function () {
+      return mockPool;
+    }
+  }
 };
 
 const { PostgresIdempotencyStore } = await import("@idempot/postgres-store");
@@ -91,14 +97,68 @@ runStoreTests({
   createStore: () => new PostgresIdempotencyStore()
 });
 
+test("PostgresIdempotencyStore - parseRecord handles null response_headers", async (t) => {
+  const records = {};
+
+  const mockPool = {
+    query: async (sql, params) => {
+      if (sql.includes("CREATE TABLE")) return { rows: [], rowCount: 0 };
+      if (sql.includes("SELECT") && sql.includes("WHERE key")) {
+        const row = records[params[0]];
+        return { rows: row ? [row] : [], rowCount: row ? 1 : 0 };
+      }
+      return { rows: [], rowCount: 0 };
+    },
+    end: async () => {}
+  };
+
+  const testPath = require.resolve("pg");
+  require.cache[testPath] = {
+    id: testPath,
+    filename: testPath,
+    loaded: true,
+    exports: {
+      Pool: function () {
+        return mockPool;
+      }
+    }
+  };
+
+  const { PostgresIdempotencyStore: Store2 } =
+    await import("@idempot/postgres-store");
+  const store = new Store2();
+
+  records["test-key"] = {
+    key: "test-key",
+    fingerprint: "test-fp",
+    status: "complete",
+    response_status: 200,
+    response_headers: null,
+    response_body: "test"
+  };
+
+  const result = await store.lookup("test-key", "test-fp");
+  t.ok(result.byKey.response, "response should exist");
+  t.same(
+    result.byKey.response.headers,
+    {},
+    "headers should default to empty object"
+  );
+
+  await store.close();
+  t.end();
+});
+
 test("PostgresIdempotencyStore - close ends pool", async (t) => {
   let ended = false;
-  
+
   class TestPool {
     query = async () => ({ rows: [], rowCount: 0 });
-    end = async () => { ended = true; };
+    end = async () => {
+      ended = true;
+    };
   }
-  
+
   const testPath = require.resolve("pg");
   require.cache[testPath] = {
     id: testPath,
@@ -106,11 +166,11 @@ test("PostgresIdempotencyStore - close ends pool", async (t) => {
     loaded: true,
     exports: { Pool: TestPool }
   };
-  
-  const { PostgresIdempotencyStore: Store2 } = await import("@idempot/postgres-store");
+
+  const { PostgresIdempotencyStore: Store2 } =
+    await import("@idempot/postgres-store");
   const store = new Store2();
   await store.close();
-  
   t.ok(ended, "pool should be ended");
   t.end();
 });
