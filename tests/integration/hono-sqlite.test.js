@@ -2,6 +2,7 @@ import t from "tap";
 import { Hono } from "hono";
 import { idempotency } from "../../packages/frameworks/hono/index.js";
 import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
+import { makeRequest } from "./shared/request.js";
 
 function createHonoSqliteApp(store) {
   const app = new Hono();
@@ -16,38 +17,14 @@ function createHonoSqliteApp(store) {
   return app;
 }
 
-async function makeHonoRequest(app, options) {
-  const url = new URL("http://localhost/api");
-  const headers = {
-    "idempotency-key": options.idempotencyKey,
-    "content-type": "application/json"
-  };
-
-  const res = await app.request(url.toString(), {
-    method: "POST",
-    headers,
-    body: JSON.stringify(options.body)
-  });
-
-  const contentType = res.headers.get("content-type") || "";
-  let body;
-  if (contentType.includes("json")) {
-    body = await res.json();
-  }
-
-  return {
-    status: res.status,
-    headers: Object.fromEntries(res.headers.entries()),
-    body
-  };
-}
-
 t.beforeEach(async (t) => {
   const store = createSqliteStore();
   const app = createHonoSqliteApp(store);
 
+  const server = app.fetch;
+
   t.context.store = store;
-  t.context.app = app;
+  t.context.server = server;
 });
 
 t.afterEach(async (t) => {
@@ -56,16 +33,23 @@ t.afterEach(async (t) => {
 });
 
 t.test("Hono + SQLite - first request creates record", async (t) => {
-  const { store, app } = t.context;
+  const { store, server } = t.context;
 
-  const response = await makeHonoRequest(app, {
-    idempotencyKey: "test-key-12345678901234567890",
-    body: { foo: "bar" }
+  const mockReq = new Request("http://localhost/api", {
+    method: "POST",
+    headers: {
+      "idempotency-key": "test-key-12345678901234567890",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ foo: "bar" })
   });
+
+  const response = await server(mockReq);
+  const body = await response.json();
 
   t.equal(response.status, 200, "should return 200");
   t.same(
-    response.body,
+    body,
     { success: true, body: { foo: "bar" } },
     "should return correct body"
   );
@@ -85,21 +69,33 @@ t.test("Hono + SQLite - first request creates record", async (t) => {
 t.test(
   "Hono + SQLite - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
-    const { store, app } = t.context;
+    const { store, server } = t.context;
 
-    const response1 = await makeHonoRequest(app, {
-      idempotencyKey: "test-key-dupe-123456789012345",
-      body: { foo: "bar" }
+    const mockReq1 = new Request("http://localhost/api", {
+      method: "POST",
+      headers: {
+        "idempotency-key": "test-key-dupe-123456789012345",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ foo: "bar" })
     });
-    const response2 = await makeHonoRequest(app, {
-      idempotencyKey: "test-key-dupe-123456789012345",
-      body: { foo: "bar" }
+
+    const mockReq2 = new Request("http://localhost/api", {
+      method: "POST",
+      headers: {
+        "idempotency-key": "test-key-dupe-123456789012345",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ foo: "bar" })
     });
+
+    const response1 = await server(mockReq1);
+    const response2 = await server(mockReq2);
 
     t.equal(response1.status, 200, "first request should return 200");
     t.equal(response2.status, 200, "duplicate request should return 200");
     t.equal(
-      response2.headers["x-idempotent-replayed"],
+      response2.headers.get("x-idempotent-replayed"),
       "true",
       "duplicate should have replay header"
     );
@@ -126,16 +122,28 @@ t.test(
 t.test(
   "Hono + SQLite - conflict with same fingerprint different key",
   async (t) => {
-    const { store, app } = t.context;
+    const { store, server } = t.context;
 
-    await makeHonoRequest(app, {
-      idempotencyKey: "test-key-conflict-a-123456789",
-      body: { foo: "bar" }
+    const mockReq1 = new Request("http://localhost/api", {
+      method: "POST",
+      headers: {
+        "idempotency-key": "test-key-conflict-a-123456789",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ foo: "bar" })
     });
-    const response2 = await makeHonoRequest(app, {
-      idempotencyKey: "test-key-conflict-b-123456789",
-      body: { foo: "bar" }
+
+    const mockReq2 = new Request("http://localhost/api", {
+      method: "POST",
+      headers: {
+        "idempotency-key": "test-key-conflict-b-123456789",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ foo: "bar" })
     });
+
+    await server(mockReq1);
+    const response2 = await server(mockReq2);
 
     t.equal(response2.status, 409, "should return 409 conflict");
 
