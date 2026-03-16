@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test";
 
 describe("Bun Example Apps", () => {
   test("bun-basic-app exports valid server config", async () => {
-    const module = await import("../../examples/bun-basic-app.js");
+    const module = await import("../../../examples/bun-basic-app.js");
 
     expect(module.default).toBeDefined();
     expect(module.default.port).toBe(3000);
@@ -11,13 +11,13 @@ describe("Bun Example Apps", () => {
   });
 
   test("bun-basic-app responds to POST /orders", async () => {
-    const module = await import("../../examples/bun-basic-app.js");
+    const module = await import("../../../examples/bun-basic-app.js");
 
     const request = new Request("http://localhost:3000/orders", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "idempotency-key": "test-key-123"
+        "idempotency-key": "test-key-123-abcde-fgh"
       },
       body: JSON.stringify({ item: "widget", quantity: 5 })
     });
@@ -33,14 +33,14 @@ describe("Bun Example Apps", () => {
   });
 
   test("bun-basic-app returns cached response for duplicate request", async () => {
-    const module = await import("../../examples/bun-basic-app.js");
+    const module = await import("../../../examples/bun-basic-app.js");
 
     const makeRequest = () =>
       new Request("http://localhost:3000/orders", {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "idempotency-key": "duplicate-test-key"
+          "idempotency-key": "duplicate-test-key-xy"
         },
         body: JSON.stringify({ item: "gadget", quantity: 3 })
       });
@@ -57,7 +57,7 @@ describe("Bun Example Apps", () => {
   });
 
   test("bun-sqlite-app exports valid server config", async () => {
-    const module = await import("../../examples/bun-sqlite-app.js");
+    const module = await import("../../../examples/bun-sqlite-app.js");
 
     expect(module.default).toBeDefined();
     expect(module.default.port).toBe(3000);
@@ -66,13 +66,13 @@ describe("Bun Example Apps", () => {
   });
 
   test("bun-sqlite-app responds to POST /orders", async () => {
-    const module = await import("../../examples/bun-sqlite-app.js");
+    const module = await import("../../../examples/bun-sqlite-app.js");
 
     const request = new Request("http://localhost:3000/orders", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "idempotency-key": "sqlite-test-key"
+        "idempotency-key": "sqlite-test-key-abcd-e"
       },
       body: JSON.stringify({ item: "tool", quantity: 2 })
     });

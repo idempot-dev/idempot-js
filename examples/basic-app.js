@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { idempotency } from "../packages/frameworks/hono/src/index.js";
-import { SqliteIdempotencyStore } from "../packages/stores/sqlite/src/index.js";
+import { idempotency } from "../packages/frameworks/hono/index.js";
+import { SqliteIdempotencyStore } from "../packages/stores/sqlite/index.js";
 import { ulid } from "ulid";
 
 const app = new Hono();

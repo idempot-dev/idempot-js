@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { BunSqliteIdempotencyStore } from "../../src/store/bun-sqlite.js";
+import { BunSqliteIdempotencyStore } from "../../../packages/stores/bun-sqlite/index.js";
 
 describe("BunSqliteIdempotencyStore", () => {
   let store;

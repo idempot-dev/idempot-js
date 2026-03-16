@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { ulid } from "https://esm.sh/ulid@3";
-import { idempotency } from "../packages/frameworks/hono/src/index.js";
-import { DenoRedisIdempotencyStore } from "../packages/stores/redis/src/deno-redis.js";
+import { idempotency } from "../packages/frameworks/hono/index.js";
+import { DenoRedisIdempotencyStore } from "../packages/stores/redis/index.js";
 
 const app = new Hono();
 

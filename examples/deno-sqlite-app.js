@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { ulid } from "https://esm.sh/ulid@3";
-import { idempotency } from "../packages/frameworks/hono/src/index.js";
-import { DenoSqliteIdempotencyStore } from "../packages/stores/sqlite/src/deno-sqlite.js";
+import { idempotency } from "../packages/frameworks/hono/index.js";
+import { DenoSqliteIdempotencyStore } from "../packages/stores/sqlite/index.js";
 
 const app = new Hono();
 
