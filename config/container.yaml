@@ -1,0 +1,29 @@
+schema-version: 1
+name: idempot-js-dev
+containers:
+  - name: redis
+    image: arm64v8/redis:7-alpine
+    ports:
+      - host: 6379
+        container: 6379
+    volumes:
+      - host: redis-data
+        container: /data
+    cmd: [redis-server, --appendonly, yes]
+
+  - name: postgres
+    image: postgres:16-alpine
+    # Note: postgres:16-alpine automatically selects arm64 on Apple Silicon
+    ports:
+      - host: 5432
+        container: 5432
+    volumes:
+      - host: postgres-data
+        container: /var/lib/postgresql/data
+    env:
+      - key: POSTGRES_USER
+        value: idempot
+      - key: POSTGRES_PASSWORD
+        value: idempot
+      - key: POSTGRES_DB
+        value: test
