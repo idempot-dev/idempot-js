@@ -45,7 +45,12 @@
     "test:deno:redis": "deno run --allow-net examples/deno-redis-app.js",
     "test:integration": "tap tests/integration/",
     "test:integration:start": "node tests/integration/shared/setup.js start",
-    "test:integration:stop": "node tests/integration/shared/setup.js stop"
+    "test:integration:stop": "node tests/integration/shared/setup.js stop",
+    "test:container:start": "./scripts/container.sh start",
+    "test:container:stop": "./scripts/container.sh stop",
+    "test:container:restart": "./scripts/container.sh restart",
+    "test:container:status": "./scripts/container.sh status",
+    "test:container:logs": "./scripts/container.sh logs"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",
