@@ -2,23 +2,42 @@
 set -e
 
 CONTAINER_NAME="idempot-js-dev"
-CONFIG_PATH="$(dirname "$0")/../config/container.yaml"
+REDIS_CONTAINER="${CONTAINER_NAME}-redis"
+POSTGRES_CONTAINER="${CONTAINER_NAME}-postgres"
 
 command -v container >/dev/null 2>&1 || { echo "Error: apple/container not installed. See https://github.com/apple/container"; exit 1; }
 
 start() {
-    # Check if container already exists and remove it
-    if container info "$CONTAINER_NAME" >/dev/null 2>&1; then
-        echo "Removing existing $CONTAINER_NAME..."
-        container stop "$CONTAINER_NAME" 2>/dev/null || true
-        container delete "$CONTAINER_NAME" 2>/dev/null || true
+    # Check if containers already exist and remove them
+    if container inspect "$REDIS_CONTAINER" >/dev/null 2>&1; then
+        echo "Removing existing Redis container..."
+        container stop "$REDIS_CONTAINER" 2>/dev/null || true
+        container delete "$REDIS_CONTAINER" 2>/dev/null || true
+    fi
+    
+    if container inspect "$POSTGRES_CONTAINER" >/dev/null 2>&1; then
+        echo "Removing existing Postgres container..."
+        container stop "$POSTGRES_CONTAINER" 2>/dev/null || true
+        container delete "$POSTGRES_CONTAINER" 2>/dev/null || true
     fi
 
-    echo "Creating and starting $CONTAINER_NAME..."
-    container create --config "$CONFIG_PATH" --name "$CONTAINER_NAME"
-    container start "$CONTAINER_NAME"
+    echo "Starting Redis..."
+    container run -d \
+        --name "$REDIS_CONTAINER" \
+        -p 6379:6379 \
+        arm64v8/redis:7-alpine \
+        redis-server --appendonly yes
 
-    # Wait for Redis using host port (faster than exec into container)
+    echo "Starting Postgres..."
+    container run -d \
+        --name "$POSTGRES_CONTAINER" \
+        -p 5432:5432 \
+        -e POSTGRES_USER=idempot \
+        -e POSTGRES_PASSWORD=idempot \
+        -e POSTGRES_DB=test \
+        postgres:16-alpine
+
+    # Wait for Redis using host port
     echo "Waiting for Redis on port 6379..."
     for i in {1..30}; do
         if nc -z 127.0.0.1 6379 2>/dev/null; then
@@ -27,7 +46,7 @@ start() {
         fi
         if [ $i -eq 30 ]; then
             echo "ERROR: Redis failed to start"
-            container logs "$CONTAINER_NAME"
+            container logs "$REDIS_CONTAINER"
             exit 1
         fi
         sleep 1
@@ -42,33 +61,36 @@ start() {
         fi
         if [ $i -eq 30 ]; then
             echo "ERROR: Postgres failed to start"
-            container logs "$CONTAINER_NAME"
+            container logs "$POSTGRES_CONTAINER"
             exit 1
         fi
         sleep 1
     done
 
-    echo "$CONTAINER_NAME is running"
+    echo "$CONTAINER_NAME is running (Redis on 6379, Postgres on 5432)"
 }
 
 stop() {
     echo "Stopping $CONTAINER_NAME..."
-    container stop "$CONTAINER_NAME" 2>/dev/null || true
-    container delete "$CONTAINER_NAME" 2>/dev/null || true
+    container stop "$REDIS_CONTAINER" 2>/dev/null || true
+    container stop "$POSTGRES_CONTAINER" 2>/dev/null || true
+    container delete "$REDIS_CONTAINER" 2>/dev/null || true
+    container delete "$POSTGRES_CONTAINER" 2>/dev/null || true
     echo "$CONTAINER_NAME is stopped"
 }
 
 status() {
-    if container info "$CONTAINER_NAME" >/dev/null 2>&1; then
-        echo "$CONTAINER_NAME is running"
-        container info "$CONTAINER_NAME"
-    else
-        echo "$CONTAINER_NAME is not running"
-    fi
+    echo "Container status:"
+    container inspect "$REDIS_CONTAINER" 2>/dev/null && echo "Redis: running" || echo "Redis: not running"
+    container inspect "$POSTGRES_CONTAINER" 2>/dev/null && echo "Postgres: running" || echo "Postgres: not running"
 }
 
 logs() {
-    container logs "$CONTAINER_NAME"
+    echo "=== Redis logs ==="
+    container logs "$REDIS_CONTAINER" 2>/dev/null || echo "Redis container not found"
+    echo ""
+    echo "=== Postgres logs ==="
+    container logs "$POSTGRES_CONTAINER" 2>/dev/null || echo "Postgres container not found"
 }
 
 restart() {

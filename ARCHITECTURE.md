@@ -335,6 +335,38 @@ runAdapterTests({
 - Deno-specific tests run with Deno
 - AWS Lambda and Cloudflare Workers tests planned
 
+### Local Development
+
+For local development, integration tests run against Redis and Postgres containers managed by [apple/container](https://github.com/apple/container).
+
+**Container Configuration:**
+
+- Container name: `idempot-js-dev`
+- Redis: `arm64v8/redis:7-alpine` on port 6379
+- Postgres: `postgres:16-alpine` on port 5432
+- Database: `test` with user `idempot` / password `idempot`
+
+**npm Scripts:**
+
+| Script | Description |
+|--------|-------------|
+| `test:container:start` | Start Redis and Postgres containers |
+| `test:container:stop` | Stop and remove containers |
+| `test:container:restart` | Restart containers |
+| `test:integration` | Run integration tests |
+
+**Usage:**
+
+```bash
+# Start containers, run tests, stop containers
+npm run test:container:start && npm run test:integration && npm run test:container:stop
+
+# Just start containers for manual testing
+npm run test:container:start
+```
+
+The containers use arm64 architecture (native to Apple Silicon) to avoid Rosetta translation overhead.
+
 ## Extensibility
 
 ### Adding a New Storage Backend
