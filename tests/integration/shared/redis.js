@@ -2,25 +2,28 @@ import Redis from "ioredis";
 import { ulid } from "ulid";
 import { RedisIdempotencyStore } from "../../../packages/stores/redis/index.js";
 
-const testPrefix = `test-${ulid()}`;
-
-let sharedClient = null;
-
 export async function createRedisStore() {
-  if (!sharedClient) {
-    sharedClient = new Redis({
-      host: "127.0.0.1",
-      port: 6379,
-      lazyConnect: true,
-      keyPrefix: `${testPrefix}:`
-    });
-    await sharedClient.connect();
-  }
-  return new RedisIdempotencyStore({ client: sharedClient });
+  const prefix = `test${ulid()}`;
+  const client = new Redis({
+    host: "127.0.0.1",
+    port: 6379,
+    keyPrefix: `${prefix}:`
+  });
+  return {
+    store: new RedisIdempotencyStore({ client }),
+    client,
+    prefix
+  };
 }
 
-export async function cleanupRedis() {
-  if (sharedClient) {
-    await sharedClient.flushdb();
+export async function cleanupRedis(client) {
+  if (client) {
+    await client.flushdb();
+  }
+}
+
+export async function closeRedis(client) {
+  if (client) {
+    await client.quit();
   }
 }
