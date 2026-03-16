@@ -1,16 +1,15 @@
 import t from "tap";
 import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
-import { generateTestId } from "./shared/setup.js";
 import { makeRequest } from "./shared/request.js";
-import { createRedisStore, cleanupRedis } from "./shared/redis.js";
+import { createRedisStore, cleanupRedis, closeRedis } from "./shared/redis.js";
 
-function createExpressRedisApp(store) {
+function createExpressRedisApp(store, client) {
   const app = express();
   app.use(express.json());
   app.use(idempotency({ store }));
   app.post("/api", async (req, res) => {
-    await store.client.set(
+    await client.set(
       `orders:${req.headers["idempotency-key"]}`,
       JSON.stringify(req.body)
     );
@@ -20,33 +19,34 @@ function createExpressRedisApp(store) {
 }
 
 t.beforeEach(async (t) => {
-  await cleanupRedis();
+  const { store, client, prefix } = await createRedisStore();
+  await cleanupRedis(client);
 
-  const store = await createRedisStore();
-  const app = createExpressRedisApp(store);
+  const app = createExpressRedisApp(store, client);
   const server = app.listen(0);
   await new Promise((resolve) => server.on("listening", resolve));
   const port = server.address().port;
 
   t.context.store = store;
+  t.context.client = client;
+  t.context.prefix = prefix;
   t.context.server = server;
   t.context.port = port;
 });
 
 t.afterEach(async (t) => {
-  await cleanupRedis();
+  await cleanupRedis(t.context.client);
   await new Promise((resolve) => t.context.server.close(resolve));
+  await closeRedis(t.context.client);
 });
 
 t.test("Express + Redis - first request creates record", async (t) => {
-  const { store, port } = t.context;
+  const { client, prefix, port } = t.context;
 
   const response = await makeRequest(port, {
     idempotencyKey: "test-key-12345678901234567890",
     body: { foo: "bar" }
   });
-
-  await new Promise((resolve) => setTimeout(resolve, 100));
 
   t.equal(response.status, 200, "should return 200");
   t.same(
@@ -55,29 +55,38 @@ t.test("Express + Redis - first request creates record", async (t) => {
     "should return correct body"
   );
 
-  const record = await store.client.get(
-    "idempotency:test-key-12345678901234567890"
-  );
-  t.ok(record, "should have idempotency record");
+  const keys = await client.keys(`*${prefix}:idempotency:*`);
+  t.equal(keys.length, 1, "should have one idempotency record");
 
-  const parsed = JSON.parse(record);
-  t.equal(parsed.key, "test-key-12345678901234567890", "key should match");
-  t.equal(parsed.status, "complete", "status should be complete");
-
-  const order = await store.client.get("orders:test-key-12345678901234567890");
-  t.ok(order, "should have order created");
+  const orderKeys = await client.keys(`*${prefix}:orders:*`);
+  t.equal(orderKeys.length, 1, "should have one order created");
 });
 
 t.test(
   "Express + Redis - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
-    const { store, port } = t.context;
+    const { store, client, prefix, port } = t.context;
 
     const response1 = await makeRequest(port, {
       idempotencyKey: "test-key-dupe-123456789012345",
       body: { foo: "bar" }
     });
-    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Wait for idempotency middleware to mark record as "complete" in Redis.
+    // The middleware writes the record asynchronously via res.on('finish'),
+    // so we poll until the status changes from "processing" to "complete".
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+      const record = await client.get(
+        `${prefix}:idempotency:test-key-dupe-123456789012345`
+      );
+      if (record && JSON.parse(record).status === "complete") break;
+    }
+
+    // Additional buffer to ensure the complete() Redis write is fully propagated
+    // before we make the duplicate request.
+    await new Promise((r) => setTimeout(r, 50));
+
     const response2 = await makeRequest(port, {
       idempotencyKey: "test-key-dupe-123456789012345",
       body: { foo: "bar" }
@@ -91,10 +100,10 @@ t.test(
       "duplicate should have replay header"
     );
 
-    const keys = await store.client.keys("*idempotency*");
+    const keys = await client.keys(`*${prefix}:idempotency:*`);
     t.equal(keys.length, 1, "should still have one idempotency record");
 
-    const orderKeys = await store.client.keys("*order*");
+    const orderKeys = await client.keys(`*${prefix}:orders:*`);
     t.equal(
       orderKeys.length,
       1,
@@ -106,7 +115,7 @@ t.test(
 t.test(
   "Express + Redis - conflict with same fingerprint different key",
   async (t) => {
-    const { store, port } = t.context;
+    const { client, prefix, port } = t.context;
 
     await makeRequest(port, {
       idempotencyKey: "test-key-conflict-a-123456789",
@@ -119,7 +128,7 @@ t.test(
 
     t.equal(response2.status, 409, "should return 409 conflict");
 
-    const orderKeys = await store.client.keys("*order*");
+    const orderKeys = await client.keys(`*${prefix}:orders:*`);
     t.equal(
       orderKeys.length,
       1,

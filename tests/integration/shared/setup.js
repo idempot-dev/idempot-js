@@ -25,6 +25,8 @@ export async function startServices() {
   }
 
   console.log("Waiting for services...");
+  // Wait for services to fully start. The brew services start command
+  // returns before the service is actually ready to accept connections.
   await new Promise((resolve) => setTimeout(resolve, 1000));
   console.log("Services ready!");
 }
