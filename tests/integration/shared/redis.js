@@ -18,7 +18,10 @@ export async function createRedisStore() {
 
 export async function cleanupRedis(client) {
   if (client) {
-    await client.flushdb();
+    const keys = await client.keys("*");
+    if (keys.length > 0) {
+      await client.del(...keys);
+    }
   }
 }
 
