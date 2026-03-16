@@ -1,4 +1,5 @@
 files:
+  - "tests/integration/*.test.js"
   - "tests/integration/**/*.test.js"
   - "tests/monorepo/**/*.test.js"
   - "packages/*/tests/**/*.test.js"
@@ -7,3 +8,5 @@ files:
 
 exclude:
   - "node_modules/**"
+  - "**/shared/*.js"
+  - "tests/integration/shared/"
