@@ -348,12 +348,12 @@ For local development, integration tests run against Redis and Postgres containe
 
 **npm Scripts:**
 
-| Script | Description |
-|--------|-------------|
-| `test:container:start` | Start Redis and Postgres containers |
-| `test:container:stop` | Stop and remove containers |
-| `test:container:restart` | Restart containers |
-| `test:integration` | Run integration tests |
+| Script                   | Description                         |
+| ------------------------ | ----------------------------------- |
+| `test:container:start`   | Start Redis and Postgres containers |
+| `test:container:stop`    | Stop and remove containers          |
+| `test:container:restart` | Restart containers                  |
+| `test:integration`       | Run integration tests               |
 
 **Usage:**
 
