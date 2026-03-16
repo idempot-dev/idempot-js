@@ -5,7 +5,8 @@ import { idempotency } from "../../packages/frameworks/hono/index.js";
 import {
   createPostgresSchema,
   dropPostgresSchema,
-  generateTestId
+  generateTestId,
+  generateIdempotencyKey
 } from "./shared/setup.js";
 import { makeRequest } from "./shared/request.js";
 import { createPostgresStore } from "./shared/postgres.js";
@@ -53,9 +54,10 @@ t.afterEach(async (t) => {
 
 t.test("Hono + Postgres - first request creates record", async (t) => {
   const { store, port, schema } = t.context;
+  const key = generateIdempotencyKey();
 
   const response = await makeRequest(port, {
-    idempotencyKey: "test-key-12345678901234567890",
+    idempotencyKey: key,
     body: { foo: "bar" }
   });
 
@@ -68,15 +70,11 @@ t.test("Hono + Postgres - first request creates record", async (t) => {
 
   const records = await store.pool.query(
     `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-    ["test-key-12345678901234567890"]
+    [key]
   );
 
   t.equal(records.rows.length, 1, "should have one idempotency record");
-  t.equal(
-    records.rows[0].key,
-    "test-key-12345678901234567890",
-    "key should match"
-  );
+  t.equal(records.rows[0].key, key, "key should match");
   t.equal(records.rows[0].status, "complete", "status should be complete");
 
   const orders = await store.pool.query(`SELECT * FROM ${schema}.orders`);
@@ -87,13 +85,14 @@ t.test(
   "Hono + Postgres - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
     const { store, port, schema } = t.context;
+    const key = generateIdempotencyKey();
 
     const response1 = await makeRequest(port, {
-      idempotencyKey: "test-key-dupe-123456789012345",
+      idempotencyKey: key,
       body: { foo: "bar" }
     });
     const response2 = await makeRequest(port, {
-      idempotencyKey: "test-key-dupe-123456789012345",
+      idempotencyKey: key,
       body: { foo: "bar" }
     });
 
@@ -107,7 +106,7 @@ t.test(
 
     const idempotencyRecords = await store.pool.query(
       `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-      ["test-key-dupe-123456789012345"]
+      [key]
     );
 
     t.equal(
@@ -129,13 +128,15 @@ t.test(
   "Hono + Postgres - conflict with same fingerprint different key",
   async (t) => {
     const { store, port, schema } = t.context;
+    const key1 = generateIdempotencyKey();
+    const key2 = generateIdempotencyKey();
 
     await makeRequest(port, {
-      idempotencyKey: "test-key-conflict-a-123456789",
+      idempotencyKey: key1,
       body: { foo: "bar" }
     });
     const response2 = await makeRequest(port, {
-      idempotencyKey: "test-key-conflict-b-123456789",
+      idempotencyKey: key2,
       body: { foo: "bar" }
     });
 

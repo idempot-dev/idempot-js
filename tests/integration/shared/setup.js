@@ -103,6 +103,10 @@ export function generateTestId() {
   return "t" + ulid().toLowerCase();
 }
 
+export function generateIdempotencyKey() {
+  return "key" + ulid().toLowerCase();
+}
+
 const command = process.argv[2];
 if (command === "start") {
   startServices()
