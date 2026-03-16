@@ -1,5 +1,9 @@
 files:
+  - "tests/integration/**/*.test.js"
   - "tests/monorepo/**/*.test.js"
   - "packages/*/tests/**/*.test.js"
   - "packages/frameworks/*/tests/**/*.test.js"
   - "packages/stores/*/tests/**/*.test.js"
+
+exclude:
+  - "node_modules/**"
