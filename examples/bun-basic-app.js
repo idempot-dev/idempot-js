@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { BunSqliteIdempotencyStore } from "../packages/stores/bun-sqlite/src/index.js";
+import { ulid } from "ulid";
 
 const app = new Hono();
 const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
@@ -9,7 +10,7 @@ const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
 app.post("/orders", idempotency({ store }), async (c) => {
   // Simulate order creation
   const body = await c.req.json();
-  const orderId = Math.random().toString(36).substring(7);
+  const orderId = ulid();
 
   console.log(`Creating order: ${orderId}`);
 
@@ -26,7 +27,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 // Required idempotency-key
 app.post("/payments", idempotency({ store }), async (c) => {
   const body = await c.req.json();
-  const paymentId = Math.random().toString(36).substring(7);
+  const paymentId = ulid();
 
   console.log(`Processing payment: ${paymentId}`);
 
@@ -49,7 +50,7 @@ app.post(
   }),
   async (c) => {
     const body = await c.req.json();
-    const eventId = Math.random().toString(36).substring(7);
+    const eventId = ulid();
 
     console.log(`Recording event: ${eventId}`);
 

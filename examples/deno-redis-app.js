@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { ulid } from "https://esm.sh/ulid@3";
 import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { DenoRedisIdempotencyStore } from "../packages/stores/redis/src/deno-redis.js";
 
@@ -16,7 +17,7 @@ app.use(
 
 app.post("/posts", async (c) => {
   const body = await c.req.json();
-  return c.json({ id: crypto.randomUUID(), ...body });
+  return c.json({ id: ulid(), ...body });
 });
 
 console.log("Server running at http://localhost:8000");

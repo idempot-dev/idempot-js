@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { SqliteIdempotencyStore } from "../packages/stores/sqlite/src/index.js";
+import { ulid } from "ulid";
 
 const app = new Hono();
 const store = new SqliteIdempotencyStore({ path: "./examples/idempotency.db" });
@@ -9,7 +10,7 @@ const store = new SqliteIdempotencyStore({ path: "./examples/idempotency.db" });
 // Basic usage with SQLite persistence
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();
-  const orderId = Math.random().toString(36).substring(7);
+  const orderId = ulid();
 
   console.log(`Creating order: ${orderId}`);
 

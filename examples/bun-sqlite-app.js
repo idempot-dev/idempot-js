@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { BunSqliteIdempotencyStore } from "../packages/stores/bun-sqlite/src/index.js";
+import { ulid } from "ulid";
 
 const app = new Hono();
 const store = new BunSqliteIdempotencyStore({
@@ -10,7 +11,7 @@ const store = new BunSqliteIdempotencyStore({
 // Basic usage with SQLite persistence
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();
-  const orderId = Math.random().toString(36).substring(7);
+  const orderId = ulid();
 
   console.log(`Creating order: ${orderId}`);
 

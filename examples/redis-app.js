@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import Redis from "ioredis";
 import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { RedisIdempotencyStore } from "../packages/stores/redis/src/index.js";
+import { ulid } from "ulid";
 
 const app = new Hono();
 
@@ -22,7 +23,7 @@ const store = new RedisIdempotencyStore({ client: redis });
 // Basic usage with Redis persistence
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();
-  const orderId = Math.random().toString(36).substring(7);
+  const orderId = ulid();
 
   console.log(`Creating order: ${orderId}`);
 
@@ -39,7 +40,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 // Endpoint requiring idempotency key
 app.post("/payments", idempotency({ store }), async (c) => {
   const body = await c.req.json();
-  const paymentId = Math.random().toString(36).substring(7);
+  const paymentId = ulid();
 
   console.log(`Processing payment: ${paymentId}`);
 

@@ -2,19 +2,21 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/src/index.js";
 import { PostgresIdempotencyStore } from "../packages/stores/postgres/src/index.js";
+import { ulid } from "ulid";
 
 const app = new Hono();
 
 // Create store - pool is created automatically
 const store = new PostgresIdempotencyStore({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : false
+  ssl:
+    process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : false
 });
 
 // Basic usage with PostgreSQL persistence
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();
-  const orderId = Math.random().toString(36).substring(7);
+  const orderId = ulid();
 
   console.log(`Creating order: ${orderId}`);
 
@@ -31,7 +33,7 @@ app.post("/orders", idempotency({ store }), async (c) => {
 // Endpoint requiring idempotency key
 app.post("/payments", idempotency({ store }), async (c) => {
   const body = await c.req.json();
-  const paymentId = Math.random().toString(36).substring(7);
+  const paymentId = ulid();
 
   console.log(`Processing payment: ${paymentId}`);
 
