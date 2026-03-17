@@ -19,6 +19,8 @@
 /**
  * @typedef {Object} RedisIdempotencyStoreOptions
  * @property {Redis} client - The Redis client instance
+ * @property {string} [prefix] - Key prefix (default: "idempotency:")
+ * @property {boolean} [testMode] - Use in-memory store instead of Redis
  */
 
 /**
@@ -31,10 +33,27 @@ export class RedisIdempotencyStore {
   client;
 
   /**
+   * @type {string}
+   */
+  prefix;
+
+  /**
+   * @type {boolean}
+   */
+  testMode;
+
+  /**
+   * @type {Map<string, IdempotencyRecord | string>}
+   */
+  #testStore = new Map();
+
+  /**
    * @param {RedisIdempotencyStoreOptions} options
    */
   constructor(options) {
     this.client = options.client;
+    this.prefix = options.prefix ?? "idempotency:";
+    this.testMode = options.testMode ?? false;
   }
 
   /**
@@ -44,9 +63,23 @@ export class RedisIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
+    if (this.testMode) {
+      /** @type {IdempotencyRecord | null} */
+      const byKey = /** @type {IdempotencyRecord | null} */ (
+        this.#testStore.get(key) ?? null
+      );
+      /** @type {string | undefined} */
+      const fpKey = this.#testStore.get(`fingerprint:${fingerprint}`);
+      /** @type {IdempotencyRecord | null} */
+      const byFingerprint = fpKey
+        ? /** @type {IdempotencyRecord} */ (this.#testStore.get(fpKey))
+        : null;
+      return { byKey, byFingerprint };
+    }
+
     // Pipeline for parallel execution
     const pipeline = this.client.pipeline();
-    pipeline.get(`idempotency:${key}`);
+    pipeline.get(`${this.prefix}${key}`);
     pipeline.get(`fingerprint:${fingerprint}`);
     const results = await pipeline.exec();
 
@@ -65,7 +98,7 @@ export class RedisIdempotencyStore {
     // If fingerprint found, fetch that record
     let byFingerprint = null;
     if (fpKeyJson) {
-      const recordJson = await this.client.get(`idempotency:${fpKeyJson}`);
+      const recordJson = await this.client.get(`${this.prefix}${fpKeyJson}`);
       byFingerprint = recordJson ? JSON.parse(recordJson) : null;
     }
 
@@ -80,6 +113,19 @@ export class RedisIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
+    if (this.testMode) {
+      /** @type {IdempotencyRecord} */
+      const record = {
+        key,
+        fingerprint,
+        status: "processing",
+        expiresAt: Date.now() + ttlMs
+      };
+      this.#testStore.set(key, record);
+      this.#testStore.set(`fingerprint:${fingerprint}`, key);
+      return;
+    }
+
     const record = {
       key,
       fingerprint,
@@ -91,7 +137,7 @@ export class RedisIdempotencyStore {
 
     // Pipeline both writes
     const pipeline = this.client.pipeline();
-    pipeline.setex(`idempotency:${key}`, ttlSeconds, JSON.stringify(record));
+    pipeline.setex(`${this.prefix}${key}`, ttlSeconds, JSON.stringify(record));
     pipeline.setex(`fingerprint:${fingerprint}`, ttlSeconds, key);
     await pipeline.exec();
   }
@@ -104,8 +150,23 @@ export class RedisIdempotencyStore {
    * @throws {Error} If no record found for key
    */
   async complete(key, response) {
+    if (this.testMode) {
+      const existing = this.#testStore.get(key);
+      if (!existing || typeof existing === "string") {
+        throw new Error(`No record found for key: ${key}`);
+      }
+      /** @type {IdempotencyRecord} */
+      const record = {
+        ...existing,
+        status: "complete",
+        response
+      };
+      this.#testStore.set(key, record);
+      return;
+    }
+
     // Fetch existing record
-    const existingJson = await this.client.get(`idempotency:${key}`);
+    const existingJson = await this.client.get(`${this.prefix}${key}`);
     if (!existingJson) {
       throw new Error(`No record found for key: ${key}`);
     }
@@ -115,10 +176,10 @@ export class RedisIdempotencyStore {
     record.response = response;
 
     // Get remaining TTL and re-set with updated record
-    const ttl = await this.client.ttl(`idempotency:${key}`);
+    const ttl = await this.client.ttl(`${this.prefix}${key}`);
     if (ttl > 0) {
       await this.client.setex(
-        `idempotency:${key}`,
+        `${this.prefix}${key}`,
         ttl,
         JSON.stringify(record)
       );

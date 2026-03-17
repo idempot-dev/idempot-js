@@ -20,7 +20,11 @@ test("RedisIdempotencyStore - lookup handles deleted fingerprint record", async 
   const result = await store.lookup("key-2", "fp-1");
 
   t.equal(result.byKey, null, "byKey should be null");
-  t.equal(result.byFingerprint, null, "byFingerprint should be null when record deleted");
+  t.equal(
+    result.byFingerprint,
+    null,
+    "byFingerprint should be null when record deleted"
+  );
   t.end();
 });
 
@@ -87,5 +91,117 @@ test("RedisIdempotencyStore - complete throws when TTL is expired", async (t) =>
   } catch (err) {
     t.match(err.message, /expired/i, "should throw error for expired record");
   }
+  t.end();
+});
+
+test("RedisIdempotencyStore - testMode lookup returns null for empty store", async (t) => {
+  const store = new RedisIdempotencyStore({ testMode: true });
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey, null, "byKey should be null");
+  t.equal(result.byFingerprint, null, "byFingerprint should be null");
+  t.end();
+});
+
+test("RedisIdempotencyStore - testMode lookup finds record by key", async (t) => {
+  const store = new RedisIdempotencyStore({ testMode: true });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey?.key, "key-1", "should find by key");
+  t.equal(result.byKey?.status, "processing", "status should be processing");
+  t.end();
+});
+
+test("RedisIdempotencyStore - testMode lookup finds record by fingerprint", async (t) => {
+  const store = new RedisIdempotencyStore({ testMode: true });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  const result = await store.lookup("key-2", "fp-1");
+
+  t.equal(result.byFingerprint?.key, "key-1", "should find by fingerprint");
+  t.equal(
+    result.byFingerprint?.fingerprint,
+    "fp-1",
+    "fingerprint should match"
+  );
+  t.end();
+});
+
+test("RedisIdempotencyStore - testMode startProcessing creates record", async (t) => {
+  const store = new RedisIdempotencyStore({ testMode: true });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey?.status, "processing", "status should be processing");
+  t.equal(result.byKey?.fingerprint, "fp-1", "fingerprint should be stored");
+  t.end();
+});
+
+test("RedisIdempotencyStore - testMode complete updates record", async (t) => {
+  const store = new RedisIdempotencyStore({ testMode: true });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  await store.complete("key-1", {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+    body: '{"success":true}'
+  });
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey?.status, "complete", "status should be complete");
+  t.equal(result.byKey?.response?.status, 200, "response status should match");
+  t.same(
+    result.byKey?.response?.headers,
+    { "Content-Type": "application/json" },
+    "headers should match"
+  );
+  t.equal(
+    result.byKey?.response?.body,
+    '{"success":true}',
+    "body should match"
+  );
+  t.end();
+});
+
+test("RedisIdempotencyStore - testMode complete throws on missing key", async (t) => {
+  const store = new RedisIdempotencyStore({ testMode: true });
+
+  try {
+    await store.complete("nonexistent", {
+      status: 200,
+      headers: {},
+      body: "test"
+    });
+    t.fail("should have thrown");
+  } catch (err) {
+    t.match(
+      err.message,
+      /No record found/i,
+      "should throw error for missing key"
+    );
+  }
+  t.end();
+});
+
+test("RedisIdempotencyStore - testMode with custom prefix", async (t) => {
+  const store = new RedisIdempotencyStore({
+    testMode: true,
+    prefix: "custom:"
+  });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey?.key, "key-1", "should find by key with custom prefix");
   t.end();
 });
