@@ -7,16 +7,37 @@ POSTGRES_CONTAINER="${CONTAINER_NAME}-postgres"
 
 command -v container >/dev/null 2>&1 || { echo "Error: apple/container not installed. See https://github.com/apple/container"; exit 1; }
 
+container_exists() {
+    local output
+    output=$(container inspect "$1" 2>/dev/null)
+    [ -n "$output" ] && [ "$output" != "[]" ]
+}
+
 start() {
-    # Check if containers already exist and remove them
-    if container inspect "$REDIS_CONTAINER" >/dev/null 2>&1; then
-        echo "Removing existing Redis container..."
+    # Check if containers are already running
+    REDIS_RUNNING=false
+    POSTGRES_RUNNING=false
+    
+    if container_exists "$REDIS_CONTAINER"; then
+        REDIS_RUNNING=true
+    fi
+    
+    if container_exists "$POSTGRES_CONTAINER"; then
+        POSTGRES_RUNNING=true
+    fi
+    
+    if [ "$REDIS_RUNNING" = true ] && [ "$POSTGRES_RUNNING" = true ]; then
+        echo "$CONTAINER_NAME is already running (Redis on 6379, Postgres on 5432)"
+        exit 0
+    fi
+    
+    # Remove any existing containers before starting fresh
+    if [ "$REDIS_RUNNING" = false ]; then
         container stop "$REDIS_CONTAINER" 2>/dev/null || true
         container delete "$REDIS_CONTAINER" 2>/dev/null || true
     fi
     
-    if container inspect "$POSTGRES_CONTAINER" >/dev/null 2>&1; then
-        echo "Removing existing Postgres container..."
+    if [ "$POSTGRES_RUNNING" = false ]; then
         container stop "$POSTGRES_CONTAINER" 2>/dev/null || true
         container delete "$POSTGRES_CONTAINER" 2>/dev/null || true
     fi
@@ -81,8 +102,8 @@ stop() {
 
 status() {
     echo "Container status:"
-    container inspect "$REDIS_CONTAINER" 2>/dev/null && echo "Redis: running" || echo "Redis: not running"
-    container inspect "$POSTGRES_CONTAINER" 2>/dev/null && echo "Postgres: running" || echo "Postgres: not running"
+    container_exists "$REDIS_CONTAINER" && echo "Redis: running" || echo "Redis: not running"
+    container_exists "$POSTGRES_CONTAINER" && echo "Postgres: running" || echo "Postgres: not running"
 }
 
 logs() {

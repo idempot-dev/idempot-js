@@ -44,7 +44,7 @@
     "test:deno": "deno test tests/runtime/deno/",
     "test:deno:sqlite": "deno run --allow-write examples/deno-sqlite-app.ts",
     "test:deno:redis": "deno run --allow-net examples/deno-redis-app.js",
-    "test:integration": "tap tests/integration/",
+    "test:integration": "node tests/integration/shared/prereqs.js && tap tests/integration/",
     "test:integration:start": "node tests/integration/shared/setup.js start",
     "test:integration:stop": "node tests/integration/shared/setup.js stop",
     "test:container:start": "./scripts/container.sh start",
