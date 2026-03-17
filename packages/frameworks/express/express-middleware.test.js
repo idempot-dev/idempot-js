@@ -1,8 +1,8 @@
 import { test } from "tap";
 import express from "express";
 import http from "http";
-import { runAdapterTests } from "../../../core/tests/framework-adapter-suite.js";
-import { idempotency } from "../index.js";
+import { runAdapterTests } from "../../core/tests/framework-adapter-suite.js";
+import { idempotency } from "./index.js";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 
 // Run shared adapter test suite

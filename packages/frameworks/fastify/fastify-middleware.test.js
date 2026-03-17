@@ -1,7 +1,7 @@
 import { test } from "tap";
 import Fastify from "fastify";
-import { runAdapterTests } from "../../../core/tests/framework-adapter-suite.js";
-import { idempotency } from "../index.js";
+import { runAdapterTests } from "../../core/tests/framework-adapter-suite.js";
+import { idempotency } from "./index.js";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 
 // Run shared adapter test suite
