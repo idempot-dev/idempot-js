@@ -1,9 +1,6 @@
 // @ts-nocheck - Deno runtime only
 import { connect } from "@db/redis";
 
-/** @typedef {import("./interface.js").IdempotencyStore} IdempotencyStore */
-/** @typedef {import("./interface.js").IdempotencyRecord} IdempotencyRecord */
-
 /**
  * @typedef {Object} DenoRedisIdempotencyStoreOptions
  * @property {string} [hostname] - Redis hostname
@@ -12,9 +9,6 @@ import { connect } from "@db/redis";
  * @property {boolean} [testMode] - Use in-memory store instead of Redis
  */
 
-/**
- * @implements {IdempotencyStore}
- */
 export class DenoRedisIdempotencyStore {
   /** @type {any} */
   redis = null;

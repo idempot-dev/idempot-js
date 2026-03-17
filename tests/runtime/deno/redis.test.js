@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { DenoRedisIdempotencyStore } from "../../src/store/deno-redis.js";
+import { DenoRedisIdempotencyStore } from "../../../packages/stores/redis/deno-redis.js";
 
 Deno.test(
   "DenoRedisIdempotencyStore can start and complete processing",

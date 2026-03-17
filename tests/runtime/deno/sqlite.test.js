@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { DenoSqliteIdempotencyStore } from "../../src/store/deno-sqlite.js";
+import { DenoSqliteIdempotencyStore } from "../../../packages/stores/sqlite/deno-sqlite.js";
 
 Deno.test(
   "DenoSqliteIdempotencyStore can start and complete processing",

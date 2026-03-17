@@ -1,12 +1,6 @@
 // @ts-nocheck - Deno runtime only
 import { DB as Database } from "sqlite";
 
-/** @typedef {import("./interface.js").IdempotencyStore} IdempotencyStore */
-/** @typedef {import("./interface.js").IdempotencyRecord} IdempotencyRecord */
-
-/**
- * @implements {IdempotencyStore}
- */
 export class DenoSqliteIdempotencyStore {
   /** @type {Database} */
   db;
