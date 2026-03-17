@@ -21,8 +21,7 @@ npm run build
 
 ## Spec Compliance
 
-This library implements the IETF Idempotency-Key Header specification:
-https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07
+This library implements the [IETF Idempotency-Key Header draft specification](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07).
 
 A local copy is available in `SPEC.md`.
 

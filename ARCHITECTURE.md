@@ -216,7 +216,7 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 
 ## Key Design Decisions
 
-### IETF Compliance
+### IETF Draft Compliance
 
 The library follows [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07):
 

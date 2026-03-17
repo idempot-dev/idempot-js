@@ -49,7 +49,7 @@ This library adds **request fingerprinting** to detect conflicts when the same i
 
 ## Features
 
-- IETF-compliant with [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07)
+- Implements the IETF draft [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07) specification
 - Request fingerprinting for conflict detection
 - Built-in resilience: retries, timeouts, circuit breaker
 - Modular packages reduce install time and dependencies

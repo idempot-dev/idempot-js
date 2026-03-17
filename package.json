@@ -1,7 +1,7 @@
 {
   "name": "idempot-js",
   "version": "0.1.0",
-  "description": "IETF-compliant idempotency middleware for Hono, Express, and Fastify with pluggable storage backends",
+  "description": "Idempotency middleware for Hono, Express, and Fastify with pluggable storage backends",
   "private": true,
   "type": "module",
   "keywords": [
@@ -13,7 +13,8 @@
     "idempotent",
     "ietf",
     "retry",
-    "duplicate-detection"
+    "duplicate-detection",
+    "draft-ietf-httpapi-idempotency-key-header-07"
   ],
   "repository": {
     "type": "git",
