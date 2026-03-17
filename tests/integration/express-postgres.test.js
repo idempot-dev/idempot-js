@@ -8,7 +8,10 @@ import {
   generateIdempotencyKey
 } from "./shared/setup.js";
 import { makeRequest } from "./shared/request.js";
-import { createPostgresStore } from "./shared/postgres.js";
+import {
+  createPostgresStore,
+  waitForIdempotencyRecordComplete
+} from "./shared/postgres.js";
 
 function createExpressPostgresApp(store) {
   const app = express();
@@ -62,6 +65,8 @@ t.test("Express + Postgres - first request creates record", async (t) => {
     "should return correct body"
   );
 
+  await waitForIdempotencyRecordComplete(store, schema, key);
+
   const records = await store.pool.query(
     `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
     [key]
@@ -85,6 +90,9 @@ t.test(
       idempotencyKey: key,
       body: { foo: "bar" }
     });
+
+    await waitForIdempotencyRecordComplete(store, schema, key);
+
     const response2 = await makeRequest(port, {
       idempotencyKey: key,
       body: { foo: "bar" }

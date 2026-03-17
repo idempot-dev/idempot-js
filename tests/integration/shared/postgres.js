@@ -23,3 +23,20 @@ export function createPostgresStore(schema) {
   `);
   return store;
 }
+
+export async function waitForIdempotencyRecordComplete(
+  store,
+  schema,
+  key,
+  maxAttempts = 20,
+  intervalMs = 20
+) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    const records = await store.pool.query(
+      `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
+      [key]
+    );
+    if (records.rows[0]?.status === "complete") return;
+  }
+}
