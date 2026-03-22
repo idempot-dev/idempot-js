@@ -116,3 +116,20 @@ test("withResilience - circuit breaker opens after failures", async (t) => {
 
   t.ok(circuit.opened, "circuit should be open after failures");
 });
+
+test("withResilience - close calls underlying store close", async (t) => {
+  let closeCalled = false;
+  const mockStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {},
+    complete: async () => {},
+    close: async () => {
+      closeCalled = true;
+    }
+  };
+
+  const { store } = withResilience(mockStore);
+  await store.close();
+
+  t.ok(closeCalled, "should call underlying store close");
+});

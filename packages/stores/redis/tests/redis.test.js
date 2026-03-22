@@ -205,3 +205,40 @@ test("RedisIdempotencyStore - testMode with custom prefix", async (t) => {
   t.equal(result.byKey?.key, "key-1", "should find by key with custom prefix");
   t.end();
 });
+
+test("RedisIdempotencyStore - close calls client.quit in non-testMode", async (t) => {
+  let quitCalled = false;
+  const mockClient = {
+    pipeline: () => ({
+      get: () => {},
+      exec: async () => [
+        [null, null],
+        [null, null]
+      ]
+    }),
+    quit: async () => {
+      quitCalled = true;
+    }
+  };
+
+  const store = new RedisIdempotencyStore({
+    client: /** @type {any} */ (mockClient),
+    testMode: false
+  });
+
+  await store.close();
+
+  t.equal(quitCalled, true, "client.quit() should be called");
+  t.end();
+});
+
+test("RedisIdempotencyStore - close is no-op in testMode", async (t) => {
+  const store = new RedisIdempotencyStore({
+    testMode: true
+  });
+
+  await store.close();
+
+  t.pass("close() should not throw in testMode");
+  t.end();
+});

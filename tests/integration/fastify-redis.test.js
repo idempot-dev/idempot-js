@@ -2,7 +2,7 @@ import t from "tap";
 import Fastify from "fastify";
 import { idempotency } from "../../packages/frameworks/fastify/index.js";
 import { makeRequest } from "./shared/request.js";
-import { createRedisStore, cleanupRedis, closeRedis } from "./shared/redis.js";
+import { createRedisStore, cleanupRedis } from "./shared/redis.js";
 
 function createFastifyRedisApp(store, client) {
   const app = Fastify();
@@ -44,7 +44,7 @@ t.beforeEach(async (t) => {
 t.afterEach(async (t) => {
   await cleanupRedis(t.context.client);
   await t.context.app.close();
-  await closeRedis(t.context.client);
+  await t.context.store.close();
 });
 
 t.test("Fastify + Redis - first request creates record", async (t) => {

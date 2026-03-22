@@ -24,9 +24,3 @@ export async function cleanupRedis(client) {
     }
   }
 }
-
-export async function closeRedis(client) {
-  if (client) {
-    await client.quit();
-  }
-}

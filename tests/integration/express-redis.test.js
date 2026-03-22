@@ -2,7 +2,7 @@ import t from "tap";
 import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
 import { makeRequest } from "./shared/request.js";
-import { createRedisStore, cleanupRedis, closeRedis } from "./shared/redis.js";
+import { createRedisStore, cleanupRedis } from "./shared/redis.js";
 
 function createExpressRedisApp(store, client) {
   const app = express();
@@ -37,7 +37,7 @@ t.beforeEach(async (t) => {
 t.afterEach(async (t) => {
   await cleanupRedis(t.context.client);
   await new Promise((resolve) => t.context.server.close(resolve));
-  await closeRedis(t.context.client);
+  await t.context.store.close();
 });
 
 t.test("Express + Redis - first request creates record", async (t) => {

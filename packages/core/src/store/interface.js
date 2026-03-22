@@ -12,6 +12,7 @@
  * @property {(key: string, fingerprint: string) => Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>} lookup
  * @property {(key: string, fingerprint: string, ttlMs: number) => Promise<void>} startProcessing
  * @property {(key: string, response: {status: number, headers: Record<string, string>, body: string}) => Promise<void>} complete
+ * @property {() => Promise<void>} close
  */
 
 export {};

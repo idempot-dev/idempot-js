@@ -28,6 +28,15 @@
  */
 export class RedisIdempotencyStore {
   /**
+   * Close the Redis connection
+   * @returns {Promise<void>}
+   */
+  async close() {
+    if (!this.testMode) {
+      await this.client.quit();
+    }
+  }
+  /**
    * @type {Redis}
    */
   client;
@@ -69,7 +78,9 @@ export class RedisIdempotencyStore {
         this.#testStore.get(key) ?? null
       );
       /** @type {string | undefined} */
-      const fpKey = this.#testStore.get(`fingerprint:${fingerprint}`);
+      const fpKey = /** @type {string | undefined} */ (
+        this.#testStore.get(`fingerprint:${fingerprint}`)
+      );
       /** @type {IdempotencyRecord | null} */
       const byFingerprint = fpKey
         ? /** @type {IdempotencyRecord} */ (this.#testStore.get(fpKey))

@@ -3,7 +3,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { idempotency } from "../../packages/frameworks/hono/index.js";
 import { makeRequest } from "./shared/request.js";
-import { createRedisStore, cleanupRedis, closeRedis } from "./shared/redis.js";
+import { createRedisStore, cleanupRedis } from "./shared/redis.js";
 
 function createHonoRedisApp(store, client) {
   const app = new Hono();
@@ -43,7 +43,7 @@ t.beforeEach(async (t) => {
 t.afterEach(async (t) => {
   await cleanupRedis(t.context.client);
   await new Promise((resolve) => t.context.server.close(resolve));
-  await closeRedis(t.context.client);
+  await t.context.store.close();
 });
 
 t.test("Hono + Redis - first request creates record", async (t) => {
@@ -78,14 +78,14 @@ t.test(
   async (t) => {
     const { client, prefix, port } = t.context;
 
-  const response1 = await makeRequest(port, {
-    idempotencyKey: "test-key-dupe-123456789012345",
-    body: { foo: "bar" }
-  });
-  // Wait for idempotency middleware to write the record to Redis
-  // before making the duplicate request.
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  const response2 = await makeRequest(port, {
+    const response1 = await makeRequest(port, {
+      idempotencyKey: "test-key-dupe-123456789012345",
+      body: { foo: "bar" }
+    });
+    // Wait for idempotency middleware to write the record to Redis
+    // before making the duplicate request.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const response2 = await makeRequest(port, {
       idempotencyKey: "test-key-dupe-123456789012345",
       body: { foo: "bar" }
     });
