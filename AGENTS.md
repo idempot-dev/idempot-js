@@ -6,6 +6,8 @@
 
 When trying to learn which lines are uncovered, use `npm run test:coverage`, which will report full coverage details for all files.
 
+**Never use `--no-verify` when committing.** This flag bypasses pre-commit hooks that enforce the 100% coverage requirement.
+
 **Build:**
 
 ```bash
