@@ -1,4 +1,4 @@
-// packages/stores/redis/tests/redis.properties.js
+// packages/stores/redis/redis.properties.test.js
 import { test } from "tap";
 import * as fc from "fast-check";
 import RedisMock from "ioredis-mock";

@@ -1,6 +1,6 @@
-// packages/stores/sqlite/tests/sqlite.test.js
+// packages/stores/sqlite/sqlite.test.js
 import { test } from "tap";
-import { runStoreTests } from "../../../core/tests/store-adapter-suite.js";
+import { runStoreTests } from "../../core/tests/store-adapter-suite.js";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 import fs from "fs";
 

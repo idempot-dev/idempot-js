@@ -1,7 +1,7 @@
-// packages/stores/redis/tests/redis.test.js
+// packages/stores/redis/redis.test.js
 import { test } from "tap";
 import RedisMock from "ioredis-mock";
-import { runStoreTests } from "../../../core/tests/store-adapter-suite.js";
+import { runStoreTests } from "../../core/tests/store-adapter-suite.js";
 import { RedisIdempotencyStore } from "@idempot/redis-store";
 
 runStoreTests({

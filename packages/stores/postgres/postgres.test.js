@@ -1,6 +1,6 @@
-// packages/stores/postgres/tests/postgres.test.js
+// packages/stores/postgres/postgres.test.js
 import { test } from "tap";
-import { runStoreTests } from "../../../core/tests/store-adapter-suite.js";
+import { runStoreTests } from "../../core/tests/store-adapter-suite.js";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);

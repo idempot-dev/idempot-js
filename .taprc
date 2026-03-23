@@ -4,7 +4,7 @@ files:
   - "tests/monorepo/**/*.test.js"
   - "packages/*/tests/**/*.test.js"
   - "packages/frameworks/**/*.test.js"
-  - "packages/stores/*/tests/**/*.test.js"
+  - "packages/stores/*/*.test.js"
 
 exclude:
   - "node_modules/**"

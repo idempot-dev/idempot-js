@@ -80,8 +80,8 @@ test("store packages structure exists", async (t) => {
       `packages/stores/${store}/index.js exists`
     );
     t.ok(
-      existsSync(join(storeDir, "tests")),
-      `packages/stores/${store}/tests directory exists`
+      existsSync(join(storeDir, `${store}.test.js`)),
+      `packages/stores/${store}/${store}.test.js exists`
     );
   }
 });
