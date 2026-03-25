@@ -4,6 +4,7 @@
   "description": "Idempotency middleware for Hono, Express, and Fastify with pluggable storage backends",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.32.1",
   "keywords": [
     "hono",
     "express",
