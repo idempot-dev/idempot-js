@@ -60,7 +60,11 @@ export function runStoreTests(adapter) {
     await store.startProcessing("test-key", "test-fp", 60000);
     const result = await store.lookup("different-key", "test-fp");
     t.ok(result.byFingerprint, "should find by fingerprint");
-    t.equal(result.byFingerprint.fingerprint, "test-fp", "fingerprint should match");
+    t.equal(
+      result.byFingerprint.fingerprint,
+      "test-fp",
+      "fingerprint should match"
+    );
     if (store.close) await store.close();
     t.end();
   });
@@ -133,7 +137,9 @@ export function runStoreTests(adapter) {
     const result = await store.lookup("test-key", "test-fp");
     t.ok(result.byKey.response, "response should be stored");
     t.equal(result.byKey.response.status, 200, "response status should match");
-    t.same(result.byKey.response.headers, { "content-type": "application/json" });
+    t.same(result.byKey.response.headers, {
+      "content-type": "application/json"
+    });
     t.equal(result.byKey.response.body, '{"result":"ok"}');
     if (store.close) await store.close();
     t.end();
@@ -143,10 +149,18 @@ export function runStoreTests(adapter) {
   test(`${adapter.name} - complete throws on missing key`, async (t) => {
     const store = adapter.createStore();
     try {
-      await store.complete("nonexistent", { status: 200, headers: {}, body: "test" });
+      await store.complete("nonexistent", {
+        status: 200,
+        headers: {},
+        body: "test"
+      });
       t.fail("should have thrown");
     } catch (err) {
-      t.match(err.message, /No record found/, "should throw error for missing key");
+      t.match(
+        err.message,
+        /No record found/,
+        "should throw error for missing key"
+      );
     }
     if (store.close) await store.close();
     t.end();
