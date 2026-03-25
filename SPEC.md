@@ -187,9 +187,9 @@ following or similar approaches to create a fingerprint.
 
 - Request digest/signature.
 
-2.5. Responsibilities
+  2.5. Responsibilities
 
-2.5.1. Client
+  2.5.1. Client
 
 Clients of HTTP API requiring idempotency SHOULD understand the
 idempotency related requirements as published by the server and use
@@ -209,7 +209,7 @@ Internet-Draft The Idempotency-Key HTTP Header Field October 2025
 - Send a unique idempotency key in the HTTP Idempotency-Key request
   header field.
 
-2.5.2. Resource
+  2.5.2. Resource
 
 Resources MUST publish a idempotency related specification. This
 specification MUST include expiration related policy if applicable.
@@ -225,7 +225,7 @@ For each request, a server SHOULD:
 
 - Enforce idempotency (see below)
 
-2.6. Idempotency Enforcement
+  2.6. Idempotency Enforcement
 
 - First time request (idempotency key and fingerprint has not been
   seen)
@@ -442,7 +442,7 @@ Organization: Datatrans
 
 - Reference: https://docs.datatrans.ch/docs/api-endpoints
 
-4.1. Implementing the Concept
+  4.1. Implementing the Concept
 
 This is a list of implementations that implement the general concept,
 but do so using different mechanisms:
