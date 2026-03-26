@@ -47,27 +47,6 @@ export class NodeMysqlIdempotencyStore {
   }
 
   /**
-   * Initialize the database schema
-   * @returns {Promise<void>}
-   */
-  async initSchema() {
-    const createTableSQL = `
-      CREATE TABLE IF NOT EXISTS idempotency_records (
-        \`key\` VARCHAR(255) PRIMARY KEY,
-        fingerprint VARCHAR(255) NOT NULL,
-        status VARCHAR(50) NOT NULL,
-        response_status INT,
-        response_headers TEXT,
-        response_body TEXT,
-        expires_at BIGINT NOT NULL,
-        INDEX idx_fingerprint (fingerprint),
-        INDEX idx_expires_at (expires_at)
-      )
-    `;
-    await this.pool.query(createTableSQL);
-  }
-
-  /**
    * Close the database connection
    * @returns {Promise<void>}
    */
