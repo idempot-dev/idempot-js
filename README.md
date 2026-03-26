@@ -56,11 +56,11 @@ This library adds **request fingerprinting** to detect conflicts when the same i
 
 ## Supported Runtimes, Frameworks, and Stores
 
-| Category       | Options                                                      |
-| -------------- | ------------------------------------------------------------ |
-| **Runtimes**   | Node.js, Bun, Deno (Lambda & Cloudflare Workers planned)     |
-| **Frameworks** | Express, Hono, Fastify                                       |
-| **Stores**     | Redis, PostgreSQL, SQLite (DynamoDB & Cloudflare KV planned) |
+| Category       | Options                                                             |
+| -------------- | ------------------------------------------------------------------- |
+| **Runtimes**   | Node.js, Bun, Deno (Lambda & Cloudflare Workers planned)            |
+| **Frameworks** | Express, Hono, Fastify                                              |
+| **Stores**     | Redis, PostgreSQL, MySQL, SQLite (DynamoDB & Cloudflare KV planned) |
 
 ## Runtime vs Storage Support
 
@@ -68,6 +68,7 @@ This library adds **request fingerprinting** to detect conflicts when the same i
 | -------- | ---- | --- | ---- |
 | Redis    | ✅   | ✅  | ✅   |
 | Postgres | ✅   | ✅  | ✅   |
+| MySQL    | ✅   | ✅  | ✅   |
 | SQLite   | ✅   | ✅  | ✅   |
 
 ✅ = Supported | 🔄 = Untested (contributions welcome) | ❌ = Not supported
