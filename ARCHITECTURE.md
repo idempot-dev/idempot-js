@@ -52,7 +52,7 @@ idempot-js/
 │       ├── sqlite/
 │       ├── redis/
 │       ├── postgres/
-│       └── bun-sqlite/
+│       └── bun-sql/
 │
 ├── examples/                    # Usage examples
 └── tests/                       # Integration tests
@@ -166,14 +166,15 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 - JSONB type for headers (more efficient than TEXT)
 - Connection pooling via `pg.Pool`
 
-### Bun SQLite (`packages/stores/bun-sqlite/`)
+### Bun SQL (`packages/stores/bun-sql/`)
 
-**Best for:** Bun runtime applications
+**Best for:** Bun runtime applications with SQLite, PostgreSQL, or MySQL
 
 **Implementation:**
 
-- Uses Bun's built-in SQLite via `bun:sqlite`
-- Same schema as Node.js SQLite
+- Uses Bun's native SQL API via `bun:sql`
+- Supports SQLite, PostgreSQL, and MySQL via connection string
+- Auto-detects adapter from URL format
 - Maximum performance for Bun environment
 
 ## Request Flow

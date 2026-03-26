@@ -23,14 +23,14 @@ Unlike Node.js, you don't need `better-sqlite3`. Bun's native SQLite is built-in
 
 ### SQLite (Recommended for Bun)
 
-Use `BunSqliteIdempotencyStore` for native performance:
+Use `BunSqlIdempotencyStore` for native performance with SQLite:
 
 ```javascript
 import { Hono } from "hono";
-import { idempotency, BunSqliteIdempotencyStore } from "idempot";
+import { idempotency, BunSqlIdempotencyStore } from "idempot";
 
 const app = new Hono();
-const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
+const store = new BunSqlIdempotencyStore("sqlite://:memory:");
 
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();
@@ -43,10 +43,10 @@ export default {
 };
 ```
 
-**Options:**
+**Connection strings:**
 
-- `path: ":memory:"` - In-memory database (development)
-- `path: "./examples/idempotency.db"` - File-based persistence (production)
+- `sqlite://:memory:` or `:memory:` - In-memory database (development)
+- `sqlite://./app.db` - File-based persistence (production)
 
 ### Redis
 
@@ -131,7 +131,7 @@ Or use the example apps:
 
 ```bash
 bun run examples/bun-basic-app.js
-bun run examples/bun-sqlite-app.js
+bun run examples/bun-sql-app.js
 ```
 
 ### Production
@@ -171,7 +171,7 @@ bun test --coverage
 
 ## Performance Comparison
 
-Benchmarks show `BunSqliteIdempotencyStore` delivers 2-3x better performance than `SqliteIdempotencyStore`:
+Benchmarks show `BunSqlIdempotencyStore` delivers excellent performance with SQLite:
 
 | Operation | Node.js (better-sqlite3) | Bun (bun:sqlite) | Improvement |
 | --------- | ------------------------ | ---------------- | ----------- |
@@ -187,12 +187,10 @@ For production deployments with file-based SQLite:
 
 ```javascript
 import { Hono } from "hono";
-import { idempotency, BunSqliteIdempotencyStore } from "idempot";
+import { idempotency, BunSqlIdempotencyStore } from "idempot";
 
 const app = new Hono();
-const store = new BunSqliteIdempotencyStore({
-  path: "./examples/idempotency.db"
-});
+const store = new BunSqlIdempotencyStore("sqlite://./examples/idempotency.db");
 
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();
@@ -211,6 +209,28 @@ process.on("SIGINT", () => {
   store.close();
   process.exit(0);
 });
+```
+
+## PostgreSQL and MySQL Support
+
+The `BunSqlIdempotencyStore` also supports PostgreSQL and MySQL via Bun's native SQL API:
+
+```javascript
+// PostgreSQL
+const pgStore = new BunSqlIdempotencyStore(
+  "postgres://user:password@localhost:5432/mydb"
+);
+
+// MySQL
+const mysqlStore = new BunSqlIdempotencyStore(
+  "mysql://user:password@localhost:3306/mydb"
+);
+```
+
+Connection strings can also be set via environment variable:
+
+```bash
+DATABASE_URL=postgres://user:pass@localhost:5432/db bun run app.js
 ```
 
 ## Deployment
@@ -278,7 +298,7 @@ If you see `Cannot find module 'bun:sqlite'` during TypeScript compilation, this
 
    ```json
    {
-     "exclude": ["src/store/bun-sqlite.ts"]
+     "exclude": ["src/store/bun-sql.ts"]
    }
    ```
 
@@ -301,7 +321,7 @@ Use `.js` extensions in imports:
 
 ```javascript
 // Correct
-import { BunSqliteIdempotencyStore } from "idempot";
+import { BunSqlIdempotencyStore } from "idempot";
 
 // Also correct
 import { idempotency } from "./hono-middleware.js";
@@ -319,8 +339,8 @@ To migrate from Node.js to Bun:
    const store = new SqliteIdempotencyStore({ path: ":memory:" });
 
    // After (Bun)
-   import { BunSqliteIdempotencyStore } from "idempot";
-   const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
+   import { BunSqlIdempotencyStore } from "idempot";
+   const store = new BunSqlIdempotencyStore("sqlite://:memory:");
    ```
 
 2. Change the server:

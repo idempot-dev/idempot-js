@@ -1,7 +1,7 @@
 {
-  "name": "@idempot/bun-sqlite-store",
+  "name": "@idempot/bun-sql-store",
   "version": "0.1.0",
-  "description": "Bun SQLite storage backend for idempotency",
+  "description": "Bun SQL storage backend for idempotency (SQLite, PostgreSQL, MySQL)",
   "type": "module",
   "main": "./index.js",
   "types": "./dist/index.d.ts",
@@ -19,7 +19,10 @@
   ],
   "keywords": [
     "bun",
+    "sql",
     "sqlite",
+    "postgresql",
+    "mysql",
     "store",
     "idempotency",
     "idempotent"

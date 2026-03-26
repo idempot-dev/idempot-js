@@ -15,5 +15,5 @@
       "@idempot/core/*": ["./packages/core/src/*"]
     }
   },
-  "exclude": ["node_modules", "dist", "examples", "tests"]
+  "exclude": ["node_modules", "dist", "examples", "tests", "**/*.test.js"]
 }

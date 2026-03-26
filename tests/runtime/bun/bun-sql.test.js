@@ -1,24 +1,22 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { BunSqliteIdempotencyStore } from "../../../packages/stores/bun-sqlite/index.js";
+import { BunSqlIdempotencyStore } from "../../../packages/stores/bun-sql/index.js";
 
-describe("BunSqliteIdempotencyStore", () => {
+describe("BunSqlIdempotencyStore", () => {
   let store;
 
   beforeEach(() => {
-    store = new BunSqliteIdempotencyStore({ path: ":memory:" });
+    store = new BunSqlIdempotencyStore("sqlite://:memory:");
   });
 
   describe("initialization", () => {
     test("creates store with default path", () => {
-      const defaultStore = new BunSqliteIdempotencyStore();
+      const defaultStore = new BunSqlIdempotencyStore();
       expect(defaultStore).toBeDefined();
       defaultStore.close();
     });
 
-    test("creates store with custom path", () => {
-      const customStore = new BunSqliteIdempotencyStore({
-        path: ":memory:"
-      });
+    test("creates store with custom connection string", () => {
+      const customStore = new BunSqlIdempotencyStore(":memory:");
       expect(customStore).toBeDefined();
       customStore.close();
     });
@@ -124,7 +122,7 @@ describe("BunSqliteIdempotencyStore", () => {
 
   describe("close", () => {
     test("closes database connection", () => {
-      const tempStore = new BunSqliteIdempotencyStore({ path: ":memory:" });
+      const tempStore = new BunSqlIdempotencyStore("sqlite://:memory:");
 
       expect(() => tempStore.close()).not.toThrow();
     });
