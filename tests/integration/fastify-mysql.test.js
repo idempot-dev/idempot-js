@@ -2,6 +2,7 @@ import t from "tap";
 import Fastify from "fastify";
 import { idempotency } from "../../packages/frameworks/fastify/index.js";
 import { generateIdempotencyKey } from "./shared/shared-helpers.js";
+import { initMysqlSchema } from "./shared/mysql-helpers.js";
 import { makeRequest } from "./shared/request.js";
 import {
   createNodeMysqlStore,
@@ -26,6 +27,7 @@ function createFastifyMysqlApp(store) {
 }
 
 t.beforeEach(async (t) => {
+  await initMysqlSchema();
   const store = createNodeMysqlStore();
   await store.pool.query("DELETE FROM idempotency_records");
 

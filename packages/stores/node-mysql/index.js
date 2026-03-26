@@ -44,7 +44,6 @@ export class NodeMysqlIdempotencyStore {
   constructor(options = {}) {
     const mysql = require("mysql2/promise");
     this.pool = mysql.createPool(options);
-    this.initSchema();
   }
 
   /**
