@@ -54,6 +54,20 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_USER: idempot
+          MYSQL_PASSWORD: idempot
+          MYSQL_DATABASE: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -70,6 +84,11 @@ jobs:
           echo "PGUSER=idempot" >> $GITHUB_ENV
           echo "PGPASSWORD=idempot" >> $GITHUB_ENV
           echo "PGDATABASE=test" >> $GITHUB_ENV
+          echo "MYSQL_HOST=localhost" >> $GITHUB_ENV
+          echo "MYSQL_PORT=3306" >> $GITHUB_ENV
+          echo "MYSQL_USER=idempot" >> $GITHUB_ENV
+          echo "MYSQL_PASSWORD=idempot" >> $GITHUB_ENV
+          echo "MYSQL_DATABASE=test" >> $GITHUB_ENV
       - name: Run tests with coverage verification
         run: pnpm run test:verify-coverage
 

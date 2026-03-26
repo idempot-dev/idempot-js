@@ -169,6 +169,15 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
+  packages/stores/node-mysql:
+    dependencies:
+      '@idempot/core':
+        specifier: workspace:*
+        version: link:../../core
+      mysql2:
+        specifier: '>=3.0.0'
+        version: 3.20.0(@types/node@20.19.37)
+
   packages/stores/postgres:
     dependencies:
       '@idempot/core':
