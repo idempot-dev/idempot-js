@@ -3,10 +3,12 @@ import Fastify from "fastify";
 import { idempotency } from "../../packages/frameworks/fastify/index.js";
 import {
   createPostgresSchema,
-  dropPostgresSchema,
+  dropPostgresSchema
+} from "./shared/postgres-helpers.js";
+import {
   generateTestId,
   generateIdempotencyKey
-} from "./shared/setup.js";
+} from "./shared/shared-helpers.js";
 import { makeRequest } from "./shared/request.js";
 import {
   createPostgresStore,
