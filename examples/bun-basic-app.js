@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/index.js";
-import { BunSqliteIdempotencyStore } from "../packages/stores/bun-sqlite/index.js";
+import { BunSqlIdempotencyStore } from "../packages/stores/bun-sql/index.js";
 import { ulid } from "ulid";
 
 const app = new Hono();
-const store = new BunSqliteIdempotencyStore({ path: ":memory:" });
+const store = new BunSqlIdempotencyStore("sqlite://:memory:");
 
 // Basic usage with default options (optional idempotency-key)
 app.post("/orders", idempotency({ store }), async (c) => {

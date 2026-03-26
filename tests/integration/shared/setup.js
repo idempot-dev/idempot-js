@@ -8,6 +8,7 @@ const { Pool } = require("pg");
 
 const POSTGRES_PORT = 5432;
 const REDIS_PORT = 6379;
+const MYSQL_PORT = 3306;
 
 export async function startServices() {
   console.log("Starting local Postgres...");
@@ -64,6 +65,10 @@ export function getRedisClient() {
     host: "localhost",
     port: REDIS_PORT
   });
+}
+
+export function getMySqlUrl(database = "test") {
+  return `mysql://idempot:idempot@localhost:${MYSQL_PORT}/${database}`;
 }
 
 export async function createPostgresSchema(schema) {
