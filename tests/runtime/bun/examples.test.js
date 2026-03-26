@@ -56,8 +56,8 @@ describe("Bun Example Apps", () => {
     expect(data1.id).toBe(data2.id);
   });
 
-  test("bun-sqlite-app exports valid server config", async () => {
-    const module = await import("../../../examples/bun-sqlite-app.js");
+  test("bun-sql-app exports valid server config", async () => {
+    const module = await import("../../../examples/bun-sql-app.js");
 
     expect(module.default).toBeDefined();
     expect(module.default.port).toBe(3000);
@@ -65,14 +65,14 @@ describe("Bun Example Apps", () => {
     expect(typeof module.default.fetch).toBe("function");
   });
 
-  test("bun-sqlite-app responds to POST /orders", async () => {
-    const module = await import("../../../examples/bun-sqlite-app.js");
+  test("bun-sql-app responds to POST /orders", async () => {
+    const module = await import("../../../examples/bun-sql-app.js");
 
     const request = new Request("http://localhost:3000/orders", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "idempotency-key": "sqlite-test-key-abcd-e"
+        "idempotency-key": "sql-test-key-abcd-e-123"
       },
       body: JSON.stringify({ item: "tool", quantity: 2 })
     });

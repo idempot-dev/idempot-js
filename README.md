@@ -64,12 +64,11 @@ This library adds **request fingerprinting** to detect conflicts when the same i
 
 ## Runtime vs Storage Support
 
-| Store      | Node | Bun | Deno |
-| ---------- | ---- | --- | ---- |
-| Redis      | ✅   | ✅  | ✅   |
-| Postgres   | ✅   | ✅  | ✅   |
-| SQLite     | ✅   | ✅  | ✅   |
-| Bun SQLite | ❌   | ✅  | ❌   |
+| Store    | Node | Bun | Deno |
+| -------- | ---- | --- | ---- |
+| Redis    | ✅   | ✅  | ✅   |
+| Postgres | ✅   | ✅  | ✅   |
+| SQLite   | ✅   | ✅  | ✅   |
 
 ✅ = Supported | 🔄 = Untested (contributions welcome) | ❌ = Not supported
 

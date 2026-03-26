@@ -29,13 +29,14 @@ All examples follow a similar pattern. To run any example:
 
 ### Node.js Server Examples
 
-| File                | Storage             | Description                                                                                 |
-| ------------------- | ------------------- | ------------------------------------------------------------------------------------------- |
-| `basic-app.js`      | SQLite (in-memory)  | Basic Node.js server with SQLite, demonstrating optional/required keys and field exclusions |
-| `sqlite-app.js`     | SQLite (file-based) | Node.js server with persistent SQLite storage                                               |
-| `bun-sqlite-app.js` | SQLite (file-based) | Bun runtime with SQLite storage                                                             |
-| `redis-app.js`      | Redis               | Node.js server with Redis persistence (requires Redis server)                               |
-| `postgres-app.js`   | PostgreSQL          | Node.js server with PostgreSQL persistence                                                  |
+| File               | Storage             | Description                                                                                 |
+| ------------------ | ------------------- | ------------------------------------------------------------------------------------------- |
+| `basic-app.js`     | SQLite (in-memory)  | Basic Node.js server with SQLite, demonstrating optional/required keys and field exclusions |
+| `sqlite-app.js`    | SQLite (file-based) | Node.js server with persistent SQLite storage                                               |
+| `bun-basic-app.js` | SQLite (in-memory)  | Bun runtime with SQLite storage (in-memory)                                                 |
+| `bun-sql-app.js`   | SQLite/PG/MySQL     | Bun runtime with configurable SQL storage (SQLite, PostgreSQL, MySQL via connection string) |
+| `redis-app.js`     | Redis               | Node.js server with Redis persistence (requires Redis server)                               |
+| `postgres-app.js`  | PostgreSQL          | Node.js server with PostgreSQL persistence                                                  |
 
 ### Deno Examples
 
@@ -101,7 +102,17 @@ deno run --allow-all examples/deno-sqlite-app.js
 ### Bun Example
 
 ```bash
-bun run examples/bun-sqlite-app.js
+# SQLite (default, in-memory)
+bun run examples/bun-basic-app.js
+
+# Or with the unified SQL example (supports SQLite, PostgreSQL, MySQL)
+bun run examples/bun-sql-app.js
+
+# PostgreSQL
+DATABASE_URL=postgres://user:pass@localhost:5432/db bun run examples/bun-sql-app.js
+
+# MySQL
+DATABASE_URL=mysql://user:pass@localhost:3306/db bun run examples/bun-sql-app.js
 ```
 
 ## Storage Backend Setup

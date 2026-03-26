@@ -93,6 +93,34 @@ jobs:
   bun:
     name: Bun
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: idempot
+          POSTGRES_PASSWORD: idempot
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U idempot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_USER: idempot
+          MYSQL_PASSWORD: idempot
+          MYSQL_DATABASE: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -104,6 +132,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run Bun tests
         run: pnpm run test:bun
+      - name: Run Bun SQL integration tests
+        run: bun test tests/runtime/bun/bun-sql-integration.test.js
 
   deno:
     name: Deno

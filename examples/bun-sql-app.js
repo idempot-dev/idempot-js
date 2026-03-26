@@ -1,14 +1,19 @@
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/index.js";
-import { BunSqliteIdempotencyStore } from "../packages/stores/bun-sqlite/index.js";
+import { BunSqlIdempotencyStore } from "../packages/stores/bun-sql/index.js";
 import { ulid } from "ulid";
 
-const app = new Hono();
-const store = new BunSqliteIdempotencyStore({
-  path: "./examples/idempotency.db"
-});
+const DATABASE_URL = process.env.DATABASE_URL || "sqlite://:memory:";
 
-// Basic usage with SQLite persistence
+const app = new Hono();
+const store = new BunSqlIdempotencyStore(DATABASE_URL);
+
+const dbType = DATABASE_URL.includes("postgres")
+  ? "PostgreSQL"
+  : DATABASE_URL.includes("mysql")
+    ? "MySQL"
+    : "SQLite";
+
 app.post("/orders", idempotency({ store }), async (c) => {
   const body = await c.req.json();
   const orderId = ulid();
@@ -25,8 +30,14 @@ app.post("/orders", idempotency({ store }), async (c) => {
   );
 });
 
+export default {
+  port: 3000,
+  fetch: app.fetch
+};
+
 console.log("Server running at http://localhost:3000");
-console.log("Using SQLite storage at ./examples/idempotency.db");
+console.log(`Using ${dbType} storage`);
+console.log(`DATABASE_URL: ${DATABASE_URL}`);
 console.log("");
 console.log("Try these requests:");
 console.log("");
@@ -42,12 +53,11 @@ console.log('  -H "Content-Type: application/json" \\');
 console.log('  -H "idempotency-key: order-123" \\');
 console.log('  -d \'{"item": "widget", "quantity": 5}\'');
 console.log("");
-
-// Bun's native server
-export default {
-  port: 3000,
-  fetch: app.fetch
-};
+console.log("# Environment variables:");
+console.log("#   DATABASE_URL=sqlite://:memory:   # SQLite (default)");
+console.log("#   DATABASE_URL=postgres://...       # PostgreSQL");
+console.log("#   DATABASE_URL=mysql://...         # MySQL");
+console.log("");
 
 // Graceful shutdown
 process.on("SIGINT", () => {
