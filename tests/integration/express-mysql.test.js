@@ -184,3 +184,20 @@ t.test("Express + MySQL - handles empty string response_headers", async (t) => {
     "should return empty object for empty string headers"
   );
 });
+
+t.test("Express + MySQL - handles missing response_status", async (t) => {
+  const { store } = t.context;
+  const key = generateIdempotencyKey();
+
+  await store.pool.query(
+    "INSERT INTO idempotency_records (`key`, fingerprint, status, response_status, response_headers, response_body, expires_at) VALUES (?, ?, 'complete', NULL, ?, ?, ?)",
+    [key, key + "fp", null, null, Date.now() + 60000]
+  );
+
+  const result = await store.lookup(key, key + "fp");
+  t.equal(
+    result.byKey?.response,
+    undefined,
+    "should return undefined when response_status is NULL"
+  );
+});
