@@ -23,9 +23,9 @@ When creating a git worktree, always run `pnpm install` in the worktree director
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │             Storage Backend Layer                           │
-│  ┌──────────┐  ┌──────┐  ┌─────────┐                     │
-│  │  Redis   │  │SQLite│  │ Postgres│                     │
-│  └──────────┘  └──────┘  └─────────┘                     │
+│  ┌──────────┐  ┌──────┐  ┌─────────┐  ┌──────┐              │
+│  │  Redis   │  │SQLite│  │ Postgres│  │ MySQL │              │
+│  └──────────┘  └──────┘  └─────────┘  └──────┘              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,6 +52,8 @@ idempot-js/
 │       ├── sqlite/
 │       ├── redis/
 │       ├── postgres/
+│       ├── node-mysql/
+│       ├── deno-mysql/
 │       └── bun-sql/
 │
 ├── examples/                    # Usage examples
@@ -166,6 +168,22 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 - JSONB type for headers (more efficient than TEXT)
 - Connection pooling via `pg.Pool`
 
+### MySQL (`packages/stores/node-mysql/` and `packages/stores/deno-mysql/`)
+
+**Best for:** Multi-server deployments, existing MySQL infrastructure
+
+**Implementation:**
+
+- Node.js: Uses `mysql2` with connection pooling
+- Deno: Uses `mysql` from deno.land/x
+- JSON column for response headers
+- Indexed queries on key and fingerprint
+
+**Similar schema to PostgreSQL but with:**
+
+- MySQL-specific syntax (backticks, different JSON handling)
+- Connection pooling via `mysql2` Pool or Deno's `mysql` client
+
 ### Bun SQL (`packages/stores/bun-sql/`)
 
 **Best for:** Bun runtime applications with SQLite, PostgreSQL, or MySQL
@@ -246,9 +264,9 @@ The circuit breaker pattern provides graceful degradation:
 
 ### Runtime Support Strategy
 
-- **Node.js**: Full support via better-sqlite3, ioredis, pg
+- **Node.js**: Full support via better-sqlite3, ioredis, pg, mysql2
 - **Bun**: Native SQLite via `bun:sqlite`, ioredis support
-- **Deno**: Native SQLite via `deno-sqlite`, native Redis support
+- **Deno**: Native SQLite via `deno-sqlite`, native Redis support, MySQL via deno-mysql
 - **AWS Lambda**: Planned (DynamoDB or Redis via AWS SDK)
 - **Cloudflare Workers**: Planned (KV storage)
 

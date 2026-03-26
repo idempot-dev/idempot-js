@@ -3,10 +3,12 @@ import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
 import {
   createPostgresSchema,
-  dropPostgresSchema,
+  dropPostgresSchema
+} from "./shared/postgres-helpers.js";
+import {
   generateTestId,
   generateIdempotencyKey
-} from "./shared/setup.js";
+} from "./shared/shared-helpers.js";
 import { makeRequest } from "./shared/request.js";
 import {
   createPostgresStore,
