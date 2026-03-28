@@ -1,3 +1,9 @@
+/**
+ * @typedef {import("@idempot/core").IdempotencyStore} IdempotencyStore
+ * @typedef {import("@idempot/core").ResilienceOptions} ResilienceOptions
+ * @typedef {import("@idempot/core").IdempotencyOptions} IdempotencyOptions
+ */
+
 import {
   generateFingerprint,
   validateExcludeFields,
@@ -13,12 +19,6 @@ import {
   keyValidationErrorResponse,
   missingKeyResponse
 } from "@idempot/core";
-
-/**
- * @typedef {import("@idempot/core/store/interface.js").IdempotencyStore} IdempotencyStore
- * @typedef {import("@idempot/core/resilience.js").ResilienceOptions} ResilienceOptions
- * @typedef {import("@idempot/core/default-options.js").IdempotencyOptions} IdempotencyOptions
- */
 
 /**
  * HTTP header name for idempotency key as defined in
@@ -80,9 +80,13 @@ export function idempotency(options = {}) {
       maxKeyLength: opts.maxKeyLength
     });
     if (!keyValidation.valid) {
-      return c.json(keyValidationErrorResponse(keyValidation.error), 400, {
-        "Content-Type": "application/problem+json"
-      });
+      return c.json(
+        keyValidationErrorResponse(/** @type {string} */ (keyValidation.error)),
+        400,
+        {
+          "Content-Type": "application/problem+json"
+        }
+      );
     }
 
     const body = await c.req.text();

@@ -1,3 +1,8 @@
+/**
+ * @typedef {import("@idempot/core").IdempotencyRecord} IdempotencyRecord
+ * @typedef {import("@idempot/core").IdempotencyStore} IdempotencyStore
+ */
+
 // @ts-nocheck - Deno runtime only
 import { connect } from "@db/redis";
 

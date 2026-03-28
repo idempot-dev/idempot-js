@@ -1,3 +1,10 @@
+/**
+ * @typedef {import("./store/interface.js").IdempotencyRecord} IdempotencyRecord
+ * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
+ * @typedef {import("./resilience.js").ResilienceOptions} ResilienceOptions
+ * @typedef {import("./default-options.js").IdempotencyOptions} IdempotencyOptions
+ */
+
 export { generateFingerprint } from "./fingerprint.js";
 export {
   validateExcludeFields,

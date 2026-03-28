@@ -1,3 +1,8 @@
+/**
+ * @typedef {import("@idempot/core").IdempotencyRecord} IdempotencyRecord
+ * @typedef {import("@idempot/core").IdempotencyStore} IdempotencyStore
+ */
+
 // @ts-nocheck - Deno runtime only
 import { DB as Database } from "sqlite";
 
@@ -39,9 +44,9 @@ export class DenoSqliteIdempotencyStore {
   }
 
   /**
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  close() {
+  async close() {
     this.db.close();
   }
 
