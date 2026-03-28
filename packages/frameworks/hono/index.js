@@ -10,6 +10,7 @@ import {
   withResilience,
   defaultOptions,
   conflictErrorResponse,
+  keyValidationErrorResponse,
   missingKeyResponse
 } from "@idempot/core";
 
@@ -79,7 +80,9 @@ export function idempotency(options = {}) {
       maxKeyLength: opts.maxKeyLength
     });
     if (!keyValidation.valid) {
-      return c.json({ error: keyValidation.error }, 400);
+      return c.json(keyValidationErrorResponse(keyValidation.error), 400, {
+        "Content-Type": "application/problem+json"
+      });
     }
 
     const body = await c.req.text();

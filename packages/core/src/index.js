@@ -10,4 +10,8 @@ export {
 } from "./validation.js";
 export { withResilience } from "./resilience.js";
 export { DEFAULT_OPTIONS as defaultOptions } from "./default-options.js";
-export { conflictErrorResponse, missingKeyResponse } from "./problem-json.js";
+export {
+  conflictErrorResponse,
+  keyValidationErrorResponse,
+  missingKeyResponse
+} from "./problem-json.js";
