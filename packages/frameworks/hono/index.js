@@ -8,7 +8,9 @@ import {
   getCachedResponse,
   prepareCachedResponse,
   withResilience,
-  defaultOptions
+  defaultOptions,
+  conflictErrorResponse,
+  missingKeyResponse
 } from "@idempot/core";
 
 /**
@@ -32,7 +34,7 @@ const HEADER_NAME = "idempotency-key";
  * @param {string} [opts.headerName="Idempotency-Key"] - Header name
  * @param {number} [opts.maxKeyLength=255] - Maximum key length
  * @param {number} [opts.minKeyLength=21] - Minimum key length (default: 21 for nanoid)
- * @returns {(c: any, next: any) => Promise<void>}
+ * @returns {(c: import("hono").Context, next: () => Promise<void>) => Promise<void>}
  */
 export function idempotency(options = {}) {
   const opts = { ...defaultOptions, ...options };
@@ -64,7 +66,9 @@ export function idempotency(options = {}) {
     const key = c.req.header(HEADER_NAME);
     if (key === undefined) {
       if (opts.required) {
-        return c.json({ error: "Idempotency-Key header is required" }, 400);
+        return c.json(missingKeyResponse(), 400, {
+          "Content-Type": "application/problem+json"
+        });
       }
       await next();
       return;
@@ -90,7 +94,11 @@ export function idempotency(options = {}) {
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
-      return c.json({ error: conflict.error }, conflict.status);
+      const status = /** @type {409|422} */ (conflict.status);
+      const errorMsg = /** @type {string} */ (conflict.error);
+      return c.json(conflictErrorResponse(status, errorMsg), status, {
+        "Content-Type": "application/problem+json"
+      });
     }
 
     const cached = getCachedResponse(lookup);

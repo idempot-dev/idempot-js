@@ -9,7 +9,9 @@ import {
   getCachedResponse,
   prepareCachedResponse,
   withResilience,
-  defaultOptions
+  defaultOptions,
+  conflictErrorResponse,
+  missingKeyResponse
 } from "@idempot/core";
 
 /**
@@ -62,7 +64,10 @@ export function idempotency(options = {}) {
     const key = /** @type {string} */ (req.headers[HEADER_NAME]);
     if (key === undefined) {
       if (opts.required) {
-        res.status(400).json({ error: "Idempotency-Key header is required" });
+        res
+          .status(400)
+          .set("Content-Type", "application/problem+json")
+          .json(missingKeyResponse());
         return;
       }
       next();
@@ -97,7 +102,13 @@ export function idempotency(options = {}) {
     if (conflict.conflict) {
       res
         .status(/** @type {number} */ (conflict.status))
-        .json({ error: conflict.error });
+        .set("Content-Type", "application/problem+json")
+        .json(
+          conflictErrorResponse(
+            /** @type {number} */ (conflict.status),
+            conflict.error
+          )
+        );
       return;
     }
 

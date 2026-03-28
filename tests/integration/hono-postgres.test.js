@@ -10,7 +10,7 @@ import {
   generateTestId,
   generateIdempotencyKey
 } from "./shared/shared-helpers.js";
-import { makeRequest } from "./shared/request.js";
+import { makeRequest, makeRequestWithoutKey } from "./shared/request.js";
 import {
   createPostgresStore,
   waitForIdempotencyRecordComplete
@@ -157,6 +157,39 @@ t.test(
       orders.rows.length,
       1,
       "should only have one order despite two different idempotency keys (same fingerprint)"
+    );
+  }
+);
+
+t.test(
+  "Hono + Postgres - returns 422 when same key is used with different payload",
+  async (t) => {
+    const { store, port, schema } = t.context;
+    const key = generateIdempotencyKey();
+
+    await makeRequest(port, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+
+    await waitForIdempotencyRecordComplete(store, schema, key);
+
+    const response2 = await makeRequest(port, {
+      idempotencyKey: key,
+      body: { foo: "different" }
+    });
+
+    t.equal(response2.status, 422, "should return 422");
+    t.equal(
+      response2.headers["content-type"],
+      "application/problem+json",
+      "should return problem+json content type"
+    );
+    t.match(response2.body.type, /idempotency/i, "should have type field");
+    t.match(
+      response2.body.title,
+      /already used|different/i,
+      "should indicate key is already used"
     );
   }
 );

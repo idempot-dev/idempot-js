@@ -2,7 +2,7 @@ import t from "tap";
 import Fastify from "fastify";
 import { idempotency } from "../../packages/frameworks/fastify/index.js";
 import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
-import { makeRequest } from "./shared/request.js";
+import { makeRequest, makeRequestWithoutKey } from "./shared/request.js";
 
 function createFastifySqliteApp(store) {
   const app = Fastify();
@@ -132,5 +132,23 @@ t.test(
       1,
       "should only have one order despite two different idempotency keys (same fingerprint)"
     );
+  }
+);
+
+t.test(
+  "Fastify + SQLite - returns 400 when Idempotency-Key header is missing",
+  async (t) => {
+    const { port } = t.context;
+
+    const response = await makeRequestWithoutKey(port, { foo: "bar" });
+
+    t.equal(response.status, 400, "should return 400");
+    t.match(
+      response.headers["content-type"],
+      /application\/problem\+json/,
+      "should return problem+json content type"
+    );
+    t.match(response.body.type, /idempotency/i, "should have type field");
+    t.match(response.body.title, /missing/i, "should indicate key is missing");
   }
 );

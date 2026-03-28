@@ -8,7 +8,9 @@ import {
   getCachedResponse,
   prepareCachedResponse,
   withResilience,
-  defaultOptions
+  defaultOptions,
+  conflictErrorResponse,
+  missingKeyResponse
 } from "@idempot/core";
 
 const HEADER_NAME = "idempotency-key";
@@ -66,7 +68,8 @@ export function idempotency(options = {}) {
       if (opts.required) {
         return reply
           .code(400)
-          .send({ error: "Idempotency-Key header is required" });
+          .header("Content-Type", "application/problem+json")
+          .send(missingKeyResponse());
       }
       return;
     }
@@ -95,9 +98,12 @@ export function idempotency(options = {}) {
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
+      const status = /** @type {409|422} */ (conflict.status);
+      const errorMsg = /** @type {string} */ (conflict.error);
       return reply
-        .code(/** @type {number} */ (conflict.status))
-        .send({ error: conflict.error });
+        .code(status)
+        .header("Content-Type", "application/problem+json")
+        .send(conflictErrorResponse(status, errorMsg));
     }
 
     const cached = getCachedResponse(lookup);
@@ -122,8 +128,10 @@ export function idempotency(options = {}) {
       requestMeta.set(request, { idempotencyKey: key });
 
       const originalSend = reply.send.bind(reply);
+      let capturedBody = "";
+
       reply.send = (payload) => {
-        const capturedBody =
+        capturedBody =
           typeof payload === "string" ? payload : JSON.stringify(payload);
         const meta = requestMeta.get(request);
         meta.idempotencyBody = capturedBody;
