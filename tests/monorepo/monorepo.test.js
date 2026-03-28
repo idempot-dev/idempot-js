@@ -18,7 +18,7 @@ test("pnpm-workspace.yaml exists and is valid", async (t) => {
     "workspace config contains packages section"
   );
   t.ok(
-    content.includes("'packages/*'"),
+    content.includes("packages/*"),
     "workspace config includes packages/* pattern"
   );
 });

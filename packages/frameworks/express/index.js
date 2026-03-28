@@ -11,6 +11,7 @@ import {
   withResilience,
   defaultOptions,
   conflictErrorResponse,
+  keyValidationErrorResponse,
   missingKeyResponse
 } from "@idempot/core";
 
@@ -79,7 +80,10 @@ export function idempotency(options = {}) {
       maxKeyLength
     });
     if (!keyValidation.valid) {
-      res.status(400).json({ error: keyValidation.error });
+      res
+        .status(400)
+        .set("Content-Type", "application/problem+json")
+        .json(keyValidationErrorResponse(keyValidation.error));
       return;
     }
 

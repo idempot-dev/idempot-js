@@ -1,6 +1,6 @@
 packages:
-  - 'packages/*'
-  - 'packages/frameworks/*'
-  - 'packages/stores/*'
+  - "packages/*"
+  - "packages/frameworks/*"
+  - "packages/stores/*"
 allowBuilds:
   better-sqlite3: true
