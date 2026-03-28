@@ -6,7 +6,7 @@ import {
   generateIdempotencyKey
 } from "./shared/shared-helpers.js";
 import { initMysqlSchema } from "./shared/mysql-helpers.js";
-import { makeRequest } from "./shared/request.js";
+import { makeRequest, makeRequestWithoutKey } from "./shared/request.js";
 import {
   createNodeMysqlStore,
   waitForIdempotencyRecordComplete
@@ -201,3 +201,52 @@ t.test("Express + MySQL - handles missing response_status", async (t) => {
     "should return undefined when response_status is NULL"
   );
 });
+
+t.test(
+  "Express + MySQL - returns 400 when Idempotency-Key header is missing",
+  async (t) => {
+    const { port } = t.context;
+
+    const response = await makeRequestWithoutKey(port, { foo: "bar" });
+
+    t.equal(response.status, 400, "should return 400");
+    t.match(
+      response.headers["content-type"],
+      /application\/problem\+json/,
+      "should return problem+json content type"
+    );
+    t.match(response.body.type, /idempotency/i, "should have type field");
+    t.match(response.body.title, /missing/i, "should indicate key is missing");
+  }
+);
+
+t.test(
+  "Express + MySQL - returns 422 when same key is used with different payload",
+  async (t) => {
+    const { port } = t.context;
+    const key = generateIdempotencyKey();
+
+    await makeRequest(port, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+
+    const response2 = await makeRequest(port, {
+      idempotencyKey: key,
+      body: { foo: "different" }
+    });
+
+    t.equal(response2.status, 422, "should return 422");
+    t.match(
+      response2.headers["content-type"],
+      /application\/problem\+json/,
+      "should return problem+json content type"
+    );
+    t.match(response2.body.type, /idempotency/i, "should have type field");
+    t.match(
+      response2.body.title,
+      /already used|different/i,
+      "should indicate key is already used"
+    );
+  }
+);

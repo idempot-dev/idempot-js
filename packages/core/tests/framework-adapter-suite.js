@@ -135,7 +135,14 @@ export function runAdapterTests(adapter) {
     );
 
     t.equal(response.status, 400, "should return 400");
-    t.match(response.body?.error || JSON.stringify(response.body), /required/i);
+    t.match(
+      response.body?.type ||
+        response.body?.title ||
+        response.body?.detail ||
+        JSON.stringify(response.body),
+      /idempotency/i,
+      "should have idempotency-related error"
+    );
 
     await teardown();
   });
