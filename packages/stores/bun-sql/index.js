@@ -1,21 +1,10 @@
+/**
+ * @typedef {import("@idempot/core").IdempotencyRecord} IdempotencyRecord
+ * @typedef {import("@idempot/core").IdempotencyStore} IdempotencyStore
+ */
+
 // @ts-nocheck - bun:sqlite and bun:sql are only available in Bun runtime
 import { Database } from "bun:sqlite";
-
-/**
- * @typedef {Object} IdempotencyRecord
- * @property {string} key
- * @property {string} fingerprint
- * @property {"processing" | "complete"} status
- * @property {{status: number, headers: Record<string, string>, body: string}} [response]
- * @property {number} expiresAt
- */
-
-/**
- * @typedef {Object} IdempotencyStore
- * @property {(key: string, fingerprint: string) => Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>} lookup
- * @property {(key: string, fingerprint: string, ttlMs: number) => Promise<void>} startProcessing
- * @property {(key: string, response: {status: number, headers: Record<string, string>, body: string}) => Promise<void>} complete
- */
 
 /**
  * @typedef {Object} BunSqlIdempotencyStoreOptions
@@ -209,9 +198,9 @@ export class BunSqlIdempotencyStore {
 
   /**
    * Close the database connection
-   * @returns {void | Promise<void>}
+   * @returns {Promise<void>}
    */
-  close() {
+  async close() {
     if (this.isSqlite) {
       this.db.close();
     } else {

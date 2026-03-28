@@ -1,3 +1,9 @@
+/**
+ * @typedef {import("@idempot/core").IdempotencyStore} IdempotencyStore
+ * @typedef {import("@idempot/core").ResilienceOptions} ResilienceOptions
+ * @typedef {import("@idempot/core").IdempotencyOptions} IdempotencyOptions
+ */
+
 // @ts-nocheck
 import {
   generateFingerprint,
@@ -14,12 +20,6 @@ import {
   keyValidationErrorResponse,
   missingKeyResponse
 } from "@idempot/core";
-
-/**
- * @typedef {import("@idempot/core/store/interface.js").IdempotencyStore} IdempotencyStore
- * @typedef {import("@idempot/core/resilience.js").ResilienceOptions} ResilienceOptions
- * @typedef {import("@idempot/core/default-options.js").IdempotencyOptions} IdempotencyOptions
- */
 
 /**
  * HTTP header name for idempotency key as defined in
@@ -83,7 +83,11 @@ export function idempotency(options = {}) {
       res
         .status(400)
         .set("Content-Type", "application/problem+json")
-        .json(keyValidationErrorResponse(keyValidation.error));
+        .json(
+          keyValidationErrorResponse(
+            /** @type {string} */ (keyValidation.error)
+          )
+        );
       return;
     }
 

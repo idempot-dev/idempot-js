@@ -1,3 +1,10 @@
+/**
+ * @typedef {import("@idempot/core").IdempotencyRecord} IdempotencyRecord
+ * @typedef {import("@idempot/core").IdempotencyStore} IdempotencyStore
+ * @typedef {import("@idempot/core").ResilienceOptions} ResilienceOptions
+ * @typedef {import("@idempot/core").IdempotencyOptions} IdempotencyOptions
+ */
+
 import {
   generateFingerprint,
   validateExcludeFields,
@@ -15,13 +22,6 @@ import {
 } from "@idempot/core";
 
 const HEADER_NAME = "idempotency-key";
-
-/**
- * @typedef {import("@idempot/core/store/interface.js").IdempotencyRecord} IdempotencyRecord
- * @typedef {import("@idempot/core/store/interface.js").IdempotencyStore} IdempotencyStore
- * @typedef {import("@idempot/core/resilience.js").ResilienceOptions} ResilienceOptions
- * @typedef {import("@idempot/core/default-options.js").IdempotencyOptions} IdempotencyOptions
- */
 
 /**
  * Fastify middleware for idempotency
@@ -83,7 +83,11 @@ export function idempotency(options = {}) {
       return reply
         .code(400)
         .header("Content-Type", "application/problem+json")
-        .send(keyValidationErrorResponse(keyValidation.error));
+        .send(
+          keyValidationErrorResponse(
+            /** @type {string} */ (keyValidation.error)
+          )
+        );
     }
 
     const bodyText = request.body

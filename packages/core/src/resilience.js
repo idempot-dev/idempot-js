@@ -65,7 +65,7 @@ export function withResilience(store, options = {}) {
     /**
      * @param {string} key
      * @param {string} fingerprint
-     * @returns {Promise<{byKey: import("./interface.js").IdempotencyRecord | null, byFingerprint: import("./interface.js").IdempotencyRecord | null}>}
+     * @returns {Promise<{byKey: import("./store/interface.js").IdempotencyRecord | null, byFingerprint: import("./store/interface.js").IdempotencyRecord | null}>}
      */
     async lookup(key, fingerprint) {
       return breaker.fire(() => store.lookup(key, fingerprint));
