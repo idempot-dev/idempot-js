@@ -52,7 +52,8 @@
     "test:container:stop": "./scripts/container.sh stop",
     "test:container:restart": "./scripts/container.sh restart",
     "test:container:status": "./scripts/container.sh status",
-    "test:container:logs": "./scripts/container.sh logs"
+    "test:container:logs": "./scripts/container.sh logs",
+    "test:spec": "cucumber-js tests/spec/**/*.feature --force-exit"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",
@@ -65,6 +66,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
+    "@cucumber/cucumber": "^12.7.0",
     "@eslint/js": "^9.39.2",
     "@hono/node-server": "^1.19.9",
     "@types/better-sqlite3": "^7.6.13",
