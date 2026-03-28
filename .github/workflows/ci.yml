@@ -27,6 +27,7 @@ jobs:
 
   test:
     name: Test (Node.js ${{ matrix.node-version }})
+    needs: [lint, commitlint]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -111,6 +112,7 @@ jobs:
 
   bun:
     name: Bun
+    needs: [lint, commitlint]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -156,6 +158,7 @@ jobs:
 
   deno:
     name: Deno
+    needs: [lint, commitlint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
