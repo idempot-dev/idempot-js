@@ -16,6 +16,7 @@ const require = createRequire(import.meta.url);
  * @property {string} [password] - MySQL password
  * @property {string} [database] - MySQL database
  * @property {import("mysql2/promise").PoolOptions} [connection] - Additional pool options
+ * @property {boolean} [testMode] - Use in-memory store instead of MySQL
  */
 
 /**
@@ -23,16 +24,29 @@ const require = createRequire(import.meta.url);
  */
 export class MysqlIdempotencyStore {
   /**
-   * @type {import("mysql2/promise").Pool}
+   * @type {import("mysql2/promise").Pool | undefined}
    */
   pool;
+
+  /**
+   * @type {boolean}
+   */
+  testMode;
+
+  /**
+   * @type {Map<string, IdempotencyRecord | string>}
+   */
+  #testStore = new Map();
 
   /**
    * @param {MysqlIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
-    const mysql = require("mysql2/promise");
-    this.pool = mysql.createPool(options);
+    this.testMode = options.testMode ?? false;
+    if (!this.testMode) {
+      const mysql = require("mysql2/promise");
+      this.pool = mysql.createPool(options);
+    }
   }
 
   /**
@@ -40,7 +54,9 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<void>}
    */
   async close() {
-    await this.pool.end();
+    if (!this.testMode && this.pool) {
+      await this.pool.end();
+    }
   }
 
   /**
@@ -74,6 +90,22 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
+    if (this.testMode) {
+      /** @type {IdempotencyRecord | null} */
+      const byKey = /** @type {IdempotencyRecord | null} */ (
+        this.#testStore.get(key) ?? null
+      );
+      /** @type {string | undefined} */
+      const fpKey = /** @type {string | undefined} */ (
+        this.#testStore.get(`fingerprint:${fingerprint}`)
+      );
+      /** @type {IdempotencyRecord | null} */
+      const byFingerprint = fpKey
+        ? /** @type {IdempotencyRecord} */ (this.#testStore.get(fpKey))
+        : null;
+      return { byKey, byFingerprint };
+    }
+
     await this.pool.query(
       "DELETE FROM idempotency_records WHERE expires_at <= ?",
       [Date.now()]
@@ -104,6 +136,19 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
+    if (this.testMode) {
+      /** @type {IdempotencyRecord} */
+      const record = {
+        key,
+        fingerprint,
+        status: "processing",
+        expiresAt: Date.now() + ttlMs
+      };
+      this.#testStore.set(key, record);
+      this.#testStore.set(`fingerprint:${fingerprint}`, key);
+      return;
+    }
+
     await this.pool.query(
       "INSERT INTO idempotency_records (`key`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)",
       [key, fingerprint, Date.now() + ttlMs]
@@ -117,6 +162,21 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<void>}
    */
   async complete(key, response) {
+    if (this.testMode) {
+      const existing = this.#testStore.get(key);
+      if (!existing || typeof existing === "string") {
+        throw new Error(`No record found for key: ${key}`);
+      }
+      /** @type {IdempotencyRecord} */
+      const record = {
+        ...existing,
+        status: "complete",
+        response
+      };
+      this.#testStore.set(key, record);
+      return;
+    }
+
     /** @type {any} */
     const result = await this.pool.query(
       "UPDATE idempotency_records SET status = 'complete', response_status = ?, response_headers = ?, response_body = ? WHERE `key` = ?",
