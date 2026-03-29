@@ -36,15 +36,19 @@ For Deno, import from the deno subpath:
 import { MysqlIdempotencyStore } from "@idempot/mysql-store/deno-mysql.js";
 
 const store = new MysqlIdempotencyStore({
-  hostname: "127.0.0.1",
+  hostname: "localhost",
   port: 3306,
+  db: "myapp",
   username: "root",
-  password: "password",
-  db: "myapp"
+  password: "password"
 });
 
 await store.connect();
 ```
+
+> **Note:** Option names differ between runtimes because they match the underlying libraries:
+> - Node.js uses [`mysql2`](https://github.com/sidorares/node-mysql2) (`host`, `user`, `database`)
+> - Deno uses [`deno-mysql`](https://deno.land/x/mysql) (`hostname`, `username`, `db`)
 
 Or import directly from GitHub:
 
@@ -99,7 +103,7 @@ Creates a new MySQL store for Deno.
 
 **Options:**
 
-- `hostname`: MySQL hostname (default: `"127.0.0.1"`)
+- `hostname`: MySQL hostname (default: `"localhost"`)
 - `port`: MySQL port (default: `3306`)
 - `username`: MySQL username (default: `"root"`)
 - `password`: MySQL password (default: `""`)

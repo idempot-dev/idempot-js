@@ -20,7 +20,7 @@ import { Client } from "mysql";
 
 /**
  * @typedef {Object} MysqlIdempotencyStoreOptions
- * @property {string} [hostname="127.0.0.1"] - MySQL hostname
+ * @property {string} [hostname="localhost"] - MySQL hostname
  * @property {number} [port=3306] - MySQL port
  * @property {string} [username] - MySQL username
  * @property {string} [password] - MySQL password
@@ -41,7 +41,7 @@ export class MysqlIdempotencyStore {
   constructor(options = {}) {
     this.client = new Client();
     this.options = {
-      hostname: options.hostname ?? "127.0.0.1",
+      hostname: options.hostname ?? "localhost",
       port: options.port ?? 3306,
       username: options.username ?? "root",
       password: options.password ?? "",
