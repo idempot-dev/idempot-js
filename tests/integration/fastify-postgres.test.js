@@ -26,7 +26,7 @@ function createFastifyPostgresApp(store) {
     }
   );
   app.addHook("preHandler", idempotency({ store }));
-  app.post("/api", async (req, res) => {
+  app.post("/api", async (req) => {
     await store.pool.query(
       `INSERT INTO ${store.quotedSchemaIdentifier}.orders (data) VALUES ($1)`,
       [JSON.stringify(req.body)]
@@ -40,7 +40,7 @@ t.beforeEach(async (t) => {
   const schema = `t${generateTestId()}`;
   await createPostgresSchema(schema);
 
-  const store = createPostgresStore(schema);
+  const store = await createPostgresStore(schema);
   const app = createFastifyPostgresApp(store);
   await app.listen({ port: 0 });
   const address = app.server.address();

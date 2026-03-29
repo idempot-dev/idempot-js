@@ -15,6 +15,7 @@ const require = createRequire(import.meta.url);
  * @property {string} [user] - MySQL user
  * @property {string} [password] - MySQL password
  * @property {string} [database] - MySQL database
+ * @property {string} [tableName] - MySQL table name (default: "idempotency_records")
  * @property {import("mysql2/promise").PoolOptions} [connection] - Additional pool options
  */
 
@@ -28,11 +29,18 @@ export class MysqlIdempotencyStore {
   pool;
 
   /**
+   * @type {string}
+   */
+  tableName;
+
+  /**
    * @param {MysqlIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
     const mysql = require("mysql2/promise");
-    this.pool = mysql.createPool(options);
+    const { tableName = "idempotency_records", ...poolOptions } = options;
+    this.pool = mysql.createPool(poolOptions);
+    this.tableName = tableName;
   }
 
   /**
@@ -75,18 +83,18 @@ export class MysqlIdempotencyStore {
    */
   async lookup(key, fingerprint) {
     await this.pool.query(
-      "DELETE FROM idempotency_records WHERE expires_at <= ?",
+      `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ?`,
       [Date.now()]
     );
 
     /** @type {any[]} */
     const byKeyResult = await this.pool.query(
-      "SELECT * FROM idempotency_records WHERE `key` = ?",
+      `SELECT * FROM \`${this.tableName}\` WHERE \`key\` = ?`,
       [key]
     );
     /** @type {any[]} */
     const byFingerprintResult = await this.pool.query(
-      "SELECT * FROM idempotency_records WHERE fingerprint = ?",
+      `SELECT * FROM \`${this.tableName}\` WHERE fingerprint = ?`,
       [fingerprint]
     );
 
@@ -105,7 +113,7 @@ export class MysqlIdempotencyStore {
    */
   async startProcessing(key, fingerprint, ttlMs) {
     await this.pool.query(
-      "INSERT INTO idempotency_records (`key`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)",
+      `INSERT INTO \`${this.tableName}\` (\`key\`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)`,
       [key, fingerprint, Date.now() + ttlMs]
     );
   }
@@ -119,7 +127,7 @@ export class MysqlIdempotencyStore {
   async complete(key, response) {
     /** @type {any} */
     const result = await this.pool.query(
-      "UPDATE idempotency_records SET status = 'complete', response_status = ?, response_headers = ?, response_body = ? WHERE `key` = ?",
+      `UPDATE \`${this.tableName}\` SET status = 'complete', response_status = ?, response_headers = ?, response_body = ? WHERE \`key\` = ?`,
       [response.status, JSON.stringify(response.headers), response.body, key]
     );
 
