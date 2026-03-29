@@ -64,6 +64,19 @@ idempot-js/
 
 The core package contains the framework-agnostic idempotency logic. All framework adapters use these core functions.
 
+**Important:** `@idempot/core` is an **internal shared package**, not a user-facing package. Users should never install or import from it directly.
+
+- **Users install:** Framework packages (`@idempot/hono-middleware`, `@idempot/express-middleware`) and store packages (`@idempot/sqlite-store`, `@idempot/redis-store`)
+- **Core is:** A transitive dependency that framework and store packages use internally
+
+```
+User Application
+       │
+       ├─► @idempot/hono-middleware ──► @idempot/core (transitive)
+       │                                      │
+       └─► @idempot/sqlite-store ──────► @idempot/core (transitive)
+```
+
 ### fingerprint.js
 
 Generates a deterministic fingerprint from the request body. This fingerprint detects when the same idempotency key is used with different payloads.
@@ -390,11 +403,14 @@ The containers use arm64 architecture (native to Apple Silicon) to avoid Rosetta
 
 ### Adding a New Storage Backend
 
-1. Implement `IdempotencyStore` interface
-2. Follow existing patterns (see `packages/stores/sqlite/`)
-3. Write unit tests
-4. Add to `examples/` directory
-5. Update README with backend matrix
+1. Copy the `IdempotencyStore` interface pattern from an existing store (e.g., `packages/stores/sqlite/index.js`)
+2. Implement all methods: `lookup`, `startProcessing`, `complete`, `close`
+3. Follow existing patterns (see `packages/stores/sqlite/` for a reference implementation)
+4. Write unit tests using the shared test patterns
+5. Add to `examples/` directory
+6. Update README with backend matrix
+
+**Note:** Do not import `IdempotencyStore` from `@idempot/core`. Define the interface locally in your store implementation, matching the pattern used by existing stores.
 
 ### Adding a New Framework Adapter
 

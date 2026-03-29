@@ -156,7 +156,7 @@ console.log(middleware.circuit.status); // 'closed', 'open', 'half-open'
 ## Quick Start
 
 ```bash
-npm install @idempot/core @idempot/hono-middleware @idempot/sqlite-store
+npm install @idempot/hono-middleware @idempot/sqlite-store
 ```
 
 ```javascript
