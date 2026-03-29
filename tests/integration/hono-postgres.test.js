@@ -10,7 +10,7 @@ import {
   generateTestId,
   generateIdempotencyKey
 } from "./shared/shared-helpers.js";
-import { makeRequest, makeRequestWithoutKey } from "./shared/request.js";
+import { makeRequest } from "./shared/request.js";
 import {
   createPostgresStore,
   waitForIdempotencyRecordComplete
@@ -34,7 +34,7 @@ t.beforeEach(async (t) => {
   const schema = `t${generateTestId()}`;
   await createPostgresSchema(schema);
 
-  const store = createPostgresStore(schema);
+  const store = await createPostgresStore(schema);
   const app = createHonoPostgresApp(store);
 
   const server = serve({

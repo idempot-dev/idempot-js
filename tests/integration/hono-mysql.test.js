@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { idempotency } from "../../packages/frameworks/hono/index.js";
 import { generateIdempotencyKey } from "./shared/shared-helpers.js";
-import { initMysqlSchema } from "./shared/mysql-helpers.js";
+import { initMysqlSchema, generateTableName } from "./shared/mysql-helpers.js";
 import { makeRequest } from "./shared/request.js";
 import {
   createNodeMysqlStore,
@@ -21,9 +21,9 @@ function createHonoMysqlApp(store) {
 }
 
 t.beforeEach(async (t) => {
-  await initMysqlSchema();
-  const store = createNodeMysqlStore();
-  await store.pool.query("DELETE FROM idempotency_records");
+  const tableName = generateTableName();
+  await initMysqlSchema(tableName);
+  const store = createNodeMysqlStore(tableName);
 
   const app = createHonoMysqlApp(store);
 
@@ -38,6 +38,7 @@ t.beforeEach(async (t) => {
   t.context.store = store;
   t.context.server = server;
   t.context.port = port;
+  t.context.tableName = tableName;
 });
 
 t.afterEach(async (t) => {
@@ -46,7 +47,7 @@ t.afterEach(async (t) => {
 });
 
 t.test("Hono + MySQL - first request creates record", async (t) => {
-  const { store, port } = t.context;
+  const { store, port, tableName } = t.context;
   const key = generateIdempotencyKey();
 
   const response = await makeRequest(port, {
@@ -64,7 +65,7 @@ t.test("Hono + MySQL - first request creates record", async (t) => {
   await waitForIdempotencyRecordComplete(store, key);
 
   const [rows] = await store.pool.query(
-    "SELECT * FROM idempotency_records WHERE `key` = ?",
+    `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
     [key]
   );
 
@@ -76,7 +77,7 @@ t.test("Hono + MySQL - first request creates record", async (t) => {
 t.test(
   "Hono + MySQL - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
-    const { store, port } = t.context;
+    const { store, port, tableName } = t.context;
     const key = generateIdempotencyKey();
 
     const response1 = await makeRequest(port, {
@@ -100,7 +101,7 @@ t.test(
     );
 
     const [rows] = await store.pool.query(
-      "SELECT * FROM idempotency_records WHERE `key` = ?",
+      `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
       [key]
     );
 
