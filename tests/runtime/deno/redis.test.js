@@ -1,10 +1,15 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { RedisIdempotencyStore } from "../../../packages/stores/redis/deno-redis.js";
+import { createFakeRedisClient } from "./redis-test-helpers.js";
 
 Deno.test(
   "RedisIdempotencyStore (Deno) can start and complete processing",
   async () => {
-    const store = new RedisIdempotencyStore({ testMode: true });
+    const client = createFakeRedisClient();
+    const store = new RedisIdempotencyStore({ client });
+
+    // Mock the init to use fake client
+    store.redis = client;
 
     await store.startProcessing("key1", "fingerprint1", 60000);
 
@@ -21,14 +26,18 @@ Deno.test(
     assertEquals(completed.byKey?.status, "complete");
     assertEquals(completed.byKey?.response?.status, 200);
 
-    store.close();
+    await store.close();
   }
 );
 
 Deno.test(
   "RedisIdempotencyStore (Deno) complete throws on missing key",
   async () => {
-    const store = new RedisIdempotencyStore({ testMode: true });
+    const client = createFakeRedisClient();
+    const store = new RedisIdempotencyStore({ client });
+
+    // Mock the init to use fake client
+    store.redis = client;
 
     try {
       await store.complete("nonexistent", {
@@ -41,6 +50,6 @@ Deno.test(
       assertEquals(e.message.includes("No record found"), true);
     }
 
-    store.close();
+    await store.close();
   }
 );
