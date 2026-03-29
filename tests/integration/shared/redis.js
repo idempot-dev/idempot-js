@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import { ulid } from "ulid";
-import { RedisIdempotencyStore } from "../../../packages/stores/redis/index.js";
+import { RedisIdempotencyStore } from "../../../packages/stores/redis/node-redis.js";
 
 export async function createRedisStore() {
   const prefix = `test${ulid()}`;
