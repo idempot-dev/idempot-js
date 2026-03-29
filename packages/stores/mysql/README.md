@@ -12,16 +12,14 @@ npm install @idempot/mysql-store mysql2
 
 ```javascript
 import { MysqlIdempotencyStore } from "@idempot/mysql-store";
-import mysql from "mysql2/promise";
 
-const pool = mysql.createPool({
+const store = new MysqlIdempotencyStore({
   host: "localhost",
+  port: 3306,
   database: "myapp",
   user: "root",
   password: "password"
 });
-
-const store = new MysqlIdempotencyStore({ pool });
 
 // Close on shutdown
 process.on("SIGINT", async () => {
@@ -76,11 +74,24 @@ The store creates a table named `idempotency_records` with:
 
 ### Node.js: `new MysqlIdempotencyStore(options)`
 
-Creates a new MySQL store for Node.js.
+Creates a new MySQL store for Node.js. Options are passed directly to `mysql2.createPool()`.
 
-**Options:**
+**Common Options:**
 
-- `pool`: MySQL connection pool (from `mysql2` package)
+- `connectionString`: MySQL connection string (e.g., `mysql://user:pass@host:port/db`)
+- `host`: MySQL host (default: `localhost`)
+- `port`: MySQL port (default: `3306`)
+- `user`: MySQL user (default: `root`)
+- `password`: MySQL password
+- `database`: MySQL database name
+
+**Pool Options:**
+
+- `connectionLimit`: Maximum connections in pool (default: `10`)
+- `queueLimit`: Maximum queued connections
+- `waitForConnections`: Wait for available connection (default: `true`)
+
+See [mysql2 documentation](https://github.com/sidorares/node-mysql2#connection-options) for all available options.
 
 ### Deno: `new MysqlIdempotencyStore(options)`
 
