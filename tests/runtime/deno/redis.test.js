@@ -1,10 +1,10 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { DenoRedisIdempotencyStore } from "../../../packages/stores/redis/deno-redis.js";
+import { RedisIdempotencyStore } from "../../../packages/stores/redis/deno-redis.js";
 
 Deno.test(
-  "DenoRedisIdempotencyStore can start and complete processing",
+  "RedisIdempotencyStore (Deno) can start and complete processing",
   async () => {
-    const store = new DenoRedisIdempotencyStore({ testMode: true });
+    const store = new RedisIdempotencyStore({ testMode: true });
 
     await store.startProcessing("key1", "fingerprint1", 60000);
 
@@ -26,9 +26,9 @@ Deno.test(
 );
 
 Deno.test(
-  "DenoRedisIdempotencyStore complete throws on missing key",
+  "RedisIdempotencyStore (Deno) complete throws on missing key",
   async () => {
-    const store = new DenoRedisIdempotencyStore({ testMode: true });
+    const store = new RedisIdempotencyStore({ testMode: true });
 
     try {
       await store.complete("nonexistent", {

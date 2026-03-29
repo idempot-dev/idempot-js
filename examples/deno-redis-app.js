@@ -1,14 +1,14 @@
 import { Hono } from "hono";
 import { ulid } from "https://esm.sh/ulid@3";
 import { idempotency } from "../packages/frameworks/hono/index.js";
-import { DenoRedisIdempotencyStore } from "../packages/stores/redis/index.js";
+import { RedisIdempotencyStore } from "../packages/stores/redis/deno-redis.js";
 
 const app = new Hono();
 
 app.use(
   "*",
   idempotency({
-    store: new DenoRedisIdempotencyStore({
+    store: new RedisIdempotencyStore({
       hostname: Deno.env.get("REDIS_HOST") ?? "127.0.0.1",
       port: parseInt(Deno.env.get("REDIS_PORT") ?? "6379")
     })

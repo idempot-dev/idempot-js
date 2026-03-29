@@ -75,9 +75,11 @@ test("store packages structure exists", async (t) => {
       existsSync(join(storeDir, "package.json")),
       `packages/stores/${store}/package.json exists`
     );
+    // redis package uses node-redis.js as main entry, others use index.js
+    const mainFile = store === "redis" ? "node-redis.js" : "index.js";
     t.ok(
-      existsSync(join(storeDir, "index.js")),
-      `packages/stores/${store}/index.js exists`
+      existsSync(join(storeDir, mainFile)),
+      `packages/stores/${store}/${mainFile} exists`
     );
   }
 });
