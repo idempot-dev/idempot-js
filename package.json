@@ -53,7 +53,8 @@
     "test:container:restart": "./scripts/container.sh restart",
     "test:container:status": "./scripts/container.sh status",
     "test:container:logs": "./scripts/container.sh logs",
-    "test:spec": "cucumber-js tests/spec/**/*.feature --force-exit"
+    "test:spec": "cucumber-js tests/spec/**/*.feature --force-exit",
+    "prepare": "husky"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",
@@ -89,6 +90,7 @@
     "husky": "^9.1.7",
     "ioredis": "^5.9.2",
     "ioredis-mock": "^8.13.1",
+    "lint-staged": "^16.4.0",
     "mysql2": "^3.20.0",
     "pg": "^8.18.0",
     "pgmock": "^1.0.3",
@@ -96,5 +98,14 @@
     "tap": "^21.5.0",
     "typescript": "^5.8.3",
     "ulid": "^3.0.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
