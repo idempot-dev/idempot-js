@@ -4,10 +4,8 @@
   "description": "MySQL storage backend for idempotency",
   "type": "module",
   "main": "./node-mysql.js",
-  "types": "./dist/node-mysql.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/node-mysql.d.ts",
       "import": "./node-mysql.js"
     },
     "./deno-mysql.js": "./deno-mysql.js"
@@ -31,7 +29,7 @@
   },
   "license": "BSD-3-Clause",
   "scripts": {
-    "build": "tsc",
+    "build": "echo 'No build step required for JavaScript project with JSDoc'",
     "test": "tap tests/"
   },
   "peerDependencies": {
