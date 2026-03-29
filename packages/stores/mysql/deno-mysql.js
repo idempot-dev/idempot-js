@@ -16,7 +16,19 @@
  */
 
 // @ts-nocheck - Deno runtime only
-import { Client } from "mysql";
+/** @type {any} */
+let mysqlClient;
+
+/**
+ * @returns {Promise<any>}
+ */
+async function getMysqlClient() {
+  if (!mysqlClient) {
+    const { Client } = await import("mysql");
+    mysqlClient = Client;
+  }
+  return mysqlClient;
+}
 
 /**
  * @typedef {Object} MysqlIdempotencyStoreOptions
@@ -33,17 +45,13 @@ import { Client } from "mysql";
  * @implements {IdempotencyStore}
  */
 export class MysqlIdempotencyStore {
-  /** @type {Client} */
+  /** @type {any} */
   client;
 
-  /**
-   * @type {boolean}
-   */
+  /** @type {boolean} */
   testMode;
 
-  /**
-   * @type {Map<string, IdempotencyRecord>}
-   */
+  /** @type {Map<string, IdempotencyRecord>} */
   #testStore = new Map();
 
   /**
@@ -51,9 +59,6 @@ export class MysqlIdempotencyStore {
    */
   constructor(options = {}) {
     this.testMode = options.testMode ?? false;
-    if (!this.testMode) {
-      this.client = new Client();
-    }
     this.options = {
       hostname: options.hostname ?? "localhost",
       port: options.port ?? 3306,
@@ -71,6 +76,18 @@ export class MysqlIdempotencyStore {
   options;
 
   /**
+   * @private
+   * @returns {Promise<any>}
+   */
+  async #getClient() {
+    if (!this.client) {
+      const Client = await getMysqlClient();
+      this.client = new Client();
+    }
+    return this.client;
+  }
+
+  /**
    * Connect to the database
    * @returns {Promise<void>}
    */
@@ -78,7 +95,8 @@ export class MysqlIdempotencyStore {
     if (this.testMode) {
       return;
     }
-    await this.client.connect(this.options);
+    const client = await this.#getClient();
+    await client.connect(this.options);
     await this.initSchema();
   }
 
@@ -87,6 +105,7 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<void>}
    */
   async initSchema() {
+    const client = await this.#getClient();
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS idempotency_records (
         \`key\` VARCHAR(255) PRIMARY KEY,
@@ -100,7 +119,7 @@ export class MysqlIdempotencyStore {
         INDEX idx_expires_at (expires_at)
       )
     `;
-    await this.client.execute(createTableSQL);
+    await client.execute(createTableSQL);
   }
 
   /**
@@ -111,7 +130,8 @@ export class MysqlIdempotencyStore {
     if (this.testMode) {
       return;
     }
-    await this.client.close();
+    const client = await this.#getClient();
+    await client.close();
   }
 
   /**
@@ -161,16 +181,17 @@ export class MysqlIdempotencyStore {
       return { byKey, byFingerprint };
     }
 
-    await this.client.execute(
+    const client = await this.#getClient();
+    await client.execute(
       "DELETE FROM idempotency_records WHERE expires_at <= ?",
       [Date.now()]
     );
 
-    const [byKeyResult] = await this.client.query(
+    const [byKeyResult] = await client.query(
       "SELECT * FROM idempotency_records WHERE `key` = ?",
       [key]
     );
-    const [byFingerprintResult] = await this.client.query(
+    const [byFingerprintResult] = await client.query(
       "SELECT * FROM idempotency_records WHERE fingerprint = ?",
       [fingerprint]
     );
@@ -201,7 +222,8 @@ export class MysqlIdempotencyStore {
       return;
     }
 
-    await this.client.execute(
+    const client = await this.#getClient();
+    await client.execute(
       "INSERT INTO idempotency_records (`key`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)",
       [key, fingerprint, Date.now() + ttlMs]
     );
@@ -229,7 +251,8 @@ export class MysqlIdempotencyStore {
       return;
     }
 
-    const [result] = await this.client.execute(
+    const client = await this.#getClient();
+    const [result] = await client.execute(
       "UPDATE idempotency_records SET status = 'complete', response_status = ?, response_headers = ?, response_body = ? WHERE `key` = ?",
       [response.status, JSON.stringify(response.headers), response.body, key]
     );

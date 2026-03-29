@@ -1,6 +1,7 @@
 {
   "imports": {
     "../../src/": "../../src/",
-    "../../src/store/deno-kv.js": "../../src/store/deno-kv.js"
+    "../../src/store/deno-kv.js": "../../src/store/deno-kv.js",
+    "../../packages/stores/mysql/deno-mysql.js": "../../packages/stores/mysql/deno-mysql.js"
   }
 }
