@@ -34,7 +34,7 @@
   "license": "BSD-3-Clause",
   "scripts": {
     "build": "tsc",
-    "test": "echo 'Skipping tests - run with bun test runtime-tests/bun/' && exit 0"
+    "test": "echo 'Tests are in tests/runtime/bun/ - run: npm run test:bun' && exit 0"
   },
   "dependencies": {
     "@idempot/core": "workspace:*"
