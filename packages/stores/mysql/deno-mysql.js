@@ -19,8 +19,8 @@
 import { Client } from "mysql";
 
 /**
- * @typedef {Object} DenoMysqlIdempotencyStoreOptions
- * @property {string} [hostname="127.0.0.1"] - MySQL hostname
+ * @typedef {Object} MysqlIdempotencyStoreOptions
+ * @property {string} [hostname="localhost"] - MySQL hostname
  * @property {number} [port=3306] - MySQL port
  * @property {string} [username] - MySQL username
  * @property {string} [password] - MySQL password
@@ -31,17 +31,17 @@ import { Client } from "mysql";
 /**
  * @implements {IdempotencyStore}
  */
-export class DenoMysqlIdempotencyStore {
+export class MysqlIdempotencyStore {
   /** @type {Client} */
   client;
 
   /**
-   * @param {DenoMysqlIdempotencyStoreOptions} [options]
+   * @param {MysqlIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
     this.client = new Client();
     this.options = {
-      hostname: options.hostname ?? "127.0.0.1",
+      hostname: options.hostname ?? "localhost",
       port: options.port ?? 3306,
       username: options.username ?? "root",
       password: options.password ?? "",
@@ -52,7 +52,7 @@ export class DenoMysqlIdempotencyStore {
 
   /**
    * @private
-   * @type {DenoMysqlIdempotencyStoreOptions}
+   * @type {MysqlIdempotencyStoreOptions}
    */
   options;
 

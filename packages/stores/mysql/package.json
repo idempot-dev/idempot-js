@@ -1,25 +1,26 @@
 {
-  "name": "@idempot/node-mysql-store",
+  "name": "@idempot/mysql-store",
   "version": "0.1.0",
-  "description": "MySQL storage backend for idempotency (Node.js)",
+  "description": "MySQL storage backend for idempotency",
   "type": "module",
-  "main": "./index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./node-mysql.js",
+  "types": "./dist/node-mysql.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./index.js"
-    }
+      "types": "./dist/node-mysql.d.ts",
+      "import": "./node-mysql.js"
+    },
+    "./deno-mysql.js": "./deno-mysql.js"
   },
   "files": [
-    "index.js",
+    "node-mysql.js",
+    "deno-mysql.js",
     "dist",
     "README.md",
     "LICENSE"
   ],
   "keywords": [
     "mysql",
-    "node",
     "store",
     "idempotency",
     "idempotent"

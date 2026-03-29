@@ -52,8 +52,7 @@ idempot-js/
 │       ├── sqlite/
 │       ├── redis/
 │       ├── postgres/
-│       ├── node-mysql/
-│       ├── deno-mysql/
+│       ├── mysql/
 │       └── bun-sql/
 │
 ├── examples/                    # Usage examples
@@ -181,14 +180,14 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 - JSONB type for headers (more efficient than TEXT)
 - Connection pooling via `pg.Pool`
 
-### MySQL (`packages/stores/node-mysql/` and `packages/stores/deno-mysql/`)
+### MySQL (`packages/stores/mysql/`)
 
 **Best for:** Multi-server deployments, existing MySQL infrastructure
 
 **Implementation:**
 
-- Node.js: Uses `mysql2` with connection pooling
-- Deno: Uses `mysql` from deno.land/x
+- Node.js: `MysqlIdempotencyStore` uses `mysql2` with connection pooling
+- Deno: `MysqlIdempotencyStore` uses `mysql` from deno.land/x (import via `@idempot/mysql-store/deno-mysql.js`)
 - JSON column for response headers
 - Indexed queries on key and fingerprint
 
@@ -279,7 +278,7 @@ The circuit breaker pattern provides graceful degradation:
 
 - **Node.js**: Full support via better-sqlite3, ioredis, pg, mysql2
 - **Bun**: Native SQLite via `bun:sqlite`, ioredis support
-- **Deno**: Native SQLite via `deno-sqlite`, native Redis support, MySQL via deno-mysql
+- **Deno**: Native SQLite via `deno-sqlite`, native Redis support, MySQL via `@idempot/mysql-store/deno-mysql.js`
 - **AWS Lambda**: Planned (DynamoDB or Redis via AWS SDK)
 - **Cloudflare Workers**: Planned (KV storage)
 
