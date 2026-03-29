@@ -85,3 +85,7 @@ export default {
 ## Requirements
 
 - Bun runtime (uses `bun:sqlite` and `bun` package for SQL)
+
+## License
+
+BSD-3-Clause

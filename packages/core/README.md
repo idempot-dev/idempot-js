@@ -45,4 +45,4 @@ TypeScript types are bundled into framework and store packages, so users can acc
 
 ## License
 
-MIT
+BSD-3-Clause
