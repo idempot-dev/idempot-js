@@ -143,11 +143,15 @@ test("RedisIdempotencyStore - close calls client.quit", async (t) => {
 
 test("RedisIdempotencyStore - handles null pipeline results", async (t) => {
   const client = createFakeRedisClient();
-  sinon.replace(client, "pipeline", sinon.fake.returns({
-    get: () => {},
-    setex: () => {},
-    exec: sinon.fake.resolves(null)
-  }));
+  sinon.replace(
+    client,
+    "pipeline",
+    sinon.fake.returns({
+      get: () => {},
+      setex: () => {},
+      exec: sinon.fake.resolves(null)
+    })
+  );
   t.teardown(() => sinon.restore());
 
   const store = new RedisIdempotencyStore({ client });
@@ -160,11 +164,15 @@ test("RedisIdempotencyStore - handles null pipeline results", async (t) => {
 
 test("RedisIdempotencyStore - handles pipeline errors gracefully", async (t) => {
   const client = createFakeRedisClient();
-  sinon.replace(client, "pipeline", sinon.fake.returns({
-    get: () => {},
-    setex: () => {},
-    exec: sinon.fake.rejects(new Error("Connection is closed"))
-  }));
+  sinon.replace(
+    client,
+    "pipeline",
+    sinon.fake.returns({
+      get: () => {},
+      setex: () => {},
+      exec: sinon.fake.rejects(new Error("Connection is closed"))
+    })
+  );
   t.teardown(() => sinon.restore());
 
   const store = new RedisIdempotencyStore({ client });
