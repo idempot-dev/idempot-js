@@ -2,11 +2,23 @@
 
 ## Quality Requirements
 
-**All commits must pass tests with 100% code coverage.** Run `npm run test:verify-coverage` before committing.
+**All commits must be green.** Every commit must pass all checks before being pushed.
 
-When trying to learn which lines are uncovered, use `npm run test:coverage`, which will report full coverage details for all files.
+**100% code coverage is required.** This means:
 
-**Never use `--no-verify` when committing.** This flag bypasses pre-commit hooks that enforce the 100% coverage requirement.
+- 100% of functions covered
+- 100% of lines covered
+- 100% of branches covered
+
+Run `npm run test:verify-coverage` before committing. When trying to learn which lines are uncovered, use `npm run test:coverage`, which will report full coverage details for all files.
+
+**All commits must pass linting and formatting checks:**
+
+- ESLint must pass with no errors
+- Prettier must pass with no formatting issues
+- Commitlint must pass (conventional commit format)
+
+**Never use `--no-verify` when committing.** This flag bypasses pre-commit hooks that enforce the coverage and linting requirements.
 
 **Build:**
 
