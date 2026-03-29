@@ -3,17 +3,17 @@
   "version": "0.1.0",
   "description": "Redis storage backend for idempotency",
   "type": "module",
-  "main": "./index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./node-redis.js",
+  "types": "./dist/node-redis.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./index.js"
-    }
+      "types": "./dist/node-redis.d.ts",
+      "import": "./node-redis.js"
+    },
+    "./deno-redis.js": "./deno-redis.js"
   },
   "files": [
-    "index.js",
-    "interface.js",
+    "node-redis.js",
     "deno-redis.js",
     "dist",
     "README.md",

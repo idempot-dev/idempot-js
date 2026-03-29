@@ -2,7 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import Redis from "ioredis";
 import { idempotency } from "../packages/frameworks/hono/index.js";
-import { RedisIdempotencyStore } from "../packages/stores/redis/index.js";
+import { RedisIdempotencyStore } from "../packages/stores/redis/node-redis.js";
 import { ulid } from "ulid";
 
 const app = new Hono();
