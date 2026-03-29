@@ -33,30 +33,6 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.9
         version: 1.19.11(hono@4.12.7)
-      '@types/better-sqlite3':
-        specifier: ^7.6.13
-        version: 7.6.13
-      '@types/deno':
-        specifier: ^2.5.0
-        version: 2.5.0
-      '@types/express':
-        specifier: ^5.0.6
-        version: 5.0.6
-      '@types/jsonpath-plus':
-        specifier: ^5.0.5
-        version: 5.0.5
-      '@types/node':
-        specifier: ^20.11.17
-        version: 20.19.37
-      '@types/opossum':
-        specifier: ^8.1.9
-        version: 8.1.9
-      '@types/pg':
-        specifier: ^8.16.0
-        version: 8.18.0
-      '@types/tap':
-        specifier: ^15.0.12
-        version: 15.0.12
       better-sqlite3:
         specifier: ^12.6.2
         version: 12.6.2
@@ -111,9 +87,6 @@ importers:
       tap:
         specifier: ^21.5.0
         version: 21.6.2(@types/node@20.19.37)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
       ulid:
         specifier: ^3.0.2
         version: 3.0.2
@@ -749,32 +722,11 @@ packages:
     resolution: {integrity: sha512-Y8cK9aggNRsqJVaKUlEYs4s7CvQ1b1ta2DVPyAimb0I2qhzjNk+A+mxvll/klL0RlfuIUei8BF7YWiua4kQqww==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
-  '@types/better-sqlite3@7.6.13':
-    resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
-
-  '@types/body-parser@1.19.6':
-    resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
-
-  '@types/connect@3.4.38':
-    resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
-
-  '@types/deno@2.5.0':
-    resolution: {integrity: sha512-g8JS38vmc0S87jKsFzre+0ZyMOUDHPVokEJymSCRlL57h6f/FdKPWBXgdFh3Z8Ees9sz11qt9VWELU9Y9ZkiVw==}
-
   '@types/esrecurse@4.3.1':
     resolution: {integrity: sha512-xJBAbDifo5hpffDBuHl0Y8ywswbiAp/Wi7Y/GtAgSlZyIABppyurxVueOPE8LUQOxdlgi6Zqce7uoEpqNTeiUw==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
-
-  '@types/express-serve-static-core@5.1.1':
-    resolution: {integrity: sha512-v4zIMr/cX7/d2BpAEX3KNKL/JrT1s43s96lLvvdTmza1oEvDudCqK9aF/djc/SWgy8Yh0h30TZx5VpzqFCxk5A==}
-
-  '@types/express@5.0.6':
-    resolution: {integrity: sha512-sKYVuV7Sv9fbPIt/442koC7+IIwK5olP1KWeD88e/idgoJqDm3JV/YUiPwkoKK92ylff2MGxSz1CSjsXelx0YA==}
-
-  '@types/http-errors@2.0.5':
-    resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
   '@types/ioredis-mock@8.2.7':
     resolution: {integrity: sha512-YsGiaOIYBKeVvu/7GYziAD8qX3LJem5LK00d5PKykzsQJMLysAqXA61AkNuYWCekYl64tbMTqVOMF4SYoCPbQg==}
@@ -787,35 +739,11 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@types/jsonpath-plus@5.0.5':
-    resolution: {integrity: sha512-aaqqDf5LcGOtAfEntO5qKZS6ixT0MpNhUXNwbVPdLf7ET9hKsufJq+buZr7eXSnWoLRyGzVj2Yz2hbjVSK3wsA==}
-
   '@types/node@20.19.37':
     resolution: {integrity: sha512-8kzdPJ3FsNsVIurqBs7oodNnCEVbni9yUEkaHbgptDACOPW04jimGagZ51E6+lXUwJjgnBw+hyko/lkFWCldqw==}
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
-
-  '@types/opossum@8.1.9':
-    resolution: {integrity: sha512-Jm/tYxuJFefiwRYs+/EOsUP3ktk0c8siMgAHPLnA4PXF4wKghzcjqf88dY+Xii5jId5Txw4JV0FMKTpjbd7KJA==}
-
-  '@types/pg@8.18.0':
-    resolution: {integrity: sha512-gT+oueVQkqnj6ajGJXblFR4iavIXWsGAFCk3dP4Kki5+a9R4NMt0JARdk6s8cUKcfUoqP5dAtDSLU8xYUTFV+Q==}
-
-  '@types/qs@6.15.0':
-    resolution: {integrity: sha512-JawvT8iBVWpzTrz3EGw9BTQFg3BQNmwERdKE22vlTxawwtbyUSlMppvZYKLZzB5zgACXdXxbD3m1bXaMqP/9ow==}
-
-  '@types/range-parser@1.2.7':
-    resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
-
-  '@types/send@1.2.1':
-    resolution: {integrity: sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ==}
-
-  '@types/serve-static@2.2.0':
-    resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
-
-  '@types/tap@15.0.12':
-    resolution: {integrity: sha512-QuVlxQEBOBASkirrwp0ciwO9stIzOdRMHyaYYsexeVSAYwR4sq+YIYaQbVaYXSXi8+yPf22ZZNieRCB8KAJrTA==}
 
   '@typescript-eslint/types@8.57.2':
     resolution: {integrity: sha512-/iZM6FnM4tnx9csuTxspMW4BOSegshwX5oBDznJ7S4WggL7Vczz5d2W11ecc4vRrQMQHXRSxzrCsyG5EsPPTbA==}
@@ -3771,39 +3699,9 @@ snapshots:
       '@tufjs/canonical-json': 2.0.0
       minimatch: 10.2.4
 
-  '@types/better-sqlite3@7.6.13':
-    dependencies:
-      '@types/node': 20.19.37
-
-  '@types/body-parser@1.19.6':
-    dependencies:
-      '@types/connect': 3.4.38
-      '@types/node': 20.19.37
-
-  '@types/connect@3.4.38':
-    dependencies:
-      '@types/node': 20.19.37
-
-  '@types/deno@2.5.0': {}
-
   '@types/esrecurse@4.3.1': {}
 
   '@types/estree@1.0.8': {}
-
-  '@types/express-serve-static-core@5.1.1':
-    dependencies:
-      '@types/node': 20.19.37
-      '@types/qs': 6.15.0
-      '@types/range-parser': 1.2.7
-      '@types/send': 1.2.1
-
-  '@types/express@5.0.6':
-    dependencies:
-      '@types/body-parser': 1.19.6
-      '@types/express-serve-static-core': 5.1.1
-      '@types/serve-static': 2.2.0
-
-  '@types/http-errors@2.0.5': {}
 
   '@types/ioredis-mock@8.2.7(ioredis@5.10.0)':
     dependencies:
@@ -3813,40 +3711,11 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/jsonpath-plus@5.0.5': {}
-
   '@types/node@20.19.37':
     dependencies:
       undici-types: 6.21.0
 
   '@types/normalize-package-data@2.4.4': {}
-
-  '@types/opossum@8.1.9':
-    dependencies:
-      '@types/node': 20.19.37
-
-  '@types/pg@8.18.0':
-    dependencies:
-      '@types/node': 20.19.37
-      pg-protocol: 1.13.0
-      pg-types: 2.2.0
-
-  '@types/qs@6.15.0': {}
-
-  '@types/range-parser@1.2.7': {}
-
-  '@types/send@1.2.1':
-    dependencies:
-      '@types/node': 20.19.37
-
-  '@types/serve-static@2.2.0':
-    dependencies:
-      '@types/http-errors': 2.0.5
-      '@types/node': 20.19.37
-
-  '@types/tap@15.0.12':
-    dependencies:
-      '@types/node': 20.19.37
 
   '@typescript-eslint/types@8.57.2': {}
 

@@ -4,10 +4,8 @@
   "description": "Redis storage backend for idempotency",
   "type": "module",
   "main": "./node-redis.js",
-  "types": "./dist/node-redis.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/node-redis.d.ts",
       "import": "./node-redis.js"
     },
     "./deno-redis.js": "./deno-redis.js"
@@ -31,7 +29,6 @@
   },
   "license": "BSD-3-Clause",
   "scripts": {
-    "build": "tsc",
     "test": "tap tests/"
   },
   "peerDependencies": {

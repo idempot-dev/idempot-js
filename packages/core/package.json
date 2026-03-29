@@ -4,10 +4,8 @@
   "description": "Core idempotency logic for idempot middleware",
   "type": "module",
   "main": "./src/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "import": "./src/index.js"
     }
   },
@@ -30,7 +28,6 @@
   },
   "license": "BSD-3-Clause",
   "scripts": {
-    "build": "tsc",
     "test": "tap tests/"
   },
   "dependencies": {

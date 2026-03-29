@@ -41,7 +41,30 @@ This package **must not** export anything intended for direct user consumption. 
 1. Framework adapters (`@idempot/hono-middleware`, `@idempot/express-middleware`, `@idempot/fastify-middleware`)
 2. Storage backends (`@idempot/sqlite-store`, `@idempot/redis-store`, etc.)
 
-TypeScript types are bundled into framework and store packages, so users can access them without importing from core.
+## TypeScript Support
+
+This library uses JavaScript with JSDoc comments for type information. Enable `allowJs` in your TypeScript configuration to use these types directly—no separate .d.ts files needed.
+
+To use this library in a TypeScript project:
+
+1. Add these settings to your `tsconfig.json`:
+
+   ```json
+   {
+     "allowJs": true,
+     "checkJs": true
+   }
+   ```
+
+2. Import the library as you normally would:
+
+   ```typescript
+   import { idempotency } from "@idempot/core";
+   ```
+
+3. JSDoc comments provide full type safety: parameter types, return types, and detailed documentation in your IDE.
+
+This approach simplifies maintenance while giving TypeScript users an excellent developer experience.
 
 ## License
 

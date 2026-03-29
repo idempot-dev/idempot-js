@@ -74,6 +74,31 @@ const store = new DenoRedisIdempotencyStore({
 });
 ```
 
+## TypeScript Support
+
+This library uses JavaScript with JSDoc comments for type information. Enable `allowJs` in your TypeScript configuration to use these types directly—no separate .d.ts files needed.
+
+To use this library in a TypeScript project:
+
+1. Add these settings to your `tsconfig.json`:
+
+   ```json
+   {
+     "allowJs": true,
+     "checkJs": true
+   }
+   ```
+
+2. Import the library as you normally would:
+
+   ```typescript
+   import { RedisIdempotencyStore } from "@idempot/redis-store";
+   ```
+
+3. JSDoc comments provide full type safety: parameter types, return types, and detailed documentation in your IDE.
+
+This approach simplifies maintenance while giving TypeScript users an excellent developer experience.
+
 ## License
 
 BSD-3-Clause
