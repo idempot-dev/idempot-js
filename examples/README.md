@@ -170,11 +170,11 @@ idempotency({
 
 ## TypeScript Support
 
-This library is written in JavaScript with JSDoc comments that provide rich type information. TypeScript users can leverage these types directly without needing separate .d.ts files by enabling the `allowJs` option in their TypeScript configuration.
+This library uses JavaScript with JSDoc comments for type information. Enable `allowJs` in your TypeScript configuration to use these types directly—no separate .d.ts files needed.
 
 To use this library in a TypeScript project:
 
-1. Ensure your `tsconfig.json` has these settings:
+1. Add these settings to your `tsconfig.json`:
 
    ```json
    {
@@ -189,6 +189,6 @@ To use this library in a TypeScript project:
    import { idempotency } from "@idempot/core";
    ```
 
-3. The JSDoc comments will provide full type safety, including parameter types, return types, and detailed documentation in your IDE.
+3. JSDoc comments provide full type safety: parameter types, return types, and detailed documentation in your IDE.
 
-This approach simplifies maintenance while providing excellent TypeScript developer experience.
+This approach simplifies maintenance while giving TypeScript users an excellent developer experience.
