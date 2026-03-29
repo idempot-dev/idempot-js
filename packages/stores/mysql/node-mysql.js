@@ -106,6 +106,9 @@ export class MysqlIdempotencyStore {
       return { byKey, byFingerprint };
     }
 
+    if (!this.pool) {
+      throw new Error("Pool not initialized");
+    }
     await this.pool.query(
       "DELETE FROM idempotency_records WHERE expires_at <= ?",
       [Date.now()]
@@ -149,6 +152,9 @@ export class MysqlIdempotencyStore {
       return;
     }
 
+    if (!this.pool) {
+      throw new Error("Pool not initialized");
+    }
     await this.pool.query(
       "INSERT INTO idempotency_records (`key`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)",
       [key, fingerprint, Date.now() + ttlMs]
@@ -177,6 +183,9 @@ export class MysqlIdempotencyStore {
       return;
     }
 
+    if (!this.pool) {
+      throw new Error("Pool not initialized");
+    }
     /** @type {any} */
     const result = await this.pool.query(
       "UPDATE idempotency_records SET status = 'complete', response_status = ?, response_headers = ?, response_body = ? WHERE `key` = ?",

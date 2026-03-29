@@ -32,7 +32,7 @@
   "license": "BSD-3-Clause",
   "scripts": {
     "build": "tsc",
-    "test": "tap tests/"
+    "test": "tap tests/ *.test.js"
   },
   "peerDependencies": {
     "mysql2": ">=3.0.0"
