@@ -3,6 +3,7 @@ files:
   - "tests/integration/**/*.test.js"
   - "tests/monorepo/**/*.test.js"
   - "packages/*/tests/**/*.test.js"
+  - "packages/*/*/tests/**/*.test.js"
   - "packages/frameworks/**/*.test.js"
   - "packages/stores/*/*.test.js"
 
@@ -11,3 +12,4 @@ exclude:
   - "**/shared/*.js"
   - "tests/integration/shared/"
   - "tests/runtime/bun/bun-sql-integration.test.js"
+  - "**/deno-*.js"

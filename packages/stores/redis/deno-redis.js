@@ -23,7 +23,6 @@ import { connect } from "@db/redis";
  * @property {string} [hostname] - Redis hostname
  * @property {number} [port] - Redis port
  * @property {string} [prefix] - Key prefix (default: "idempotency:")
- * @property {boolean} [testMode] - Use in-memory store instead of Redis
  */
 
 export class RedisIdempotencyStore {
@@ -31,22 +30,18 @@ export class RedisIdempotencyStore {
   redis = null;
   /** @type {string} */
   prefix;
-  /** @type {boolean} */
-  testMode;
-
-  /** @type {Map<string, IdempotencyRecord | string>} */
-  #testStore = new Map();
 
   /**
    * @param {RedisIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
     this.prefix = options.prefix ?? "idempotency:";
-    this.testMode = options.testMode ?? false;
   }
 
-  close() {
-    // Redis connection will be closed when the test ends
+  async close() {
+    if (this.redis) {
+      await this.redis.close();
+    }
   }
 
   /**
@@ -56,22 +51,6 @@ export class RedisIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
-    if (this.testMode) {
-      /** @type {IdempotencyRecord | null} */
-      const byKey = /** @type {IdempotencyRecord | null} */ (
-        this.#testStore.get(key) ?? null
-      );
-      /** @type {string | undefined} */
-      const fpKey = /** @type {string | undefined} */ (
-        this.#testStore.get(`fingerprint:${fingerprint}`)
-      );
-      /** @type {IdempotencyRecord | null} */
-      const byFingerprint = fpKey
-        ? /** @type {IdempotencyRecord} */ (this.#testStore.get(fpKey))
-        : null;
-      return { byKey, byFingerprint };
-    }
-
     await this.init();
     const [byKeyJson, fpKeyJson] = await Promise.all([
       this.redis.get(`${this.prefix}${key}`),
@@ -97,19 +76,6 @@ export class RedisIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
-    if (this.testMode) {
-      /** @type {IdempotencyRecord} */
-      const record = {
-        key,
-        fingerprint,
-        status: "processing",
-        expiresAt: Date.now() + ttlMs
-      };
-      this.#testStore.set(key, record);
-      this.#testStore.set(`fingerprint:${fingerprint}`, key);
-      return;
-    }
-
     await this.init();
     const ttlSeconds = Math.ceil(ttlMs / 1000);
     const record = {
@@ -137,21 +103,6 @@ export class RedisIdempotencyStore {
    * @throws {Error} If no record found for key
    */
   async complete(key, response) {
-    if (this.testMode) {
-      const existing = this.#testStore.get(key);
-      if (!existing || typeof existing === "string") {
-        throw new Error(`No record found for key: ${key}`);
-      }
-      /** @type {IdempotencyRecord} */
-      const record = {
-        ...existing,
-        status: "complete",
-        response
-      };
-      this.#testStore.set(key, record);
-      return;
-    }
-
     await this.init();
     const existingJson = await this.redis.get(`${this.prefix}${key}`);
     if (!existingJson) {
@@ -178,7 +129,7 @@ export class RedisIdempotencyStore {
    * @returns {Promise<void>}
    */
   async init() {
-    if (!this.redis && !this.testMode) {
+    if (!this.redis) {
       this.redis = await connect({ hostname: "127.0.0.1", port: 6379 });
     }
   }

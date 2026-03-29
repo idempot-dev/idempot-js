@@ -1,14 +1,12 @@
-// packages/stores/redis/redis.properties.test.js
 import { test } from "tap";
 import * as fc from "fast-check";
-import RedisMock from "ioredis-mock";
 import { RedisIdempotencyStore } from "@idempot/redis-store";
+import { createFakeRedisClient } from "./tests/redis-test-helpers.js";
 
-const createStore = () =>
-  new RedisIdempotencyStore({
-    client: new RedisMock(),
-    testMode: true
-  });
+const createStore = () => {
+  const client = createFakeRedisClient();
+  return new RedisIdempotencyStore({ client });
+};
 
 const fcString = () => fc.string({ minLength: 1, maxLength: 50 });
 
@@ -150,10 +148,11 @@ test("redis - multiple keys can share same fingerprint", async (t) => {
       fcString(),
       fcString(),
       fcString(),
-      fcString(),
-      async (key1, key2, fingerprint, ttlMs) => {
+      fc.string({ minLength: 1, maxLength: 5 }),
+      async (key1, key2, fingerprint, ttlStr) => {
         if (key1 === key2) return true;
 
+        const ttlMs = parseInt(ttlStr) || 1000;
         const store = createStore();
         await store.startProcessing(key1, fingerprint, ttlMs);
         await store.startProcessing(key2, fingerprint, ttlMs);
