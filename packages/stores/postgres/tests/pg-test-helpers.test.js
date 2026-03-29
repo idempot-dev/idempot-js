@@ -125,7 +125,11 @@ test("createFakePgPool - end is a sinon fake", async (t) => {
 test("createFakePgPool - query returns empty result for unrecognized SQL", async (t) => {
   const pool = createFakePgPool();
   const result = await pool.query("DROP TABLE nonexistent");
-  t.same(result, { rows: [], rowCount: 0 }, "should return empty result for unrecognized SQL");
+  t.same(
+    result,
+    { rows: [], rowCount: 0 },
+    "should return empty result for unrecognized SQL"
+  );
   t.end();
 });
 
@@ -137,6 +141,10 @@ test("createFakePgPool - SELECT without WHERE clause returns empty", async (t) =
   );
 
   const result = await pool.query("SELECT * FROM idempotency_records");
-  t.same(result, { rows: [], rowCount: 0 }, "should return empty result for SELECT without WHERE");
+  t.same(
+    result,
+    { rows: [], rowCount: 0 },
+    "should return empty result for SELECT without WHERE"
+  );
   t.end();
 });
