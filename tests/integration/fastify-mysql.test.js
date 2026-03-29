@@ -2,7 +2,7 @@ import t from "tap";
 import Fastify from "fastify";
 import { idempotency } from "../../packages/frameworks/fastify/index.js";
 import { generateIdempotencyKey } from "./shared/shared-helpers.js";
-import { initMysqlSchema } from "./shared/mysql-helpers.js";
+import { initMysqlSchema, generateTableName } from "./shared/mysql-helpers.js";
 import { makeRequest } from "./shared/request.js";
 import {
   createNodeMysqlStore,
@@ -20,16 +20,16 @@ function createFastifyMysqlApp(store) {
     }
   );
   app.addHook("preHandler", idempotency({ store }));
-  app.post("/api", async (req, res) => {
+  app.post("/api", async (req) => {
     return { success: true, body: req.body };
   });
   return app;
 }
 
 t.beforeEach(async (t) => {
-  await initMysqlSchema();
-  const store = createNodeMysqlStore();
-  await store.pool.query("DELETE FROM idempotency_records");
+  const tableName = generateTableName();
+  await initMysqlSchema(tableName);
+  const store = createNodeMysqlStore(tableName);
 
   const app = createFastifyMysqlApp(store);
   await app.listen({ port: 0 });
@@ -39,6 +39,7 @@ t.beforeEach(async (t) => {
   t.context.store = store;
   t.context.app = app;
   t.context.port = port;
+  t.context.tableName = tableName;
 });
 
 t.afterEach(async (t) => {
@@ -47,7 +48,7 @@ t.afterEach(async (t) => {
 });
 
 t.test("Fastify + MySQL - first request creates record", async (t) => {
-  const { store, port } = t.context;
+  const { store, port, tableName } = t.context;
   const key = generateIdempotencyKey();
 
   const response = await makeRequest(port, {
@@ -65,7 +66,7 @@ t.test("Fastify + MySQL - first request creates record", async (t) => {
   await waitForIdempotencyRecordComplete(store, key);
 
   const [rows] = await store.pool.query(
-    "SELECT * FROM idempotency_records WHERE `key` = ?",
+    `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
     [key]
   );
 
@@ -77,7 +78,7 @@ t.test("Fastify + MySQL - first request creates record", async (t) => {
 t.test(
   "Fastify + MySQL - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
-    const { store, port } = t.context;
+    const { store, port, tableName } = t.context;
     const key = generateIdempotencyKey();
 
     const response1 = await makeRequest(port, {
@@ -101,7 +102,7 @@ t.test(
     );
 
     const [rows] = await store.pool.query(
-      "SELECT * FROM idempotency_records WHERE `key` = ?",
+      `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
       [key]
     );
 

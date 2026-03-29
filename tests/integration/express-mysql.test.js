@@ -1,11 +1,8 @@
 import t from "tap";
 import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
-import {
-  generateTestId,
-  generateIdempotencyKey
-} from "./shared/shared-helpers.js";
-import { initMysqlSchema } from "./shared/mysql-helpers.js";
+import { generateIdempotencyKey } from "./shared/shared-helpers.js";
+import { initMysqlSchema, generateTableName } from "./shared/mysql-helpers.js";
 import { makeRequest, makeRequestWithoutKey } from "./shared/request.js";
 import {
   createNodeMysqlStore,
@@ -23,9 +20,9 @@ function createExpressMysqlApp(store) {
 }
 
 t.beforeEach(async (t) => {
-  await initMysqlSchema();
-  const store = createNodeMysqlStore();
-  await store.pool.query("DELETE FROM idempotency_records");
+  const tableName = generateTableName();
+  await initMysqlSchema(tableName);
+  const store = createNodeMysqlStore(tableName);
 
   const app = createExpressMysqlApp(store);
   const server = app.listen(0);
@@ -35,6 +32,7 @@ t.beforeEach(async (t) => {
   t.context.store = store;
   t.context.server = server;
   t.context.port = port;
+  t.context.tableName = tableName;
 });
 
 t.afterEach(async (t) => {
@@ -43,7 +41,7 @@ t.afterEach(async (t) => {
 });
 
 t.test("Express + MySQL - first request creates record", async (t) => {
-  const { store, port } = t.context;
+  const { store, port, tableName } = t.context;
   const key = generateIdempotencyKey();
 
   const response = await makeRequest(port, {
@@ -61,7 +59,7 @@ t.test("Express + MySQL - first request creates record", async (t) => {
   await waitForIdempotencyRecordComplete(store, key);
 
   const [rows] = await store.pool.query(
-    "SELECT * FROM idempotency_records WHERE `key` = ?",
+    `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
     [key]
   );
 
@@ -73,7 +71,7 @@ t.test("Express + MySQL - first request creates record", async (t) => {
 t.test(
   "Express + MySQL - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
-    const { store, port } = t.context;
+    const { store, port, tableName } = t.context;
     const key = generateIdempotencyKey();
 
     const response1 = await makeRequest(port, {
@@ -97,7 +95,7 @@ t.test(
     );
 
     const [rows] = await store.pool.query(
-      "SELECT * FROM idempotency_records WHERE `key` = ?",
+      `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
       [key]
     );
 
@@ -146,11 +144,11 @@ t.test(
 t.test(
   "Express + MySQL - handles null response_headers gracefully",
   async (t) => {
-    const { store, port } = t.context;
+    const { store, tableName } = t.context;
     const key = generateIdempotencyKey();
 
     await store.pool.query(
-      "INSERT INTO idempotency_records (`key`, fingerprint, status, response_status, response_headers, response_body, expires_at) VALUES (?, ?, 'complete', ?, ?, ?, ?)",
+      `INSERT INTO \`${tableName}\` (\`key\`, fingerprint, status, response_status, response_headers, response_body, expires_at) VALUES (?, ?, 'complete', ?, ?, ?, ?)`,
       [key, key + "fp", 200, null, '{"test":true}', Date.now() + 60000]
     );
 
@@ -169,11 +167,11 @@ t.test(
 );
 
 t.test("Express + MySQL - handles empty string response_headers", async (t) => {
-  const { store } = t.context;
+  const { store, tableName } = t.context;
   const key = generateIdempotencyKey();
 
   await store.pool.query(
-    "INSERT INTO idempotency_records (`key`, fingerprint, status, response_status, response_headers, response_body, expires_at) VALUES (?, ?, 'complete', ?, ?, ?, ?)",
+    `INSERT INTO \`${tableName}\` (\`key\`, fingerprint, status, response_status, response_headers, response_body, expires_at) VALUES (?, ?, 'complete', ?, ?, ?, ?)`,
     [key, key + "fp", 200, "", '{"test":true}', Date.now() + 60000]
   );
 
@@ -186,11 +184,11 @@ t.test("Express + MySQL - handles empty string response_headers", async (t) => {
 });
 
 t.test("Express + MySQL - handles missing response_status", async (t) => {
-  const { store } = t.context;
+  const { store, tableName } = t.context;
   const key = generateIdempotencyKey();
 
   await store.pool.query(
-    "INSERT INTO idempotency_records (`key`, fingerprint, status, response_status, response_headers, response_body, expires_at) VALUES (?, ?, 'complete', NULL, ?, ?, ?)",
+    `INSERT INTO \`${tableName}\` (\`key\`, fingerprint, status, response_status, response_headers, response_body, expires_at) VALUES (?, ?, 'complete', NULL, ?, ?, ?)`,
     [key, key + "fp", null, null, Date.now() + 60000]
   );
 

@@ -1,17 +1,18 @@
 import { MysqlIdempotencyStore } from "../../../packages/stores/mysql/node-mysql.js";
 
-export function nodeMysqlOptions() {
+export function nodeMysqlOptions(tableName = "idempotency_records") {
   return {
     host: "localhost",
     port: 3306,
     database: "test",
     user: "idempot",
-    password: "idempot"
+    password: "idempot",
+    tableName
   };
 }
 
-export function createNodeMysqlStore() {
-  const store = new MysqlIdempotencyStore(nodeMysqlOptions());
+export function createNodeMysqlStore(tableName = "idempotency_records") {
+  const store = new MysqlIdempotencyStore(nodeMysqlOptions(tableName));
   return store;
 }
 
@@ -24,7 +25,7 @@ export async function waitForIdempotencyRecordComplete(
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, intervalMs));
     const [rows] = await store.pool.query(
-      "SELECT * FROM idempotency_records WHERE `key` = ?",
+      `SELECT * FROM \`${store.tableName}\` WHERE \`key\` = ?`,
       [key]
     );
     if (rows[0]?.status === "complete") return;

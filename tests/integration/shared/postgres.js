@@ -11,10 +11,10 @@ export function postgresOptions(schema) {
   };
 }
 
-export function createPostgresStore(schema) {
+export async function createPostgresStore(schema) {
   const store = new PostgresIdempotencyStore(postgresOptions(schema));
   const quotedSchema = store.quotedSchemaIdentifier;
-  store.pool.query(`
+  await store.pool.query(`
     CREATE TABLE IF NOT EXISTS ${quotedSchema}.orders (
       id SERIAL PRIMARY KEY,
       data JSONB NOT NULL,

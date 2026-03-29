@@ -33,7 +33,7 @@ t.beforeEach(async (t) => {
   const schema = `t${generateTestId()}`;
   await createPostgresSchema(schema);
 
-  const store = createPostgresStore(schema);
+  const store = await createPostgresStore(schema);
   const app = createExpressPostgresApp(store);
   const server = app.listen(0);
   await new Promise((resolve) => server.on("listening", resolve));
