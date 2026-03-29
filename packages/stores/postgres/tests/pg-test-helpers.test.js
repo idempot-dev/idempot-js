@@ -121,3 +121,22 @@ test("createFakePgPool - end is a sinon fake", async (t) => {
   t.ok(pool.end.calledOnce, "end should be tracked by sinon");
   t.end();
 });
+
+test("createFakePgPool - query returns empty result for unrecognized SQL", async (t) => {
+  const pool = createFakePgPool();
+  const result = await pool.query("DROP TABLE nonexistent");
+  t.same(result, { rows: [], rowCount: 0 }, "should return empty result for unrecognized SQL");
+  t.end();
+});
+
+test("createFakePgPool - SELECT without WHERE clause returns empty", async (t) => {
+  const pool = createFakePgPool();
+  await pool.query(
+    "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES ($1, $2, $3)",
+    ["test-key", "test-fp", Date.now() + 60000]
+  );
+
+  const result = await pool.query("SELECT * FROM idempotency_records");
+  t.same(result, { rows: [], rowCount: 0 }, "should return empty result for SELECT without WHERE");
+  t.end();
+});
