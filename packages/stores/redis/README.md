@@ -59,7 +59,7 @@ Close the Redis connection.
 
 ## Persistence
 
-Ensure Redis persistence is configured (AOF recommended). See [Redis persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
+Ensure Redis persistence is configured (AOF strongly recommended). See [Redis persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
 
 ## Deno Support
 
