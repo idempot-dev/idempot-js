@@ -45,3 +45,24 @@ test("createFakeRedisClient - get returns value for existing key", async (t) => 
   t.equal(result, "test-value", "should return value for existing key");
   t.end();
 });
+
+test("createFakeRedisClient - ttl returns -2 for expired key", async (t) => {
+  const client = createFakeRedisClient();
+  await client.setex("test-key", 60, "test-value");
+  const store = client.__store;
+  store.expiryTimers.set("test-key", Date.now() - 1000);
+  const ttl = await client.ttl("test-key");
+  t.equal(ttl, -2, "should return -2 for expired key");
+  t.end();
+});
+
+test("createFakeRedisClient - ttl returns -2 for expired key", async (t) => {
+  const client = createFakeRedisClient();
+  // Set a key with past expiry by manipulating internal store
+  await client.setex("test-key", 60, "test-value");
+  const store = client.__store;
+  store.expiryTimers.set("test-key", Date.now() - 1000);
+  const ttl = await client.ttl("test-key");
+  t.equal(ttl, -2, "should return -2 for expired key");
+  t.end();
+});
