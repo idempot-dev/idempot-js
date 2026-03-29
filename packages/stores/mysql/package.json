@@ -29,7 +29,6 @@
   },
   "license": "BSD-3-Clause",
   "scripts": {
-    "build": "echo 'No build step required for JavaScript project with JSDoc'",
     "test": "tap tests/"
   },
   "peerDependencies": {
