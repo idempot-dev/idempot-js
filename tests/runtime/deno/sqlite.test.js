@@ -24,3 +24,23 @@ Deno.test(
     store.close();
   }
 );
+
+Deno.test(
+  "DenoSqliteIdempotencyStore complete throws on missing key",
+  async () => {
+    const store = new DenoSqliteIdempotencyStore({ path: ":memory:" });
+
+    try {
+      await store.complete("nonexistent", {
+        status: 200,
+        headers: {},
+        body: ""
+      });
+      throw new Error("Should have thrown");
+    } catch (e) {
+      assertEquals(e.message.includes("No record found"), true);
+    }
+
+    store.close();
+  }
+);
