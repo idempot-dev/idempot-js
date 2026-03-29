@@ -47,6 +47,7 @@ await store.connect();
 ```
 
 > **Note:** Option names differ between runtimes because they match the underlying libraries:
+>
 > - Node.js uses [`mysql2`](https://github.com/sidorares/node-mysql2) (`host`, `user`, `database`)
 > - Deno uses [`deno-mysql`](https://deno.land/x/mysql) (`hostname`, `username`, `db`)
 
