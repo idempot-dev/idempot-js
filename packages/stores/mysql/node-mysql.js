@@ -8,7 +8,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
 /**
- * @typedef {Object} NodeMysqlIdempotencyStoreOptions
+ * @typedef {Object} MysqlIdempotencyStoreOptions
  * @property {string} [connectionString] - MySQL connection string
  * @property {string} [host] - MySQL host
  * @property {number} [port] - MySQL port
@@ -21,14 +21,14 @@ const require = createRequire(import.meta.url);
 /**
  * @implements {IdempotencyStore}
  */
-export class NodeMysqlIdempotencyStore {
+export class MysqlIdempotencyStore {
   /**
    * @type {import("mysql2/promise").Pool}
    */
   pool;
 
   /**
-   * @param {NodeMysqlIdempotencyStoreOptions} [options]
+   * @param {MysqlIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
     const mysql = require("mysql2/promise");

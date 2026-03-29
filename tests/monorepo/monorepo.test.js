@@ -66,7 +66,7 @@ test("framework packages structure exists", async (t) => {
 });
 
 test("store packages structure exists", async (t) => {
-  const stores = ["redis", "postgres", "sqlite", "bun-sql"];
+  const stores = ["redis", "postgres", "sqlite", "mysql", "bun-sql"];
 
   for (const store of stores) {
     const storeDir = join(rootDir, "packages", "stores", store);
@@ -75,8 +75,13 @@ test("store packages structure exists", async (t) => {
       existsSync(join(storeDir, "package.json")),
       `packages/stores/${store}/package.json exists`
     );
-    // redis package uses node-redis.js as main entry, others use index.js
-    const mainFile = store === "redis" ? "node-redis.js" : "index.js";
+    // redis uses node-redis.js, mysql uses node-mysql.js, others use index.js
+    const mainFile =
+      store === "redis"
+        ? "node-redis.js"
+        : store === "mysql"
+          ? "node-mysql.js"
+          : "index.js";
     t.ok(
       existsSync(join(storeDir, mainFile)),
       `packages/stores/${store}/${mainFile} exists`
@@ -93,6 +98,7 @@ test("each package has valid package.json", async (t) => {
     "packages/stores/redis",
     "packages/stores/postgres",
     "packages/stores/sqlite",
+    "packages/stores/mysql",
     "packages/stores/bun-sql"
   ];
 
