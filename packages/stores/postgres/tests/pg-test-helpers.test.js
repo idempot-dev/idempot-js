@@ -148,3 +148,32 @@ test("createFakePgPool - SELECT without WHERE clause returns empty", async (t) =
   );
   t.end();
 });
+
+test("createFakePgPool - DELETE_EXPIRED without params uses Date.now()", async (t) => {
+  const pool = createFakePgPool();
+  const pastExpiry = Date.now() - 1000;
+  pool.__store.set("expired-key", {
+    key: "expired-key",
+    fingerprint: "fp",
+    status: "processing",
+    expires_at: pastExpiry,
+    response_status: null,
+    response_headers: null,
+    response_body: null
+  });
+
+  const result = await pool.query(
+    "DELETE FROM idempotency_records WHERE expires_at <= now()"
+  );
+  t.equal(
+    result.rowCount,
+    1,
+    "should delete expired record when no params passed"
+  );
+  t.equal(
+    pool.__store.has("expired-key"),
+    false,
+    "expired key should be deleted"
+  );
+  t.end();
+});
