@@ -17,6 +17,7 @@ const require = createRequire(import.meta.url);
  * @property {string} [database] - MySQL database
  * @property {string} [tableName] - MySQL table name (default: "idempotency_records")
  * @property {import("mysql2/promise").PoolOptions} [connection] - Additional pool options
+ * @property {import("mysql2/promise").Pool} [pool] - Optional pre-configured pool (for testing)
  */
 
 /**
@@ -37,10 +38,14 @@ export class MysqlIdempotencyStore {
    * @param {MysqlIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
-    const mysql = require("mysql2/promise");
-    const { tableName = "idempotency_records", ...poolOptions } = options;
-    this.pool = mysql.createPool(poolOptions);
+    const { tableName = "idempotency_records", pool, ...poolOptions } = options;
     this.tableName = tableName;
+    if (pool) {
+      this.pool = pool;
+    } else {
+      const mysql = require("mysql2/promise");
+      this.pool = mysql.createPool(poolOptions);
+    }
   }
 
   /**

@@ -6,7 +6,8 @@
     "@db/redis": "jsr:@db/redis",
     "ioredis": "npm:ioredis@^5.9.2",
     "@aws-sdk/client-dynamodb": "npm:@aws-sdk/client-dynamodb@^3.975.0",
-    "@aws-sdk/lib-dynamodb": "npm:@aws-sdk/lib-dynamodb@^3.975.0"
+    "@aws-sdk/lib-dynamodb": "npm:@aws-sdk/lib-dynamodb@^3.975.0",
+    "mysql": "https://deno.land/x/mysql/mod.ts"
   },
   "tasks": {
     "test": "deno test test/deno/",
