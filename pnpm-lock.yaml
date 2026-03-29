@@ -175,7 +175,7 @@ importers:
         specifier: workspace:*
         version: link:../../core
 
-  packages/stores/node-mysql:
+  packages/stores/mysql:
     dependencies:
       '@idempot/core':
         specifier: workspace:*

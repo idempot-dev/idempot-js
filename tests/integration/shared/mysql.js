@@ -1,4 +1,4 @@
-import { NodeMysqlIdempotencyStore } from "../../../packages/stores/node-mysql/index.js";
+import { MysqlIdempotencyStore } from "../../../packages/stores/mysql/node-mysql.js";
 
 export function nodeMysqlOptions() {
   return {
@@ -11,7 +11,7 @@ export function nodeMysqlOptions() {
 }
 
 export function createNodeMysqlStore() {
-  const store = new NodeMysqlIdempotencyStore(nodeMysqlOptions());
+  const store = new MysqlIdempotencyStore(nodeMysqlOptions());
   return store;
 }
 
