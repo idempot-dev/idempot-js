@@ -6,11 +6,11 @@ Tests for this package are located in the monorepo root at `tests/runtime/bun/`,
 
 ### Test Files
 
-| File | Purpose |
-|------|---------|
-| `tests/runtime/bun/bun-sql.test.js` | Unit tests forBunSqlIdempotencyStore |
+| File                                            | Purpose                               |
+| ----------------------------------------------- | ------------------------------------- |
+| `tests/runtime/bun/bun-sql.test.js`             | Unit tests forBunSqlIdempotencyStore  |
 | `tests/runtime/bun/bun-sql-integration.test.js` | Integration tests with Hono framework |
-| `tests/runtime/bun/examples.test.js` | Example app tests |
+| `tests/runtime/bun/examples.test.js`            | Example app tests                     |
 
 ### Running Tests
 
