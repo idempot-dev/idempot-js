@@ -1,0 +1,48 @@
+# @idempot/hono-middleware
+
+Hono middleware for idempotency.
+
+## Installation
+
+```bash
+npm install @idempot/hono-middleware @idempot/sqlite-store
+```
+
+## Usage
+
+```javascript
+import { Hono } from "hono";
+import { idempotency } from "@idempot/hono-middleware";
+import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
+
+const app = new Hono();
+const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+app.post("/orders", idempotency({ store }), async (c) => {
+  const orderId = crypto.randomUUID();
+  return c.json({ id: orderId, ...(await c.req.json()) }, 201);
+});
+
+export default app;
+```
+
+## API
+
+### `idempotency(options)`
+
+Creates Hono middleware for idempotency.
+
+**Options:**
+
+- `store` (required): Storage backend implementing `IdempotencyStore`
+- `headerName`: Header name for idempotency key (default: `"Idempotency-Key"`)
+- `required`: Whether idempotency key is required (default: `false`)
+- `ttlMs`: Time-to-live for idempotency records in milliseconds
+- `excludeFields`: Fields to exclude from fingerprint calculation
+- `resilience`: Circuit breaker and retry options
+
+**Returns:** Hono middleware function with `circuit` property for monitoring.
+
+## License
+
+BSD-3-Clause
