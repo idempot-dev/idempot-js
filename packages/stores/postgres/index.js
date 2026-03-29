@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
  * @property {string} [connectionString] - PostgreSQL connection string
  * @property {import("pg").PoolConfig} [connection] - Connection pool options (passed to pg.Pool)
  * @property {string} [schema="public"] - Database schema for the idempotency table
+ * @property {import("pg").Pool} [pool] - Optional pre-configured pool (for testing)
  */
 
 /**
@@ -33,10 +34,14 @@ export class PostgresIdempotencyStore {
    * @param {PostgresIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
-    const { Pool } = require("pg");
     this.schema = options.schema ?? "public";
     this.quotedSchemaIdentifier = `"${this.schema.replace(/"/g, '""')}"`;
-    this.pool = new Pool(options);
+    if (options.pool) {
+      this.pool = options.pool;
+    } else {
+      const { Pool } = require("pg");
+      this.pool = new Pool(options);
+    }
     this.initSchema();
   }
 

@@ -1,141 +1,133 @@
-// packages/stores/postgres/postgres.test.js
 import { test } from "tap";
+import { PostgresIdempotencyStore } from "@idempot/postgres-store";
+import { createFakePgPool } from "./tests/pg-test-helpers.js";
 import { runStoreTests } from "../../core/tests/store-adapter-suite.js";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-
-const createInMemoryMockPool = () => {
-  const records = {};
-
-  return {
-    query: async (sql, params) => {
-      if (sql.includes("CREATE TABLE")) {
-        return { rows: [], rowCount: 0 };
-      }
-
-      const now = Date.now();
-
-      if (sql.includes("INSERT")) {
-        const [key, fingerprint, expiresAt] = params;
-        records[key] = {
-          key,
-          fingerprint,
-          status: "processing",
-          expires_at: expiresAt,
-          response_status: null,
-          response_headers: null,
-          response_body: null
-        };
-        return { rows: [], rowCount: 1 };
-      }
-
-      if (sql.includes("UPDATE") && sql.includes("WHERE key")) {
-        const [responseStatus, responseHeaders, responseBody, key] = params;
-        if (records[key]) {
-          records[key].status = "complete";
-          records[key].response_status = responseStatus;
-          records[key].response_headers = responseHeaders;
-          records[key].response_body = responseBody;
-          return { rows: [], rowCount: 1 };
-        }
-        return { rows: [], rowCount: 0 };
-      }
-
-      if (sql.includes("DELETE") && sql.includes("expires_at")) {
-        let deleted = 0;
-        for (const key of Object.keys(records)) {
-          if (records[key].expires_at <= now) {
-            delete records[key];
-            deleted++;
-            if (deleted >= 10) break;
-          }
-        }
-        return { rows: [], rowCount: deleted };
-      }
-
-      if (sql.includes("SELECT") && sql.includes("WHERE key")) {
-        const row = records[params[0]];
-        return { rows: row ? [row] : [], rowCount: row ? 1 : 0 };
-      }
-
-      if (sql.includes("SELECT") && sql.includes("WHERE fingerprint")) {
-        const row = Object.values(records).find(
-          (r) => r.fingerprint === params[0]
-        );
-        return { rows: row ? [row] : [], rowCount: row ? 1 : 0 };
-      }
-
-      return { rows: [], rowCount: 0 };
-    },
-    end: async () => {}
-  };
-};
-
-const mockPool = createInMemoryMockPool();
-
-// Cache-busting: clear require cache for pg and the store
-const pgPath = require.resolve("pg");
-delete require.cache[pgPath];
-
-const originalPool = require("pg").Pool;
-require.cache[pgPath] = {
-  id: pgPath,
-  filename: pgPath,
-  loaded: true,
-  exports: {
-    Pool: function () {
-      return mockPool;
-    }
-  }
-};
-
-const { PostgresIdempotencyStore } = await import("@idempot/postgres-store");
 
 runStoreTests({
   name: "postgres",
-  createStore: () => new PostgresIdempotencyStore()
+  createStore: () => {
+    const pool = createFakePgPool();
+    return new PostgresIdempotencyStore({ pool });
+  }
+});
+
+test("PostgresIdempotencyStore - lookup returns null for empty store", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey, null, "byKey should be null");
+  t.equal(result.byFingerprint, null, "byFingerprint should be null");
+  t.end();
+});
+
+test("PostgresIdempotencyStore - lookup finds record by key", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey?.key, "key-1", "should find by key");
+  t.equal(result.byKey?.status, "processing", "status should be processing");
+  t.end();
+});
+
+test("PostgresIdempotencyStore - lookup finds record by fingerprint", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  const result = await store.lookup("key-2", "fp-1");
+
+  t.equal(result.byFingerprint?.key, "key-1", "should find by fingerprint");
+  t.equal(
+    result.byFingerprint?.fingerprint,
+    "fp-1",
+    "fingerprint should match"
+  );
+  t.end();
+});
+
+test("PostgresIdempotencyStore - startProcessing creates record", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey?.status, "processing", "status should be processing");
+  t.equal(result.byKey?.fingerprint, "fp-1", "fingerprint should be stored");
+  t.end();
+});
+
+test("PostgresIdempotencyStore - complete updates record", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  await store.startProcessing("key-1", "fp-1", 60000);
+
+  await store.complete("key-1", {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+    body: '{"success":true}'
+  });
+
+  const result = await store.lookup("key-1", "fp-1");
+
+  t.equal(result.byKey?.status, "complete", "status should be complete");
+  t.equal(result.byKey?.response?.status, 200, "response status should match");
+  t.same(
+    result.byKey?.response?.headers,
+    { "Content-Type": "application/json" },
+    "headers should match"
+  );
+  t.equal(
+    result.byKey?.response?.body,
+    '{"success":true}',
+    "body should match"
+  );
+  t.end();
+});
+
+test("PostgresIdempotencyStore - complete throws on missing key", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  try {
+    await store.complete("nonexistent", {
+      status: 200,
+      headers: {},
+      body: "test"
+    });
+    t.fail("should have thrown");
+  } catch (err) {
+    t.match(
+      err.message,
+      /No record found/i,
+      "should throw error for missing key"
+    );
+  }
+  t.end();
 });
 
 test("PostgresIdempotencyStore - parseRecord handles null response_headers", async (t) => {
-  const records = {};
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
 
-  const mockPool = {
-    query: async (sql, params) => {
-      if (sql.includes("CREATE TABLE")) return { rows: [], rowCount: 0 };
-      if (sql.includes("SELECT") && sql.includes("WHERE key")) {
-        const row = records[params[0]];
-        return { rows: row ? [row] : [], rowCount: row ? 1 : 0 };
-      }
-      return { rows: [], rowCount: 0 };
-    },
-    end: async () => {}
-  };
-
-  const testPath = require.resolve("pg");
-  require.cache[testPath] = {
-    id: testPath,
-    filename: testPath,
-    loaded: true,
-    exports: {
-      Pool: function () {
-        return mockPool;
-      }
-    }
-  };
-
-  const { PostgresIdempotencyStore: Store2 } =
-    await import("@idempot/postgres-store");
-  const store = new Store2();
-
-  records["test-key"] = {
+  pool.__store.set("test-key", {
     key: "test-key",
     fingerprint: "test-fp",
     status: "complete",
     response_status: 200,
     response_headers: null,
-    response_body: "test"
-  };
+    response_body: "test",
+    expires_at: Date.now() + 60000
+  });
 
   const result = await store.lookup("test-key", "test-fp");
   t.ok(result.byKey.response, "response should exist");
@@ -149,28 +141,12 @@ test("PostgresIdempotencyStore - parseRecord handles null response_headers", asy
   t.end();
 });
 
-test("PostgresIdempotencyStore - close ends pool", async (t) => {
-  let ended = false;
+test("PostgresIdempotencyStore - close calls pool.end", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
 
-  class TestPool {
-    query = async () => ({ rows: [], rowCount: 0 });
-    end = async () => {
-      ended = true;
-    };
-  }
-
-  const testPath = require.resolve("pg");
-  require.cache[testPath] = {
-    id: testPath,
-    filename: testPath,
-    loaded: true,
-    exports: { Pool: TestPool }
-  };
-
-  const { PostgresIdempotencyStore: Store2 } =
-    await import("@idempot/postgres-store");
-  const store = new Store2();
   await store.close();
-  t.ok(ended, "pool should be ended");
+
+  t.equal(pool.end.calledOnce, true, "pool.end should be called once");
   t.end();
 });
