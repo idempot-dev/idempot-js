@@ -24,10 +24,11 @@
   "license": "MIT",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "tap",
+    "test": "tap --reporter dot",
     "test:coverage": "tap --show-full-coverage",
     "test:coverage:html": "tap --coverage-report=html",
     "test:verify-coverage": "tap --statements=100 --branches=100 --functions=100 --lines=100",
+    "test:verify-coverage-min": "tap --statements=100 --branches=100 --functions=100 --lines=100 --reporter=min",
     "lint": "eslint packages/core/src packages/frameworks/*/index.js packages/stores/*/index.js packages/stores/redis/node-redis.js packages/stores/redis/deno-redis.js",
     "lint:fix": "eslint packages/core/src packages/frameworks/*/index.js packages/stores/*/index.js packages/stores/redis/node-redis.js packages/stores/redis/deno-redis.js --fix",
     "format": "prettier --write \"**/*.{js,jsx,json,md}\"",
