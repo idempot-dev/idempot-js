@@ -1,2 +1,2 @@
-pnpm exec lint-staged
+pnpm exec lint-staged -q
 npm run test:verify-coverage
