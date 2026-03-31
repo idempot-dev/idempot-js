@@ -55,7 +55,10 @@
     "test:container:status": "./scripts/container.sh status",
     "test:container:logs": "./scripts/container.sh logs",
     "test:spec": "cucumber-js tests/spec/**/*.feature --force-exit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",
@@ -90,7 +93,8 @@
     "prettier": "^3.8.1",
     "sinon": "^21.0.0",
     "tap": "^21.5.0",
-    "ulid": "^3.0.2"
+    "ulid": "^3.0.2",
+    "vitepress": "^1.6.4"
   },
   "lint-staged": {
     "*.js": [
