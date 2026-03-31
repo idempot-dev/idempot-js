@@ -5,3 +5,4 @@ package-lock.json
 CLAUDE.md
 .claude
 docs/plans
+docs/.vitepress
