@@ -4,7 +4,12 @@ export default defineConfig({
   title: "idempot-js",
   description: "Idempotency middlewares for Node.js",
   head: [
-    ["script", { defer: true, "data-domain": "js.idempot.dev" }]
+    ["script", { defer: true, "data-domain": "js.idempot.dev", src: "https://plausible.io/js/pa-gteedLuTOi5cVRvpZlLtR.js" }],
+    [
+      "script",
+      {},
+      "window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()"
+    ]
   ],
   themeConfig: {
     nav: [
