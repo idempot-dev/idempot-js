@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: Why Idempotency?
-      link: /getting-started/why
+      link: /why
     - theme: alt
       text: Get Started
       link: /getting-started/installation
