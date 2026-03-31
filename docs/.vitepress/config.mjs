@@ -10,8 +10,8 @@ export default defineConfig({
     nav: [
       { text: "Home", link: "/" },
       { text: "Why Idempotency", link: "/why" },
-      { text: "Getting Started", link: "/getting-started/installation" },
-      { text: "Spec Compliance", link: "/spec" }
+      { text: "Spec Compliance", link: "/spec" },
+      { text: "Getting Started", link: "/getting-started/installation" }
     ],
     sidebar: [
       {
