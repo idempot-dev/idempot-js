@@ -20,4 +20,5 @@ features:
     details: Redis, PostgreSQL, MySQL, SQLite, or Bun SQL
   - title: IETF Compliant
     details: Implements the Idempotency-Key header specification
+    link: /spec
 ---
