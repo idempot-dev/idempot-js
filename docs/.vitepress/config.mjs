@@ -9,12 +9,13 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: "Home", link: "/" },
-      { text: "Getting Started", link: "/getting-started/installation" }
+      { text: "Getting Started", link: "/getting-started/why" }
     ],
     sidebar: [
       {
         text: "Getting Started",
         items: [
+          { text: "Why Idempotency", link: "/getting-started/why" },
           { text: "Installation", link: "/getting-started/installation" },
           { text: "Quick Start", link: "/getting-started/quick-start" }
         ]
