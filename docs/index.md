@@ -3,15 +3,15 @@ layout: home
 
 hero:
   name: idempot-js
-  text: Idempotency for Node.js
+  text: Idempotency for Node.js, Bun, and Deno
   tagline: Middleware for Express, Fastify, and Hono with pluggable storage backends
   actions:
     - theme: brand
+      text: Why Idempotency?
+      link: /getting-started/why
+    - theme: alt
       text: Get Started
       link: /getting-started/installation
-    - theme: alt
-      text: View on GitHub
-      link: https://github.com/idempot-dev/idempot-js
 
 features:
   - title: Framework Support

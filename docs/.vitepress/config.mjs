@@ -9,7 +9,8 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: "Home", link: "/" },
-      { text: "Getting Started", link: "/getting-started/why" }
+      { text: "Why Idempotency", link: "/getting-started/why" },
+      { text: "Getting Started", link: "/getting-started/installation" }
     ],
     sidebar: [
       {
