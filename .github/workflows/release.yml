@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+env:
+  HUSKY: 0
+
 permissions:
   contents: read
   id-token: write
@@ -26,8 +29,6 @@ jobs:
         run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build
-        run: pnpm build
       - name: Verify coverage
         run: pnpm run test:verify-coverage
       - name: Release
