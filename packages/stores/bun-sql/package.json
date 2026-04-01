@@ -30,6 +30,9 @@
     "url": "https://github.com/idempot-dev/idempot-js"
   },
   "license": "BSD-3-Clause",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "echo 'Tests are in tests/runtime/bun/ - run: npm run test:bun' && exit 0"
   },
