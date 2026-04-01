@@ -12,9 +12,9 @@
 Choose one:
 
 ```bash
-npm install @idempot/express-middleware @idempot/sqlite-store
-npm install @idempot/fastify-middleware @idempot/sqlite-store
-npm install @idempot/hono-middleware @idempot/sqlite-store
+npm install @idempot/express-middleware
+npm install @idempot/fastify-middleware
+npm install @idempot/hono-middleware
 ```
 
 ### Store
