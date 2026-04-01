@@ -27,12 +27,7 @@ jobs:
         run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Debug NPM_TOKEN
-        run: |
-          echo "NPM_TOKEN exists: ${{ secrets.NPM_TOKEN != '' }}"
-        shell: bash
       - name: Release
         run: pnpm exec multi-semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
