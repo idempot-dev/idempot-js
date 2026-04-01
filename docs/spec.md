@@ -8,40 +8,40 @@ This document details how the library complies with each requirement in the spec
 
 ### MUST Requirements (Required)
 
-| Requirement | Section | Implementation |
-|-------------|---------|----------------|
-| Idempotency-Key as String | 2.1 | ✅ Header value extracted as string |
-| Unique idempotency keys | 2.2 | ✅ Key stored with request fingerprint to ensure uniqueness |
-| Identify idempotency key from header | 2.5.2 | ✅ Parses `Idempotency-Key` header (configurable via `headerName` option) |
-| Generate idempotency fingerprint | 2.5.2 | ✅ SHA-256 hash of method + path + body |
-| Enforce idempotency | 2.6 | ✅ Returns cached response for duplicate requests |
+| Requirement                          | Section | Implementation                                                            |
+| ------------------------------------ | ------- | ------------------------------------------------------------------------- |
+| Idempotency-Key as String            | 2.1     | ✅ Header value extracted as string                                       |
+| Unique idempotency keys              | 2.2     | ✅ Key stored with request fingerprint to ensure uniqueness               |
+| Identify idempotency key from header | 2.5.2   | ✅ Parses `Idempotency-Key` header (configurable via `headerName` option) |
+| Generate idempotency fingerprint     | 2.5.2   | ✅ SHA-256 hash of method + path + body                                   |
+| Enforce idempotency                  | 2.6     | ✅ Returns cached response for duplicate requests                         |
 
 ### SHOULD Requirements (Recommended)
 
-| Requirement | Section | Implementation |
-|-------------|---------|----------------|
-| Use UUID or random identifier | 2.2 | ✅ Library doesn't generate keys (client responsibility), but validates format |
-| Publish expiration policy | 2.3 | ✅ Configurable via `ttlMs` option |
-| Return 400 if key missing | 2.7 | ✅ Optional via `required: true` option |
-| Return 422 if key reused with different payload | 2.7 | ✅ Returns 422 with problem details when fingerprint mismatch detected |
-| Return 409 for concurrent requests | 2.7 | ✅ Returns 409 Conflict when original request still processing |
+| Requirement                                     | Section | Implementation                                                                 |
+| ----------------------------------------------- | ------- | ------------------------------------------------------------------------------ |
+| Use UUID or random identifier                   | 2.2     | ✅ Library doesn't generate keys (client responsibility), but validates format |
+| Publish expiration policy                       | 2.3     | ✅ Configurable via `ttlMs` option                                             |
+| Return 400 if key missing                       | 2.7     | ✅ Optional via `required: true` option                                        |
+| Return 422 if key reused with different payload | 2.7     | ✅ Returns 422 with problem details when fingerprint mismatch detected         |
+| Return 409 for concurrent requests              | 2.7     | ✅ Returns 409 Conflict when original request still processing                 |
 
 ### MAY Requirements (Optional)
 
-| Requirement | Section | Implementation |
-|-------------|---------|----------------|
-| Idempotency fingerprint | 2.4 | ✅ SHA-256 hash of method + path + body (configurable via `hashAlgorithm` option) |
-| Time-based expiry | 2.3 | ✅ Configurable via `ttlMs` option, defaults to 24 hours |
+| Requirement             | Section | Implementation                                                                    |
+| ----------------------- | ------- | --------------------------------------------------------------------------------- |
+| Idempotency fingerprint | 2.4     | ✅ SHA-256 hash of method + path + body (configurable via `hashAlgorithm` option) |
+| Time-based expiry       | 2.3     | ✅ Configurable via `ttlMs` option, defaults to 24 hours                          |
 
 ## Error Responses
 
 The library follows the spec's error handling recommendations:
 
-| Scenario | Status Code | Response |
-|----------|-------------|----------|
-| Missing Idempotency-Key (when required) | 400 | Problem Details JSON with link to documentation |
-| Key reused with different payload | 422 | Problem Details JSON with "Idempotency-Key is already used" |
-| Concurrent request (still processing) | 409 | Problem Details JSON with "request is outstanding" |
+| Scenario                                | Status Code | Response                                                    |
+| --------------------------------------- | ----------- | ----------------------------------------------------------- |
+| Missing Idempotency-Key (when required) | 400         | Problem Details JSON with link to documentation             |
+| Key reused with different payload       | 422         | Problem Details JSON with "Idempotency-Key is already used" |
+| Concurrent request (still processing)   | 409         | Problem Details JSON with "request is outstanding"          |
 
 ## Configuration Options
 
@@ -50,25 +50,27 @@ The library provides flexibility to match your API's idempotency requirements:
 ```javascript
 import { idempotency } from "@idempot/express-middleware";
 
-app.use(idempotency({
-  // Storage backend (required)
-  store: new RedisStore({ url: process.env.REDIS_URL }),
-  
-  // Header name (default: "Idempotency-Key")
-  headerName: "Idempotency-Key",
-  
-  // Whether key is required (default: false)
-  required: false,
-  
-  // Time-to-live in milliseconds (default: 86400000 = 24h)
-  ttlMs: 86400000,
-  
-  // Fields to exclude from fingerprint
-  excludeFields: ["timestamp"],
-  
-  // Hash algorithm (default: "xxhash64", also supports "sha256")
-  hashAlgorithm: "xxhash64"
-}));
+app.use(
+  idempotency({
+    // Storage backend (required)
+    store: new RedisStore({ url: process.env.REDIS_URL }),
+
+    // Header name (default: "Idempotency-Key")
+    headerName: "Idempotency-Key",
+
+    // Whether key is required (default: false)
+    required: false,
+
+    // Time-to-live in milliseconds (default: 86400000 = 24h)
+    ttlMs: 86400000,
+
+    // Fields to exclude from fingerprint
+    excludeFields: ["timestamp"],
+
+    // Hash algorithm (default: "xxhash64", also supports "sha256")
+    hashAlgorithm: "xxhash64"
+  })
+);
 ```
 
 ## What's Not Covered
