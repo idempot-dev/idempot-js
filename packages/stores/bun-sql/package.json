@@ -27,7 +27,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/idempot-dev/idempot-js"
+    "url": "git+https://github.com/idempot-dev/idempot-js.git"
   },
   "license": "BSD-3-Clause",
   "publishConfig": {
