@@ -1,0 +1,8 @@
+{
+  "name": "@idempot/core",
+  "version": "1.0.0",
+  "exports": "./src/index.js",
+  "publish": {
+    "include": ["LICENSE", "README.md", "src"]
+  }
+}

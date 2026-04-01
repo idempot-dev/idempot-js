@@ -1,0 +1,8 @@
+{
+  "name": "@idempot/express-middleware",
+  "version": "1.0.0",
+  "exports": "./index.js",
+  "publish": {
+    "include": ["LICENSE", "README.md", "index.js"]
+  }
+}

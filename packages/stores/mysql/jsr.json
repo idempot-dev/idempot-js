@@ -1,0 +1,8 @@
+{
+  "name": "@idempot/mysql-store",
+  "version": "1.0.0",
+  "exports": ".",
+  "publish": {
+    "include": ["LICENSE", "README.md", "node-mysql.js", "deno-mysql.js"]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@idempot/redis-store",
+  "version": "1.0.0",
+  "exports": {
+    ".": "./node-redis.js",
+    "./deno": "./deno-redis.js"
+  },
+  "publish": {
+    "include": ["LICENSE", "README.md", "node-redis.js", "deno-redis.js"]
+  }
+}

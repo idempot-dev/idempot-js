@@ -1,6 +1,6 @@
 {
   "name": "@idempot/bun-sql-store",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Bun SQL storage backend for idempotency (SQLite, PostgreSQL, MySQL)",
   "type": "module",
   "main": "./index.js",

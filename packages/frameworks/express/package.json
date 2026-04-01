@@ -1,6 +1,6 @@
 {
   "name": "@idempot/express-middleware",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Express middleware for idempotency",
   "type": "module",
   "main": "./index.js",

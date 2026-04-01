@@ -1,6 +1,6 @@
 {
   "name": "@idempot/sqlite-store",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "SQLite storage backend for idempotency",
   "type": "module",
   "main": "./index.js",

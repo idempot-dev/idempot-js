@@ -1,6 +1,6 @@
 {
   "name": "@idempot/fastify-middleware",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Fastify middleware for idempotency",
   "type": "module",
   "main": "./index.js",
