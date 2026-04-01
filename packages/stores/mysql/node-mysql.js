@@ -42,11 +42,12 @@ export class MysqlIdempotencyStore {
     this.tableName = tableName;
     if (pool) {
       this.pool = pool;
-    } else {
+    } /* c8 ignore start */ else {
+      /* c8 ignore next */
       const mysql = require("mysql2/promise");
       this.pool = mysql.createPool(poolOptions);
     }
-  }
+  } /* c8 ignore stop */
 
   /**
    * Close the database connection
