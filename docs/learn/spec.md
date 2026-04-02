@@ -43,36 +43,6 @@ The library follows the spec's error handling recommendations:
 | Key reused with different payload       | 422         | Problem Details JSON with "Idempotency-Key is already used" |
 | Concurrent request (still processing)   | 409         | Problem Details JSON with "request is outstanding"          |
 
-## Configuration Options
-
-The library provides flexibility to match your API's idempotency requirements:
-
-```javascript
-import { idempotency } from "@idempot/express-middleware";
-
-app.use(
-  idempotency({
-    // Storage backend (required)
-    store: new RedisStore({ url: process.env.REDIS_URL }),
-
-    // Header name (default: "Idempotency-Key")
-    headerName: "Idempotency-Key",
-
-    // Whether key is required (default: false)
-    required: false,
-
-    // Time-to-live in milliseconds (default: 86400000 = 24h)
-    ttlMs: 86400000,
-
-    // Fields to exclude from fingerprint
-    excludeFields: ["timestamp"],
-
-    // Hash algorithm (default: "xxhash64", also supports "sha256")
-    hashAlgorithm: "xxhash64"
-  })
-);
-```
-
 ## What's Not Covered
 
 The spec leaves some things to the application layer:
