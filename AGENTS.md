@@ -10,7 +10,7 @@
 - 100% of lines covered
 - 100% of branches covered
 
-Run `npm run test:verify-coverage` before committing. When trying to learn which lines are uncovered, use `npm run test:coverage`, which will report full coverage details for all files.
+Run `pnpm run test:verify-coverage` before committing. When trying to learn which lines are uncovered, use `pnpm run test:coverage`, which will report full coverage details for all files.
 
 **All commits must pass linting and formatting checks:**
 
@@ -20,18 +20,16 @@ Run `npm run test:verify-coverage` before committing. When trying to learn which
 
 **Never use `--no-verify` when committing.** This flag bypasses pre-commit hooks that enforce the coverage and linting requirements.
 
-**Build:**
-
-```bash
-npm run build
-```
-
 ## Architecture
 
 - **Language**: JavaScript with JSDoc
 - **Module System**: ESM (type: "module" in package.json, NodeNext module resolution)
 
 **Important:** The codebase is in JavaScript. TypeScript definitions are offered as a convenience to consumers of the library. No code should be written in TypeScript
+
+## Package Manager
+
+**pnpm is the required package manager for this project.** Always use `pnpm` instead of `npm` or `yarn`.
 
 ## Spec Compliance
 
