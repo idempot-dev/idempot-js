@@ -7,11 +7,11 @@ hero:
   tagline: Middleware for Express, Fastify, and Hono with pluggable storage backends
   actions:
     - theme: brand
-      text: Why Idempotency?
-      link: /why
+      text: Learn
+      link: /learn/
     - theme: alt
       text: Get Started
-      link: /getting-started/installation
+      link: /guide/
 
 features:
   - title: Framework Support
@@ -20,5 +20,5 @@ features:
     details: Redis, PostgreSQL, MySQL, SQLite, or Bun SQL
   - title: IETF Compliant
     details: Implements the Idempotency-Key header specification
-    link: /spec
+    link: /learn/spec
 ---
