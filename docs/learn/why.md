@@ -1,6 +1,6 @@
 # Why Idempotency Matters
 
-In distributed systems, requests fail. Networks timeout, load balancers retry, users double-click. Without protection, these failures create duplicate transactions—double charges, duplicate orders, inconsistent state.
+In distributed systems, networks timeout, load balancers retry, users double-click. Without idempotency, these failures create duplicate transactions: double charges, duplicate orders, inconsistent state.
 
 ## The Problem
 
@@ -14,7 +14,7 @@ Duplicate requests happen more often than you'd think:
 | Load balancers   | Backend timeout triggers retry        |
 | Webhook delivery | Provider retries failed deliveries    |
 
-Each duplicate request can create unintended side effects: duplicate payments, multiple orders, inconsistent data.
+Each duplicate request creates side effects: duplicate payments, duplicate orders, corrupted data.
 
 ## The Pattern
 
@@ -34,7 +34,7 @@ This makes any request safely retryable. The server either processes it once and
 - **Better UX**: Users don't wonder "did that go through?"
 - **API reliability**: Stripe, PayPal, and major processors all use this pattern
 
-The idempot-js library implements the [IETF Idempotency-Key Header draft specification](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07), making it easy to add idempotency to any Node.js, Bun, or Deno application.
+Idempot-js implements the [IETF Idempotency-Key Header draft specification](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07) for Node.js, Bun, and Deno applications.
 
 ## Further Learning
 

@@ -1,6 +1,6 @@
 # Client Key Strategies
 
-The client is responsible for generating idempotency keys. Both strategies create a transfer record first:
+The client generates idempotency keys. Both strategies create a transfer record first:
 
 ## Strategy 1: Random Keys
 
