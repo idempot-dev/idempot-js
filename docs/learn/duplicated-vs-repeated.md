@@ -124,11 +124,11 @@ await fetch("/api/transfers", {
 
 ### Strategy 2: Derived Keys
 
-Derive the key from your business identifier:
+Derive the key from your business identifiers:
 
 ```javascript
 // Client code
-const idempotencyKey = `transfer-${invoiceId}`;
+const idempotencyKey = `transfer-${supplierId}-${invoiceId}`;
 
 await fetch("/api/transfers", {
   method: "POST",
@@ -141,7 +141,7 @@ await fetch("/api/transfers", {
     amount,
     currency,
     description,
-    internal_reason: `invoice-${invoiceId}`
+    internal_reason: `invoice-${supplierId}-${invoiceId}`
   })
 });
 ```
