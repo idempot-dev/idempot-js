@@ -7,6 +7,7 @@ const learnSidebar = [
       { text: "Overview", link: "/learn/" },
       { text: "Why Idempotency", link: "/learn/why" },
       { text: "Duplicated vs Repeated", link: "/learn/duplicated-vs-repeated" },
+      { text: "Client Key Strategies", link: "/learn/client-key-strategies" },
       { text: "Spec Compliance", link: "/learn/spec" }
     ]
   }
