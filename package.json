@@ -88,6 +88,7 @@
     "ioredis": "^5.9.2",
     "ioredis-mock": "^8.13.1",
     "lint-staged": "^16.4.0",
+    "mermaid": "^11.14.0",
     "multi-semantic-release": "^3.1.0",
     "mysql2": "^3.20.0",
     "pg": "^8.18.0",
@@ -96,7 +97,8 @@
     "sinon": "^21.0.0",
     "tap": "^21.5.0",
     "ulid": "^3.0.2",
-    "vitepress": "^1.6.4"
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17"
   },
   "lint-staged": {
     "*.js": [
