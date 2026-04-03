@@ -18,7 +18,7 @@ Duplicate requests happen more often than you'd think:
 sequenceDiagram
     participant Client
     participant Server
-    
+
     Client->>Server: POST /api/transfers
     Server-->>Client: 201 Created (response LOST)
     Note over Client: Network timeout<br/>Client retries...
@@ -42,7 +42,7 @@ Major APIs like Stripe and PayPal use a simple pattern to solve this:
 sequenceDiagram
     participant Client
     participant Server
-    
+
     Client->>Server: POST /api/transfers<br/>Idempotency-Key: abc-123
     Note over Server: Store key, process request
     Server-->>Client: 201 Created
