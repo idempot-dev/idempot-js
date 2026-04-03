@@ -8,6 +8,10 @@ Understanding idempotency is essential for building reliable distributed systems
 
 Every API that processes payments, creates orders, or modifies state needs idempotency. Without it, network failures and client retries create duplicate transactions. **[Learn why →](/learn/why)**
 
+### Duplicated vs Repeated Operations
+
+Idempotency protects against duplicates from retries while allowing legitimate repeated operations. The key is using different idempotency keys for different business operations. **[Learn the difference →](/learn/duplicated-vs-repeated)**
+
 ### IETF Specification
 
 This library implements the IETF draft standard for idempotency keys. Understanding the spec helps you implement idempotency correctly and interoperate with other systems. **[Read the spec compliance guide →](/learn/spec)**
