@@ -14,6 +14,19 @@ Duplicate requests happen more often than you'd think:
 | Load balancers   | Backend timeout triggers retry        |
 | Webhook delivery | Provider retries failed deliveries    |
 
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    
+    Client->>Server: POST /api/transfers
+    Server-->>Client: 201 Created (response LOST)
+    Note over Client: Network timeout<br/>Client retries...
+    Client->>Server: POST /api/transfers
+    Server-->>Client: 201 Created
+    Note over Server: ❌ Duplicate created
+```
+
 Each duplicate request creates side effects: duplicate payments, duplicate orders, corrupted data.
 
 ## The Pattern
@@ -24,6 +37,21 @@ Major APIs like Stripe and PayPal use a simple pattern to solve this:
 2. **Key sent as header** — `Idempotency-Key: <uuid>`
 3. **Server stores key + response** — in your database or cache
 4. **On duplicate request** — server returns cached response instead of reprocessing
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    
+    Client->>Server: POST /api/transfers<br/>Idempotency-Key: abc-123
+    Note over Server: Store key, process request
+    Server-->>Client: 201 Created
+    Note over Client: Network timeout<br/>Client retries...
+    Client->>Server: POST /api/transfers<br/>Idempotency-Key: abc-123
+    Note over Server: Key found<br/>Return cached response
+    Server-->>Client: 201 Created
+    Note over Server: ✅ No duplicate
+```
 
 This makes any request safely retryable. The server either processes it once and caches the result, or recognizes the key and returns the previous result.
 

@@ -48,6 +48,9 @@ const docsSidebar = [
 export default defineConfig({
   title: "idempot-js",
   description: "Idempotency middlewares for Node.js",
+  markdown: {
+    mermaid: true
+  },
   head: [
     ["script", { defer: true, "data-domain": "js.idempot.dev", src: "https://plausible.io/js/pa-gteedLuTOi5cVRvpZlLtR.js" }],
     [
