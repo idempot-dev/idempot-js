@@ -18,6 +18,9 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
     devDependencies:
+      '@braintree/sanitize-url':
+        specifier: ^7.1.2
+        version: 7.1.2
       '@commitlint/cli':
         specifier: ^20.4.1
         version: 20.4.3(@types/node@20.19.37)(typescript@5.9.3)
@@ -39,6 +42,18 @@ importers:
       better-sqlite3:
         specifier: ^12.6.2
         version: 12.6.2
+      cytoscape:
+        specifier: ^3.33.1
+        version: 3.33.1
+      cytoscape-cose-bilkent:
+        specifier: ^4.1.0
+        version: 4.1.0(cytoscape@3.33.1)
+      dayjs:
+        specifier: ^1.11.20
+        version: 1.11.20
+      debug:
+        specifier: ^4.4.3
+        version: 4.4.3(supports-color@8.1.1)
       eslint:
         specifier: ^10.0.0
         version: 10.0.3(jiti@2.6.1)

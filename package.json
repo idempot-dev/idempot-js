@@ -69,6 +69,7 @@
     "hono": ">=4.0.0"
   },
   "devDependencies": {
+    "@braintree/sanitize-url": "^7.1.2",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@cucumber/cucumber": "^12.7.0",
@@ -76,6 +77,10 @@
     "@hono/node-server": "^1.19.9",
     "@semantic-release/npm": "^13.1.5",
     "better-sqlite3": "^12.6.2",
+    "cytoscape": "^3.33.1",
+    "cytoscape-cose-bilkent": "^4.1.0",
+    "dayjs": "^1.11.20",
+    "debug": "^4.4.3",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsdoc": "^50.0.0",
