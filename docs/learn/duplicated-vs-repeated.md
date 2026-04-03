@@ -1,6 +1,6 @@
 # Duplicated vs Repeated Operations
 
-Idempotency protects against **duplicated** operations from network retries, while still allowing **repeated** operations—legitimate new requests with the same business parameters.
+Idempotency protects against **duplicated** operations from network retries while allowing **repeated** operations—new requests with the same business parameters.
 
 ## The Difference
 
@@ -130,7 +130,4 @@ app.post("/api/transfers", idempotency({ store }), async (c) => {
 | Retry of same request | Same            | Same                        | Same        | Cached response |
 | New invoice payment   | Different       | Different `internal_reason` | Different   | New operation   |
 
-The combination of **new key per operation** and **unique `internal_reason` per request body** ensures:
-
-- **Retries are protected** — same key + same body returns cached response
-- **New operations are allowed** — different key + different body processes as new request
+The combination of **new key per operation** and **unique `internal_reason` in each request body** ensures retries return cached responses while new operations process normally.

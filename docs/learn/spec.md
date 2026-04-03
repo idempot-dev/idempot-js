@@ -47,8 +47,8 @@ The library follows the spec's error handling recommendations:
 
 The spec leaves some things to the application layer:
 
-- **Key format**: The spec recommends UUIDs but doesn't mandate them. The library accepts any string value.
-- **Store implementation**: The spec doesn't prescribe how to store idempotency records. We provide multiple store implementations (Redis, PostgreSQL, MySQL, SQLite, Bun SQL).
+- **Key format**: The spec recommends UUIDs, but the library accepts any string value.
+- **Store implementation**: The spec doesn't mandate storage implementation. We provide Redis, PostgreSQL, MySQL, SQLite, and Bun SQL stores.
 - **Key generation**: The spec says clients should generate keys. We don't generate keys—clients provide them.
 
 ## Compliance Status

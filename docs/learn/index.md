@@ -1,6 +1,6 @@
 # Learn
 
-Understanding idempotency is essential for building reliable distributed systems. When networks fail and retries happen, idempotency ensures your API behaves correctly—no double charges, no duplicate orders.
+Idempotency is essential for reliable distributed systems. When networks fail and clients retry requests, idempotency prevents duplicate transactions—no double charges, no duplicate orders.
 
 ## Key Concepts
 
@@ -10,7 +10,7 @@ Every API that processes payments, creates orders, or modifies state needs idemp
 
 ### Duplicated vs Repeated Operations
 
-Idempotency protects against duplicates from retries while allowing legitimate repeated operations. The key is using different idempotency keys for different business operations. **[Learn the difference →](/learn/duplicated-vs-repeated)**
+Idempotency protects against duplicates from retries while allowing legitimate repeated operations. Use a different idempotency key for each distinct business operation. **[Learn the difference →](/learn/duplicated-vs-repeated)**
 
 ### Client Key Strategies
 
@@ -25,4 +25,4 @@ This library implements the IETF draft standard for idempotency keys. Understand
 - The problem duplicates create in distributed systems
 - How the idempotency-key pattern works
 - What the IETF specification requires
-- How idempot-js implements each requirement
+- Implementation details for each requirement
