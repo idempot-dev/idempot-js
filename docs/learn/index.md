@@ -12,6 +12,10 @@ Every API that processes payments, creates orders, or modifies state needs idemp
 
 Idempotency protects against duplicates from retries while allowing legitimate repeated operations. The key is using different idempotency keys for different business operations. **[Learn the difference →](/learn/duplicated-vs-repeated)**
 
+### Client Key Strategies
+
+How should you generate idempotency keys? Learn patterns for managing keys in your client applications. **[See strategies →](/learn/client-key-strategies)**
+
 ### IETF Specification
 
 This library implements the IETF draft standard for idempotency keys. Understanding the spec helps you implement idempotency correctly and interoperate with other systems. **[Read the spec compliance guide →](/learn/spec)**
