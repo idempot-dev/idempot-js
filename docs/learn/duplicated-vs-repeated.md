@@ -90,21 +90,27 @@ Content-Type: application/json
 
 ## Client Key Strategies
 
-The client is responsible for generating idempotency keys. Both strategies are valid:
+The client is responsible for generating idempotency keys. Both strategies create a transfer record first, then use its ID:
 
-### Strategy 1: Random Keys
+### Strategy 1: Database ID as Key
 
-Generate a new UUID/ULID for each distinct operation and track it in your database:
+Create a transfer record first, use its database-generated ID:
 
 ```javascript
-// Client code
-const idempotencyKey = crypto.randomUUID();
+// Create transfer record first
+const transfer = await db.transfers.create({
+  supplier_id: supplierId,
+  invoice_id: invoiceId,
+  iban,
+  amount: 10000,
+  currency: "EUR",
+  description: "Monthly consulting fee",
+  internal_reason: `invoice-${supplierId}-${invoiceId}`,
+  status: "pending"
+});
 
-// Store association in your database
-await db.query(
-  "INSERT INTO payment_attempts (idempotency_key, invoice_id) VALUES (?, ?)",
-  [idempotencyKey, invoiceId]
-);
+// Use transfer ID directly
+const idempotencyKey = transfer.id;
 
 await fetch("/api/transfers", {
   method: "POST",
@@ -113,22 +119,36 @@ await fetch("/api/transfers", {
     "Idempotency-Key": idempotencyKey
   },
   body: JSON.stringify({
-    iban,
-    amount,
-    currency,
-    description,
-    internal_reason: `invoice-${invoiceId}`
+    iban: transfer.iban,
+    amount: transfer.amount,
+    currency: transfer.currency,
+    description: transfer.description,
+    internal_reason: transfer.internal_reason
   })
 });
 ```
 
-### Strategy 2: Derived Keys
+**Benefit**: Single source of truth — the transfer ID is your idempotency key.
 
-Derive the key from your business identifiers:
+### Strategy 2: Prefixed Key
+
+Prefix the database ID for clarity across different operation types:
 
 ```javascript
-// Client code
-const idempotencyKey = `transfer-${supplierId}-${invoiceId}`;
+// Create transfer record first
+const transfer = await db.transfers.create({
+  supplier_id: supplierId,
+  invoice_id: invoiceId,
+  iban,
+  amount: 10000,
+  currency: "EUR",
+  description: "Monthly consulting fee",
+  internal_reason: `invoice-${supplierId}-${invoiceId}`,
+  status: "pending"
+});
+
+// Prefix for semantic clarity
+const idempotencyKey = `transfer-${transfer.id}`;
 
 await fetch("/api/transfers", {
   method: "POST",
@@ -137,16 +157,16 @@ await fetch("/api/transfers", {
     "Idempotency-Key": idempotencyKey
   },
   body: JSON.stringify({
-    iban,
-    amount,
-    currency,
-    description,
-    internal_reason: `invoice-${supplierId}-${invoiceId}`
+    iban: transfer.iban,
+    amount: transfer.amount,
+    currency: transfer.currency,
+    description: transfer.description,
+    internal_reason: transfer.internal_reason
   })
 });
 ```
 
-**Trade-off**: Derived keys are semantically meaningful but require careful collision avoidance across different operation types.
+**Benefit**: Semantic prefix helps distinguish transfers from refunds, payments, etc. when reviewing logs.
 
 ## Server Implementation
 
