@@ -53,6 +53,17 @@ export default withMermaid(
     markdown: {
       mermaid: true
     },
+    vite: {
+      optimizeDeps: {
+        include: [
+          "dayjs",
+          "@braintree/sanitize-url",
+          "debug",
+          "cytoscape",
+          "cytoscape-cose-bilkent"
+        ]
+      }
+    },
     head: [
     ["script", { defer: true, "data-domain": "js.idempot.dev", src: "https://plausible.io/js/pa-gteedLuTOi5cVRvpZlLtR.js" }],
     [
