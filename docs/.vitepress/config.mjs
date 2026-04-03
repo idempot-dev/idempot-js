@@ -66,6 +66,10 @@ export default defineConfig({
       "/stores/": docsSidebar,
       "/reference/": docsSidebar
     },
-    socialLinks: [{ icon: "github", link: "https://github.com/idempot-dev/idempot-js" }]
+    socialLinks: [{ icon: "github", link: "https://github.com/idempot-dev/idempot-js" }],
+    footer: {
+      message: 'Released under the <a href="https://github.com/idempot-dev/idempot-js/blob/main/LICENSE">BSD License</a>.',
+      copyright: 'Copyright © 2026 <a href="https://github.com/mroderick">Morgan Roderick</a> and contributors'
+    }
   }
 });
