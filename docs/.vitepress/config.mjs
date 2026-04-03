@@ -50,6 +50,9 @@ export default withMermaid(
   defineConfig({
     title: "idempot-js",
     description: "Idempotency middlewares for Node.js",
+    sitemap: {
+      hostname: "https://js.idempot.dev"
+    },
     markdown: {
       mermaid: true
     },
