@@ -31,9 +31,26 @@ jobs:
       - name: Check code quality
         run: pnpm run check
 
+  fallow:
+    name: Fallow
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 22
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run fallow check
+        run: npx fallow
+
   test:
     name: Test (Node.js ${{ matrix.node-version }})
-    needs: [lint, commitlint]
+    needs: [lint, commitlint, fallow]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -121,7 +138,7 @@ jobs:
 
   bun:
     name: Bun
-    needs: [lint, commitlint]
+    needs: [lint, commitlint, fallow]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -169,7 +186,7 @@ jobs:
 
   deno:
     name: Deno
-    needs: [lint, commitlint]
+    needs: [lint, commitlint, fallow]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
