@@ -48,8 +48,7 @@ export default withMermaid(
       optimizeDeps: {
         include: [
           "dayjs",
-          "debug",
-          "cytoscape-cose-bilkent"
+          "debug"
         ]
       }
     },
