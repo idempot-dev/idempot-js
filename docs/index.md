@@ -7,8 +7,10 @@ hero:
   tagline: Middleware for Express, Fastify, and Hono with pluggable storage backends
   actions:
     - theme: brand
-      text: Learn
+      text: Learn ↗
       link: https://idempot.dev/learn/
+      target: _blank
+      rel: external noreferrer noopener
     - theme: alt
       text: Get Started
       link: /guide/
