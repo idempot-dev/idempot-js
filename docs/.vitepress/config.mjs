@@ -1,19 +1,6 @@
 import { defineConfig } from "vitepress";
 import { withMermaid } from "vitepress-plugin-mermaid";
 
-const learnSidebar = [
-  {
-    text: "Learn",
-    items: [
-      { text: "Overview", link: "/learn/" },
-      { text: "Why Idempotency", link: "/learn/why" },
-      { text: "Duplicated vs Repeated", link: "/learn/duplicated-vs-repeated" },
-      { text: "Client Key Strategies", link: "/learn/client-key-strategies" },
-      { text: "Spec Compliance", link: "/learn/spec" }
-    ]
-  }
-];
-
 const docsSidebar = [
   {
     text: "Guide",
@@ -77,11 +64,10 @@ export default withMermaid(
   ],
   themeConfig: {
     nav: [
-      { text: "Learn", link: "/learn/" },
+      { text: "Learn", link: "https://idempot.dev/learn/" },
       { text: "Guide", link: "/guide/" }
     ],
     sidebar: {
-      "/learn/": learnSidebar,
       "/guide/": docsSidebar,
       "/frameworks/": docsSidebar,
       "/stores/": docsSidebar,
