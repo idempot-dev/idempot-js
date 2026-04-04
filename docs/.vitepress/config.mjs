@@ -1,5 +1,4 @@
 import { defineConfig } from "vitepress";
-import { withMermaid } from "vitepress-plugin-mermaid";
 
 const docsSidebar = [
   {
@@ -34,18 +33,13 @@ const docsSidebar = [
   }
 ];
 
-export default withMermaid(
-  defineConfig({
-    title: "idempot-js",
-    description: "Idempotency middlewares for Node.js",
-    sitemap: {
-      hostname: "https://js.idempot.dev"
-    },
-    markdown: {
-      mermaid: true
-    },
-
-    head: [
+export default defineConfig({
+  title: "idempot-js",
+  description: "Idempotency middlewares for Node.js",
+  sitemap: {
+    hostname: "https://js.idempot.dev"
+  },
+  head: [
     ["script", { defer: true, "data-domain": "js.idempot.dev", src: "https://plausible.io/js/pa-gteedLuTOi5cVRvpZlLtR.js" }],
     [
       "script",
@@ -70,5 +64,4 @@ export default withMermaid(
       copyright: 'Copyright © 2026 <a href="https://github.com/mroderick">Morgan Roderick</a> and contributors'
     }
   }
-})
-);
+});
