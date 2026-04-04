@@ -1,3 +1,8 @@
+// packages/stores/redis/redis.unit.test.js
+// This file runs the shared store adapter test suite via runStoreTests()
+// then adds Redis-specific edge cases not covered by the shared tests.
+// See packages/core/tests/store-adapter-suite.js for the shared tests.
+// For property-based tests, see redis.properties.test.js
 import { test } from "tap";
 import sinon from "sinon";
 import { RedisIdempotencyStore } from "@idempot/redis-store";
@@ -10,110 +15,6 @@ runStoreTests({
     const client = createFakeRedisClient();
     return new RedisIdempotencyStore({ client });
   }
-});
-
-test("RedisIdempotencyStore - lookup returns null for empty store", async (t) => {
-  const client = createFakeRedisClient();
-  const store = new RedisIdempotencyStore({ client });
-
-  const result = await store.lookup("key-1", "fp-1");
-
-  t.equal(result.byKey, null, "byKey should be null");
-  t.equal(result.byFingerprint, null, "byFingerprint should be null");
-  t.end();
-});
-
-test("RedisIdempotencyStore - lookup finds record by key", async (t) => {
-  const client = createFakeRedisClient();
-  const store = new RedisIdempotencyStore({ client });
-
-  await store.startProcessing("key-1", "fp-1", 60000);
-
-  const result = await store.lookup("key-1", "fp-1");
-
-  t.equal(result.byKey?.key, "key-1", "should find by key");
-  t.equal(result.byKey?.status, "processing", "status should be processing");
-  t.end();
-});
-
-test("RedisIdempotencyStore - lookup finds record by fingerprint", async (t) => {
-  const client = createFakeRedisClient();
-  const store = new RedisIdempotencyStore({ client });
-
-  await store.startProcessing("key-1", "fp-1", 60000);
-
-  const result = await store.lookup("key-2", "fp-1");
-
-  t.equal(result.byFingerprint?.key, "key-1", "should find by fingerprint");
-  t.equal(
-    result.byFingerprint?.fingerprint,
-    "fp-1",
-    "fingerprint should match"
-  );
-  t.end();
-});
-
-test("RedisIdempotencyStore - startProcessing creates record", async (t) => {
-  const client = createFakeRedisClient();
-  const store = new RedisIdempotencyStore({ client });
-
-  await store.startProcessing("key-1", "fp-1", 60000);
-
-  const result = await store.lookup("key-1", "fp-1");
-
-  t.equal(result.byKey?.status, "processing", "status should be processing");
-  t.equal(result.byKey?.fingerprint, "fp-1", "fingerprint should be stored");
-  t.end();
-});
-
-test("RedisIdempotencyStore - complete updates record", async (t) => {
-  const client = createFakeRedisClient();
-  const store = new RedisIdempotencyStore({ client });
-
-  await store.startProcessing("key-1", "fp-1", 60000);
-
-  await store.complete("key-1", {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-    body: '{"success":true}'
-  });
-
-  const result = await store.lookup("key-1", "fp-1");
-
-  t.equal(result.byKey?.status, "complete", "status should be complete");
-  t.equal(result.byKey?.response?.status, 200, "response status should match");
-  t.same(
-    result.byKey?.response?.headers,
-    { "Content-Type": "application/json" },
-    "headers should match"
-  );
-  t.equal(
-    result.byKey?.response?.body,
-    '{"success":true}',
-    "body should match"
-  );
-  t.end();
-});
-
-test("RedisIdempotencyStore - complete throws on missing key", async (t) => {
-  const client = createFakeRedisClient();
-  const store = new RedisIdempotencyStore({ client });
-
-  try {
-    await store.complete("nonexistent", {
-      status: 200,
-      headers: {},
-      body: "test"
-    });
-    t.fail("should have thrown");
-  } catch (err) {
-    t.match(
-      err.message,
-      /No record found/i,
-      "should throw error for missing key"
-    );
-  }
-  t.end();
 });
 
 test("RedisIdempotencyStore - with custom prefix", async (t) => {
