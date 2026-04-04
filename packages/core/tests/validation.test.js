@@ -102,6 +102,37 @@ test("validateIdempotencyOptions - rejects minKeyLength below 21", (t) => {
   t.end();
 });
 
+// Additional validateIdempotencyOptions tests for coverage
+test("validateIdempotencyOptions - rejects non-integer values", (t) => {
+  t.throws(() => validateIdempotencyOptions({ minKeyLength: 21.5 }), {
+    message: "minKeyLength must be an integer"
+  });
+  t.throws(() => validateIdempotencyOptions({ ttlMs: 1000.5 }), {
+    message: "ttlMs must be an integer"
+  });
+  t.end();
+});
+
+test("validateIdempotencyOptions - rejects unsafe integers", (t) => {
+  const unsafeInteger = Number.MAX_SAFE_INTEGER + 1;
+  t.throws(() => validateIdempotencyOptions({ minKeyLength: unsafeInteger }), {
+    message: "minKeyLength must be a safe integer"
+  });
+  t.throws(() => validateIdempotencyOptions({ ttlMs: unsafeInteger }), {
+    message: "ttlMs must be a safe integer"
+  });
+  t.end();
+});
+
+test("validateIdempotencyOptions - rejects ttlMs greater than 1 year", (t) => {
+  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  t.throws(() => validateIdempotencyOptions({ ttlMs: ONE_YEAR_MS + 1 }), {
+    message: "ttlMs must be less than or equal to 1 year (31536000000ms)"
+  });
+  t.doesNotThrow(() => validateIdempotencyOptions({ ttlMs: ONE_YEAR_MS }));
+  t.end();
+});
+
 test("validateIdempotencyKey - rejects keys containing commas", (t) => {
   const result = validateIdempotencyKey("key-with,comma-21chars");
   t.equal(result.valid, false);
