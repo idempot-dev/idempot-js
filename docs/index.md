@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: Learn
-      link: /learn/
+      link: https://idempot.dev/learn/
     - theme: alt
       text: Get Started
       link: /guide/
@@ -20,5 +20,5 @@ features:
     details: Redis, PostgreSQL, MySQL, SQLite, or Bun SQL
   - title: IETF Compliant
     details: Implements the Idempotency-Key header specification
-    link: /learn/spec
+    link: https://idempot.dev/learn/spec
 ---
