@@ -6,7 +6,8 @@ const docsSidebar = [
     text: "Guide",
     items: [
       { text: "Overview", link: "/guide/" },
-      { text: "Installation", link: "/guide/installation" }
+      { text: "Installation", link: "/guide/installation" },
+      { text: "Configuration", link: "/guide/configuration" }
     ]
   },
   {
