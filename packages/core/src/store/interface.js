@@ -1,3 +1,6 @@
+// fallow-ignore-file unused-file
+// This file provides shared JSDoc type definitions used across store implementations
+
 /**
  * @typedef {Object} IdempotencyRecord
  * @property {string} key
