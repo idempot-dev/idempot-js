@@ -56,6 +56,7 @@
     "test:container:logs": "./scripts/container.sh logs",
     "test:spec": "cucumber-js tests/spec/**/*.feature --force-exit",
     "prepare": "husky",
+    "spec:sync": "./scripts/sync-spec.sh",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
