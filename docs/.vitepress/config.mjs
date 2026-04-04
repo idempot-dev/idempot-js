@@ -48,7 +48,6 @@ export default withMermaid(
       optimizeDeps: {
         include: [
           "dayjs",
-          "@braintree/sanitize-url",
           "debug",
           "cytoscape",
           "cytoscape-cose-bilkent"
