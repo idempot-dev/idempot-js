@@ -46,7 +46,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Run fallow check
-        run: npx fallow
+        run: npx fallow dead-code
 
   test:
     name: Test (Node.js ${{ matrix.node-version }})

@@ -40,3 +40,9 @@ ignorePatterns = [
   # Generated type definitions (build outputs)
   "**/*.d.ts",
 ]
+
+# Override rules for specific file patterns
+# Examples and tests are expected to have duplication - ignore it
+[[overrides]]
+files = ["examples/**/*.js", "tests/**/*.js", "packages/stores/*/tests/*.js"]
+rules = { duplicates = "off" }
