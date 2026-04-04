@@ -87,7 +87,6 @@
     "hono": "^4.11.5",
     "husky": "^9.1.7",
     "ioredis": "^5.9.2",
-    "ioredis-mock": "^8.13.1",
     "lint-staged": "^16.4.0",
     "mermaid": "^11.14.0",
     "multi-semantic-release": "^3.1.0",
