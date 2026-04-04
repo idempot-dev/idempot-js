@@ -18,9 +18,6 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
     devDependencies:
-      '@braintree/sanitize-url':
-        specifier: ^7.1.2
-        version: 7.1.2
       '@commitlint/cli':
         specifier: ^20.4.1
         version: 20.4.3(@types/node@20.19.37)(typescript@5.9.3)

@@ -70,7 +70,6 @@
     "hono": ">=4.0.0"
   },
   "devDependencies": {
-    "@braintree/sanitize-url": "^7.1.2",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@cucumber/cucumber": "^12.7.0",

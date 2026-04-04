@@ -1,0 +1,42 @@
+# Fallow configuration for idempot-js
+# https://docs.fallow.tools/configuration/overview
+
+# Entry points for analysis - files executed directly that may not be imported
+entry = [
+  # Tap test files
+  "**/*.test.js",
+  # Cucumber feature tests
+  "tests/spec/**/*.feature",
+  # Cucumber step definitions (loaded dynamically by @cucumber/cucumber)
+  "tests/spec/steps/*.js",
+  # Example applications
+  "examples/*.js",
+  # Test helper files that provide exports for tests
+  "tests/integration/shared/*.js",
+  "packages/**/tests/*.js",
+  "tests/runtime/**/*.js",
+  # Monorepo test
+  "tests/monorepo/*.js",
+  # Integration test utilities
+  "tests/integration/shared/prereqs.js",
+  "tests/integration/shared/setup.js",
+]
+
+# Dependencies to ignore - these are runtime-native modules (Deno/Bun)
+# that will never be in package.json
+ignoreDependencies = [
+  # Deno native modules
+  "@db/redis",  # Deno Redis client
+  "mysql",      # Deno MySQL client
+  "sqlite",     # Deno SQLite client
+  # Bun runtime namespace
+  "bun",
+]
+
+# Patterns for files to exclude from analysis entirely
+ignorePatterns = [
+  # Documentation files
+  "docs/**",
+  # Generated type definitions (build outputs)
+  "**/*.d.ts",
+]
