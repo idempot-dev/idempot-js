@@ -43,3 +43,4 @@ data/
 *.db
 docs/plans/
 docs/.vitepress/cache/
+.worktrees/
