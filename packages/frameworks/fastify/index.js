@@ -27,7 +27,6 @@ const HEADER_NAME = "idempotency-key";
  * Fastify middleware for idempotency
  * @param {Object} opts - Middleware options
  * @param {IdempotencyStore} opts.store - Storage backend
- * @param {string} [opts.headerName="Idempotency-Key"] - Header name
  * @param {number} [opts.maxKeyLength=255] - Maximum key length
  * @param {number} [opts.minKeyLength=21] - Minimum key length (default: 21 for nanoid)
  * @returns {(request: import("fastify").FastifyRequest, reply: import("fastify").FastifyReply) => Promise<void>}
