@@ -33,8 +33,7 @@ Creates Hono middleware for idempotency.
 **Options:**
 
 - `store` (required): Storage backend implementing `IdempotencyStore`
-- `headerName`: Header name for idempotency key (default: `"Idempotency-Key"`)
-- `required`: Whether idempotency key is required (default: `false`)
+- `required`: Whether idempotency key is required (default: `true`)
 - `ttlMs`: Time-to-live for idempotency records in milliseconds
 - `excludeFields`: Fields to exclude from fingerprint calculation
 - `resilience`: Circuit breaker and retry options
