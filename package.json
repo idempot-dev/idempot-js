@@ -77,7 +77,6 @@
     "@hono/node-server": "^1.19.9",
     "@semantic-release/npm": "^13.1.5",
     "better-sqlite3": "^12.6.2",
-    "cytoscape": "^3.33.1",
     "cytoscape-cose-bilkent": "^4.1.0",
     "dayjs": "^1.11.20",
     "debug": "^4.4.3",
