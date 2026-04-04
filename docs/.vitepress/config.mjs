@@ -44,13 +44,7 @@ export default withMermaid(
     markdown: {
       mermaid: true
     },
-    vite: {
-      optimizeDeps: {
-        include: [
-          "debug"
-        ]
-      }
-    },
+
     head: [
     ["script", { defer: true, "data-domain": "js.idempot.dev", src: "https://plausible.io/js/pa-gteedLuTOi5cVRvpZlLtR.js" }],
     [
