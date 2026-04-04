@@ -1,2 +1,12 @@
+#!/bin/sh
+
+# Always run lint-staged (formatting and linting)
 pnpm exec lint-staged -q
-npm run test:verify-coverage-min
+
+# Get list of staged files (Added, Changed, Modified - not deleted)
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Run tests only when source files, tests, or relevant configs change
+if echo "$STAGED" | grep -qE '\.(js|ts|mjs|cjs)$|\.feature$|package\.json$|pnpm-workspace\.yaml$|tests/runtime/deno/deno\.json$'; then
+    npm run test:verify-coverage-min
+fi
