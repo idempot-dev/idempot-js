@@ -39,9 +39,6 @@ importers:
       better-sqlite3:
         specifier: ^12.6.2
         version: 12.6.2
-      dayjs:
-        specifier: ^1.11.20
-        version: 1.11.20
       debug:
         specifier: ^4.4.3
         version: 4.4.3(supports-color@8.1.1)

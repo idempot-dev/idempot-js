@@ -77,7 +77,6 @@
     "@hono/node-server": "^1.19.9",
     "@semantic-release/npm": "^13.1.5",
     "better-sqlite3": "^12.6.2",
-    "dayjs": "^1.11.20",
     "debug": "^4.4.3",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",

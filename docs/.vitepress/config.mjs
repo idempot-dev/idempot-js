@@ -47,7 +47,6 @@ export default withMermaid(
     vite: {
       optimizeDeps: {
         include: [
-          "dayjs",
           "debug"
         ]
       }
