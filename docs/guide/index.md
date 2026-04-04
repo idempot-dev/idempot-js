@@ -30,7 +30,7 @@ These defaults protect your application from cascading failures when the backing
 
 ### Spec Compliance
 
-All behaviors conform to the [IETF Idempotency-Key Header draft specification](/learn/spec). You get interoperable, standards-based idempotency without reading RFCs.
+All behaviors conform to the [IETF Idempotency-Key Header draft specification](https://idempot.dev/learn/spec). You get interoperable, standards-based idempotency without reading RFCs.
 
 ## Next Steps
 
