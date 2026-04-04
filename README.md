@@ -201,6 +201,10 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
 See the `examples/` directory for complete examples.
 
+## Changelog
+
+See [GitHub Releases](https://github.com/idempot-dev/idempot-js/releases) for the changelog.
+
 ## License
 
 BSD-3
