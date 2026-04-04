@@ -1,24 +1,4 @@
 /**
- * @param {string[]} fields
- * @returns {asserts fields is string[]}
- */
-export function validateExcludeFields(fields) {
-  if (!Array.isArray(fields)) {
-    throw new Error("excludeFields must be an array");
-  }
-  for (const field of fields) {
-    if (field !== null && field !== undefined && typeof field !== "string") {
-      throw new Error("excludeFields must contain only strings");
-    }
-    if (typeof field === "string" && field.startsWith("$.")) {
-      if (field === "$.") {
-        throw new Error(`Invalid JSONPath: ${field}`);
-      }
-    }
-  }
-}
-
-/**
  * Validates that a value is a safe integer (not null, within safe range)
  * @param {*} value
  * @param {string} name
@@ -41,13 +21,73 @@ function isValidInteger(value, name) {
 }
 
 /**
+ * Validates an integer option with a minimum constraint
+ * @param {*} value
+ * @param {string} name
+ * @param {number} min
+ * @param {string} minError
+ */
+function validatePositiveInteger(value, name, min, minError) {
+  isValidInteger(value, name);
+  if (value < min) {
+    throw new Error(minError);
+  }
+}
+
+/**
+ * Validates an integer option within a range
+ * @param {*} value
+ * @param {string} name
+ * @param {number} min
+ * @param {number} max
+ */
+function validateIntegerInRange(value, name, min, max) {
+  isValidInteger(value, name);
+  if (value < min || value > max) {
+    throw new Error(`${name} must be between ${min} and ${max}`);
+  }
+}
+
+/**
+ * Validates an optional option if present
+ * @param {Object} obj
+ * @param {string} key
+ * @param {Function} validator
+ */
+function validateOptional(obj, key, validator) {
+  if (key in obj) {
+    const value = obj[key];
+    if (value !== undefined) {
+      validator(value, key);
+    }
+  }
+}
+
+/**
+ * @param {string[]} fields
+ * @returns {asserts fields is string[]}
+ */
+export function validateExcludeFields(fields) {
+  if (!Array.isArray(fields)) {
+    throw new Error("excludeFields must be an array");
+  }
+  for (const field of fields) {
+    if (field !== null && field !== undefined && typeof field !== "string") {
+      throw new Error("excludeFields must contain only strings");
+    }
+    if (typeof field === "string" && field.startsWith("$.")) {
+      if (field === "$.") {
+        throw new Error(`Invalid JSONPath: ${field}`);
+      }
+    }
+  }
+}
+
+/**
  * Validates the store object has required methods
- * @param {*} store
+ * @param {*} store - expected to be non-null (null check done by caller)
  */
 function validateStore(store) {
-  if (store === null) {
-    throw new Error("store cannot be null");
-  }
   if (typeof store !== "object" || Array.isArray(store)) {
     throw new Error("store must be an object");
   }
@@ -62,90 +102,64 @@ function validateStore(store) {
 
 /**
  * Validates resilience options
- * @param {*} resilience
+ * @param {*} resilience - expected to be non-null (null check done by caller)
  */
 function validateResilienceOptions(resilience) {
-  if (resilience === null) {
-    throw new Error("resilience cannot be null");
-  }
   if (typeof resilience !== "object" || Array.isArray(resilience)) {
     throw new Error("resilience must be an object");
   }
 
-  // Validate timeoutMs: positive integer
-  if ("timeoutMs" in resilience) {
-    const { timeoutMs } = resilience;
-    if (timeoutMs !== undefined) {
-      isValidInteger(timeoutMs, "resilience.timeoutMs");
-      if (timeoutMs <= 0) {
-        throw new Error("resilience.timeoutMs must be greater than 0");
-      }
-    }
-  }
+  // Validate positive integer options
+  validateOptional(resilience, "timeoutMs", (v) =>
+    validatePositiveInteger(
+      v,
+      "resilience.timeoutMs",
+      1,
+      "resilience.timeoutMs must be greater than 0"
+    )
+  );
 
-  // Validate maxRetries: non-negative integer
-  if ("maxRetries" in resilience) {
-    const { maxRetries } = resilience;
-    if (maxRetries !== undefined) {
-      isValidInteger(maxRetries, "resilience.maxRetries");
-      if (maxRetries < 0) {
-        throw new Error(
-          "resilience.maxRetries must be greater than or equal to 0"
-        );
-      }
-    }
-  }
+  validateOptional(resilience, "resetTimeoutMs", (v) =>
+    validatePositiveInteger(
+      v,
+      "resilience.resetTimeoutMs",
+      1,
+      "resilience.resetTimeoutMs must be greater than 0"
+    )
+  );
 
-  // Validate retryDelayMs: non-negative integer
-  if ("retryDelayMs" in resilience) {
-    const { retryDelayMs } = resilience;
-    if (retryDelayMs !== undefined) {
-      isValidInteger(retryDelayMs, "resilience.retryDelayMs");
-      if (retryDelayMs < 0) {
-        throw new Error(
-          "resilience.retryDelayMs must be greater than or equal to 0"
-        );
-      }
-    }
-  }
+  validateOptional(resilience, "volumeThreshold", (v) =>
+    validatePositiveInteger(
+      v,
+      "resilience.volumeThreshold",
+      1,
+      "resilience.volumeThreshold must be greater than 0"
+    )
+  );
 
-  // Validate errorThresholdPercentage: 0 to 100
-  if ("errorThresholdPercentage" in resilience) {
-    const { errorThresholdPercentage } = resilience;
-    if (errorThresholdPercentage !== undefined) {
-      isValidInteger(
-        errorThresholdPercentage,
-        "resilience.errorThresholdPercentage"
-      );
-      if (errorThresholdPercentage < 0 || errorThresholdPercentage > 100) {
-        throw new Error(
-          "resilience.errorThresholdPercentage must be between 0 and 100"
-        );
-      }
-    }
-  }
+  // Validate non-negative integer options
+  validateOptional(resilience, "maxRetries", (v) =>
+    validatePositiveInteger(
+      v,
+      "resilience.maxRetries",
+      0,
+      "resilience.maxRetries must be greater than or equal to 0"
+    )
+  );
 
-  // Validate resetTimeoutMs: positive integer
-  if ("resetTimeoutMs" in resilience) {
-    const { resetTimeoutMs } = resilience;
-    if (resetTimeoutMs !== undefined) {
-      isValidInteger(resetTimeoutMs, "resilience.resetTimeoutMs");
-      if (resetTimeoutMs <= 0) {
-        throw new Error("resilience.resetTimeoutMs must be greater than 0");
-      }
-    }
-  }
+  validateOptional(resilience, "retryDelayMs", (v) =>
+    validatePositiveInteger(
+      v,
+      "resilience.retryDelayMs",
+      0,
+      "resilience.retryDelayMs must be greater than or equal to 0"
+    )
+  );
 
-  // Validate volumeThreshold: positive integer
-  if ("volumeThreshold" in resilience) {
-    const { volumeThreshold } = resilience;
-    if (volumeThreshold !== undefined) {
-      isValidInteger(volumeThreshold, "resilience.volumeThreshold");
-      if (volumeThreshold <= 0) {
-        throw new Error("resilience.volumeThreshold must be greater than 0");
-      }
-    }
-  }
+  // Validate percentage option
+  validateOptional(resilience, "errorThresholdPercentage", (v) =>
+    validateIntegerInRange(v, "resilience.errorThresholdPercentage", 0, 100)
+  );
 }
 
 /**
@@ -186,85 +200,66 @@ export function validateIdempotencyOptions(options = {}) {
   }
 
   // Validate required: boolean
-  if ("required" in options) {
-    const { required } = options;
-    if (required !== undefined) {
-      if (required === null) {
-        throw new Error("required cannot be null");
-      }
-      if (typeof required !== "boolean") {
-        throw new Error("required must be a boolean");
-      }
+  validateOptional(options, "required", (v, name) => {
+    if (v === null) {
+      throw new Error(`${name} cannot be null`);
     }
-  }
+    if (typeof v !== "boolean") {
+      throw new Error(`${name} must be a boolean`);
+    }
+  });
 
-  // Validate ttlMs: positive integer, max 1 year (365 days in ms)
-  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000; // 31,536,000,000
-  if ("ttlMs" in options) {
-    const { ttlMs } = options;
-    if (ttlMs !== undefined) {
-      isValidInteger(ttlMs, "ttlMs");
-      if (ttlMs <= 0) {
-        throw new Error("ttlMs must be greater than 0");
-      }
-      if (ttlMs > ONE_YEAR_MS) {
-        throw new Error(
-          "ttlMs must be less than or equal to 1 year (31536000000ms)"
-        );
-      }
+  // Validate ttlMs: positive integer, max 1 year
+  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  validateOptional(options, "ttlMs", (v, name) => {
+    isValidInteger(v, name);
+    if (v <= 0) {
+      throw new Error(`${name} must be greater than 0`);
     }
-  }
+    if (v > ONE_YEAR_MS) {
+      throw new Error(
+        `${name} must be less than or equal to 1 year (31536000000ms)`
+      );
+    }
+  });
 
-  // Validate excludeFields: array of strings (delegates to existing function)
-  if ("excludeFields" in options) {
-    const { excludeFields } = options;
-    if (excludeFields !== undefined) {
-      if (excludeFields === null) {
-        throw new Error("excludeFields cannot be null");
-      }
-      validateExcludeFields(excludeFields);
+  // Validate excludeFields: array of strings
+  validateOptional(options, "excludeFields", (v, name) => {
+    if (v === null) {
+      throw new Error(`${name} cannot be null`);
     }
-  }
+    validateExcludeFields(v);
+  });
 
   // Validate store: object with required methods
-  if ("store" in options) {
-    const { store } = options;
-    if (store !== undefined) {
-      validateStore(store);
+  validateOptional(options, "store", (v, name) => {
+    if (v === null) {
+      throw new Error(`${name} cannot be null`);
     }
-  }
+    validateStore(v);
+  });
 
   // Validate minKeyLength: integer >= 21
-  if ("minKeyLength" in options) {
-    const { minKeyLength } = options;
-    if (minKeyLength !== undefined) {
-      isValidInteger(minKeyLength, "minKeyLength");
-      if (minKeyLength < 21) {
-        throw new Error("minKeyLength must be at least 21 (nanoid default)");
-      }
-      if (minKeyLength > 255) {
-        throw new Error("minKeyLength must be at most 255");
-      }
+  validateOptional(options, "minKeyLength", (v, name) => {
+    isValidInteger(v, name);
+    if (v < 21) {
+      throw new Error(`${name} must be at least 21 (nanoid default)`);
     }
-  }
+    if (v > 255) {
+      throw new Error(`${name} must be at most 255`);
+    }
+  });
 
-  // Validate maxKeyLength: integer, must be >= minKeyLength and <= 255
-  if ("maxKeyLength" in options) {
-    const { maxKeyLength } = options;
-    if (maxKeyLength !== undefined) {
-      isValidInteger(maxKeyLength, "maxKeyLength");
-      if (maxKeyLength > 255) {
-        throw new Error("maxKeyLength must be at most 255");
-      }
+  // Validate maxKeyLength: integer <= 255
+  validateOptional(options, "maxKeyLength", (v, name) => {
+    isValidInteger(v, name);
+    if (v > 255) {
+      throw new Error(`${name} must be at most 255`);
     }
-  }
+  });
 
   // Cross-field validation: maxKeyLength >= minKeyLength
-  const minKeyLength =
-    "minKeyLength" in options ? options.minKeyLength : undefined;
-  const maxKeyLength =
-    "maxKeyLength" in options ? options.maxKeyLength : undefined;
-
+  const { minKeyLength, maxKeyLength } = options;
   if (minKeyLength !== undefined && maxKeyLength !== undefined) {
     if (maxKeyLength < minKeyLength) {
       throw new Error(
@@ -274,12 +269,12 @@ export function validateIdempotencyOptions(options = {}) {
   }
 
   // Validate resilience: nested object
-  if ("resilience" in options) {
-    const { resilience } = options;
-    if (resilience !== undefined) {
-      validateResilienceOptions(resilience);
+  validateOptional(options, "resilience", (v, name) => {
+    if (v === null) {
+      throw new Error(`${name} cannot be null`);
     }
-  }
+    validateResilienceOptions(v);
+  });
 }
 
 /**
