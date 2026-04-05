@@ -1,3 +1,8 @@
+---
+title: Hono Middleware - idempot-js
+description: Add IETF-compliant idempotency to Hono applications. Works on Node.js, Bun, and Deno runtimes with multiple storage backends.
+---
+
 # Hono
 
 ## Installation

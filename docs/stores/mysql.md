@@ -1,3 +1,8 @@
+---
+title: MySQL Store - idempot-js
+description: MySQL-backed storage for idempotency middleware. Compatible with mysql2 package. Supports Node.js and Deno runtimes with connection pooling.
+---
+
 # MySQL Store
 
 ## Installation

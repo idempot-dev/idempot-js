@@ -1,5 +1,7 @@
 ---
 layout: home
+title: idempot-js - Idempotency Middleware for Node.js, Bun & Deno
+description: Production-ready idempotency middleware for Express, Fastify, and Hono. Supports Redis, PostgreSQL, MySQL, SQLite, and Bun SQL backends. IETF compliant.
 
 hero:
   name: idempot-js

@@ -1,3 +1,8 @@
+---
+title: Bun SQL Store - idempot-js
+description: Bun-native SQL storage for idempotency middleware. Supports SQLite, PostgreSQL, and MySQL via Bun's native SQL API. Best performance on Bun runtime.
+---
+
 # Bun SQL Store
 
 A storage backend for idempotency that supports SQLite, PostgreSQL, and MySQL via Bun's native SQL API.

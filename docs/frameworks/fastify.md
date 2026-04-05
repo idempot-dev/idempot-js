@@ -1,3 +1,8 @@
+---
+title: Fastify Plugin - idempot-js
+description: Add IETF-compliant idempotency to Fastify applications using preHandler hooks. Supports Redis, PostgreSQL, MySQL, and SQLite storage backends.
+---
+
 # Fastify
 
 ## Installation
