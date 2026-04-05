@@ -1,3 +1,8 @@
+---
+title: Redis Store - idempot-js
+description: Redis-backed storage for idempotency middleware. High-performance caching with configurable key prefixes. Supports Node.js and Deno runtimes.
+---
+
 # Redis Store
 
 ## Installation

@@ -1,3 +1,8 @@
+---
+title: Express Middleware - idempot-js
+description: Add IETF-compliant idempotency to Express applications. Simple middleware integration with Redis, PostgreSQL, MySQL, or SQLite storage backends.
+---
+
 # Express
 
 ## Installation

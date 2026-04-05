@@ -1,3 +1,8 @@
+---
+title: Core API Reference - idempot-js
+description: Internal core API documentation for building custom framework integrations and storage backends. Not intended for direct use.
+---
+
 # Core API
 
 > **Note:** This package is not intended for direct use by library consumers. It is a transitive dependency of the framework integrations (Express, Fastify, Hono) and stores. You should install one of those instead.

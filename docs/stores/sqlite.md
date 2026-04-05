@@ -1,3 +1,8 @@
+---
+title: SQLite Store - idempot-js
+description: SQLite-backed storage for idempotency middleware. File-based or in-memory storage using better-sqlite3. Supports Node.js and Deno runtimes.
+---
+
 # SQLite Store
 
 ## Installation

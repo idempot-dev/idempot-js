@@ -1,3 +1,8 @@
+---
+title: Configuration - idempot-js
+description: Configure idempotency middleware with custom TTL, key validation, field exclusions, and circuit breaker resilience settings. Production-ready defaults included.
+---
+
 # Configuration
 
 idempot-js ships with production-ready defaults so you can focus on your application, not infrastructure configuration.

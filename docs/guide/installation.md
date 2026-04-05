@@ -1,3 +1,8 @@
+---
+title: Installation - idempot-js
+description: Install idempotency middleware for Express, Fastify, or Hono. Choose from Redis, PostgreSQL, MySQL, SQLite, or Bun SQL storage backends. Supports Node.js, Bun, and Deno.
+---
+
 # Installation
 
 ## Requirements

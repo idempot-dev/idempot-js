@@ -1,3 +1,8 @@
+---
+title: PostgreSQL Store - idempot-js
+description: PostgreSQL-backed storage for idempotency middleware. Persistent storage with automatic schema creation. Uses JSONB for response headers.
+---
+
 # PostgreSQL Store
 
 ## Installation
