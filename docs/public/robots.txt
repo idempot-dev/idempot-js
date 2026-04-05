@@ -1,0 +1,15 @@
+# robots.txt for js.idempot.dev
+# https://js.idempot.dev
+
+User-agent: *
+Allow: /
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Block private/planning pages from indexing
+Disallow: /plans/
+Disallow: /superpowers/
+
+# Sitemap location
+Sitemap: https://js.idempot.dev/sitemap.xml

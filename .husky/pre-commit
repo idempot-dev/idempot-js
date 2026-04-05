@@ -7,6 +7,7 @@ pnpm exec lint-staged -q
 STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 
 # Run tests only when source files, tests, or relevant configs change
-if echo "$STAGED" | grep -qE '\.(js|ts|mjs|cjs)$|\.feature$|package\.json$|pnpm-workspace\.yaml$|tests/runtime/deno/deno\.json$'; then
+# Exclude docs/ directory as documentation changes don't affect runtime
+if echo "$STAGED" | grep -vE '^docs/' | grep -qE '\.(js|ts|mjs|cjs)$|\.feature$|package\.json$|pnpm-workspace\.yaml$|tests/runtime/deno/deno\.json$'; then
     npm run test:verify-coverage-min
 fi
