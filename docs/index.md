@@ -6,7 +6,7 @@ description: Production-ready idempotency middleware for Express, Fastify, and H
 hero:
   name: idempot-js
   text: Idempotency for Node.js, Bun, and Deno
-  tagline: Middleware for Express, Fastify, and Hono with pluggable storage backends
+  tagline: Once is enough.
   actions:
     - theme: brand
       text: Learn ↗
