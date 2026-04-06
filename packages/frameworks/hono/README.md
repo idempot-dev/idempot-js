@@ -5,8 +5,18 @@ Hono middleware for idempotency.
 ## Installation
 
 ```bash
-npm install @idempot/hono-middleware @idempot/sqlite-store
+npm install @idempot/hono-middleware
 ```
+
+### Available Stores
+
+Choose a storage backend that fits your infrastructure:
+
+- `@idempot/sqlite-store` - great for development and single-node deployments
+- `@idempot/redis-store`
+- `@idempot/postgres-store`
+- `@idempot/mysql-store`
+- `@idempot/bun-sql-store` - Bun runtime
 
 ## Usage
 
