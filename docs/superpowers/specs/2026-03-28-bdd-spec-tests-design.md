@@ -79,9 +79,9 @@ tests/spec/
 
 ### Error Response Format (~8 scenarios)
 
-- 400 error body follows RFC 7807
-- 409 error body follows RFC 7807
-- 422 error body follows RFC 7807
+- 400 error body follows RFC 9457
+- 409 error body follows RFC 9457
+- 422 error body follows RFC 9457
 - `Content-Type: application/problem+json`
 
 ### Edge Cases (~6 scenarios)
