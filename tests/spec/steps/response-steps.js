@@ -68,7 +68,7 @@ Then(
   }
 );
 
-Then("the response retryable field should be {string}", function (value) {
+Then("the response retryable field should be {word}", function (value) {
   if (!this.lastResponse) {
     throw new Error("No response recorded");
   }
