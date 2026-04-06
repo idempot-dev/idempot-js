@@ -34,7 +34,10 @@ const docsSidebar = [
   },
   {
     text: "Reference",
-    items: [{ text: "Core", link: "/reference/core" }]
+    items: [
+      { text: "Core", link: "/reference/core" },
+      { text: "Error Reference", link: "/reference/errors" }
+    ]
   }
 ];
 

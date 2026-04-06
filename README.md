@@ -46,6 +46,75 @@ This approach simplifies maintenance while giving TypeScript users an excellent 
 
 Duplicate requests return cached responses with `x-idempotent-replayed: true`.
 
+## Error Responses (RFC 9457)
+
+Error responses follow [RFC 9457](https://datatracker.ietf.org/doc/html/rfc9457) (Problem Details for HTTP APIs) and include:
+
+- `type` - URI identifying the problem type
+- `title` - Short human-readable summary
+- `detail` - Detailed explanation
+- `status` - HTTP status code
+- `instance` - Unique identifier for this error occurrence
+- `retryable` - Whether retrying might succeed
+- `idempotency_key` - The idempotency key from the request (when applicable)
+
+### Content Negotiation
+
+The middleware supports content negotiation via the `Accept` header:
+
+**Default (application/problem+json):**
+
+```bash
+curl -X POST http://localhost:3000/orders \
+  -H "Content-Type: application/json" \
+  -d '{"item": "widget"}'
+```
+
+Response:
+
+```json
+{
+  "type": "https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07#section-2.1",
+  "title": "Idempotency-Key is missing",
+  "detail": "This operation is idempotent and it requires correct usage of Idempotency Key.",
+  "status": 400,
+  "instance": "urn:uuid:550e8400-e29b-41d4-a716-446655440000",
+  "retryable": false
+}
+```
+
+**Markdown format (for AI agents):**
+
+```bash
+curl -X POST http://localhost:3000/orders \
+  -H "Accept: text/markdown" \
+  -H "Content-Type: application/json" \
+  -d '{"item": "widget"}'
+```
+
+Response:
+
+```markdown
+---
+type: "https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07#section-2.1"
+status: 400
+instance: "urn:uuid:550e8400-e29b-41d4-a716-446655440000"
+retryable: false
+---
+
+# Idempotency-Key is missing
+
+## What Happened
+
+This operation is idempotent and it requires correct usage of Idempotency Key.
+
+## What You Should Do
+
+**Correct the issue.** This error requires changes to your request. Do not retry with the same idempotency key until the issue is resolved.
+```
+
+The markdown format includes YAML frontmatter with all error fields and human-readable guidance for AI agents.
+
 ## Quick Start
 
 ```bash
