@@ -4,6 +4,7 @@
  * @typedef {import("@idempot/core").IdempotencyOptions} IdempotencyOptions
  */
 
+import { randomUUID } from "node:crypto";
 import {
   generateFingerprint,
   validateExcludeFields,
@@ -17,7 +18,10 @@ import {
   defaultOptions,
   conflictErrorResponse,
   keyValidationErrorResponse,
-  missingKeyResponse
+  missingKeyResponse,
+  storeUnavailableResponse,
+  selectResponseFormat,
+  formatAsMarkdown
 } from "@idempot/core";
 
 /**
@@ -27,6 +31,41 @@ import {
  * @type {string}
  */
 const HEADER_NAME = "idempotency-key";
+
+/**
+ * Send error response in appropriate format based on Accept header
+ * @param {import("hono").Context} c - Hono context
+ * @param {number} status - HTTP status code
+ * @param {Object} problem - RFC 9457 problem details
+ * @returns {import("hono").Response}
+ */
+function sendErrorResponse(c, status, problem) {
+  const acceptHeader = c.req.header("accept") || "";
+  const format = selectResponseFormat(acceptHeader);
+
+  if (format === "text/markdown") {
+    return c.text(formatAsMarkdown(problem), status, {
+      "Content-Type": "text/markdown; charset=utf-8"
+    });
+  } else {
+    const contentType =
+      format === "application/problem+json"
+        ? "application/problem+json"
+        : "application/json";
+
+    return c.json(problem, status, {
+      "Content-Type": `${contentType}; charset=utf-8`
+    });
+  }
+}
+
+/**
+ * Generate unique instance identifier
+ * @returns {string} URI in the format urn:uuid:<uuid>
+ */
+function generateInstanceId() {
+  return `urn:uuid:${randomUUID()}`;
+}
 
 /**
  * Hono middleware for idempotency
@@ -47,15 +86,12 @@ export function idempotency(options = {}) {
   validateExcludeFields(opts.excludeFields);
   validateIdempotencyOptions(opts);
   const store = opts.store;
+  const { minKeyLength, maxKeyLength } = opts;
   const { store: resilientStore, circuit } = withResilience(
     store,
     opts.resilience
   );
 
-  /**
-   * @param {any} c
-   * @param {() => Promise<void>} next
-   */
   const middleware = async (c, next) => {
     const method = c.req.method;
     if (!shouldProcessRequest(method)) {
@@ -64,28 +100,34 @@ export function idempotency(options = {}) {
     }
 
     const key = c.req.header(HEADER_NAME);
+    const instanceId = generateInstanceId();
+
     if (key === undefined) {
       if (opts.required) {
-        return c.json(missingKeyResponse(), 400, {
-          "Content-Type": "application/problem+json"
+        const problem = missingKeyResponse({
+          status: 400,
+          instance: instanceId
         });
+        return sendErrorResponse(c, 400, problem);
       }
       await next();
       return;
     }
 
     const keyValidation = validateIdempotencyKey(key, {
-      minKeyLength: opts.minKeyLength,
-      maxKeyLength: opts.maxKeyLength
+      minKeyLength,
+      maxKeyLength
     });
     if (!keyValidation.valid) {
-      return c.json(
-        keyValidationErrorResponse(/** @type {string} */ (keyValidation.error)),
-        400,
+      const problem = keyValidationErrorResponse(
+        /** @type {string} */ (keyValidation.error),
         {
-          "Content-Type": "application/problem+json"
+          status: 400,
+          instance: instanceId,
+          idempotencyKey: key
         }
       );
+      return sendErrorResponse(c, 400, problem);
     }
 
     const body = await c.req.text();
@@ -95,16 +137,28 @@ export function idempotency(options = {}) {
     try {
       lookup = await resilientStore.lookup(key, fingerprint);
     } catch {
-      return c.json({ error: "Service temporarily unavailable" }, 503);
+      const problem = storeUnavailableResponse({
+        status: 503,
+        instance: instanceId
+      });
+      return sendErrorResponse(c, 503, problem);
     }
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
-      const status = /** @type {409|422} */ (conflict.status);
-      const errorMsg = /** @type {string} */ (conflict.error);
-      return c.json(conflictErrorResponse(status, errorMsg), status, {
-        "Content-Type": "application/problem+json"
-      });
+      const problem = conflictErrorResponse(
+        /** @type {number} */ (conflict.status),
+        /** @type {string} */ (conflict.error),
+        {
+          instance: instanceId,
+          idempotencyKey: key
+        }
+      );
+      return sendErrorResponse(
+        c,
+        /** @type {number} */ (conflict.status),
+        problem
+      );
     }
 
     const cached = getCachedResponse(lookup);
@@ -117,7 +171,11 @@ export function idempotency(options = {}) {
       try {
         await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
       } catch {
-        return c.json({ error: "Service temporarily unavailable" }, 503);
+        const problem = storeUnavailableResponse({
+          status: 503,
+          instance: instanceId
+        });
+        return sendErrorResponse(c, 503, problem);
       }
 
       await next();
