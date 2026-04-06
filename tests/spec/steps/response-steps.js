@@ -49,3 +49,47 @@ Then("the response body should contain {string}", function (text) {
     );
   }
 });
+
+Then(
+  "the response body instance field should match pattern {string}",
+  function (pattern) {
+    if (!this.lastResponse) {
+      throw new Error("No response recorded");
+    }
+    const instance = this.lastResponse.body.instance;
+    if (!instance) {
+      throw new Error("Response body missing 'instance' field");
+    }
+    if (!instance.includes(pattern)) {
+      throw new Error(
+        `Expected instance "${instance}" to include pattern "${pattern}"`
+      );
+    }
+  }
+);
+
+Then("the response retryable field should be {string}", function (value) {
+  if (!this.lastResponse) {
+    throw new Error("No response recorded");
+  }
+  const expected = value === "true";
+  const actual = this.lastResponse.body.retryable;
+  if (actual !== expected) {
+    throw new Error(`Expected retryable to be ${expected}, got ${actual}`);
+  }
+});
+
+Then(
+  "the response idempotency_key field should be {string}",
+  function (expected) {
+    if (!this.lastResponse) {
+      throw new Error("No response recorded");
+    }
+    const actual = this.lastResponse.body.idempotency_key;
+    if (actual !== expected) {
+      throw new Error(
+        `Expected idempotency_key "${expected}", got "${actual}"`
+      );
+    }
+  }
+);

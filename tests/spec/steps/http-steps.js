@@ -1,4 +1,5 @@
-import { Given, When, Then } from "@cucumber/cucumber";
+import { Given, When } from "@cucumber/cucumber";
+import { UnavailableIdempotencyStore } from "./unavailable-store.js";
 
 Given(
   "a {word} endpoint at {string} that creates an order",
@@ -17,6 +18,11 @@ Given("a {word} endpoint at {string}", async function (method, path) {
 
 Given("the SQLite store is clean", function () {
   // Store is already clean - initialized in Before hook
+});
+
+Given("the idempotency store is unavailable", function () {
+  // Replace the SQLite store with an unavailable store
+  this.store = new UnavailableIdempotencyStore();
 });
 
 Given("an Idempotency-Key {string}", function (key) {
