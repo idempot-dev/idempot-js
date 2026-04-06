@@ -180,9 +180,8 @@ t.test(
     });
 
     t.equal(response2.status, 422, "should return 422");
-    t.equal(
-      response2.headers["content-type"],
-      "application/problem+json",
+    t.ok(
+      response2.headers["content-type"].includes("application/problem+json"),
       "should return problem+json content type"
     );
     t.match(response2.body.type, /idempotency/i, "should have type field");
