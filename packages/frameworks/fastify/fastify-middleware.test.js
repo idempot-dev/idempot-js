@@ -44,6 +44,77 @@ runAdapterTests({
   createStore: () => new SqliteIdempotencyStore({ path: ":memory:" })
 });
 
+// Content negotiation tests
+test("fastify - returns markdown format when Accept: text/markdown", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = Fastify();
+
+  app.post(
+    "/test",
+    { preHandler: idempotency({ store, required: true }) },
+    async (request, reply) => {
+      return { ok: true };
+    }
+  );
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/test",
+    payload: {},
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/markdown"
+    }
+  });
+
+  t.equal(response.statusCode, 400, "should return 400");
+  t.ok(
+    response.headers["content-type"].includes("text/markdown"),
+    "should return markdown content type"
+  );
+  t.ok(response.body.includes("---"), "should have YAML frontmatter");
+
+  await store.close();
+});
+
+test("fastify - returns JSON format when Accept: application/json", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = Fastify();
+
+  app.post(
+    "/test",
+    { preHandler: idempotency({ store, required: true }) },
+    async (request, reply) => {
+      return { ok: true };
+    }
+  );
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/test",
+    payload: {},
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    }
+  });
+
+  const contentType = response.headers["content-type"] || "";
+  const isJson =
+    contentType.includes("application/json") ||
+    contentType.includes("application/problem+json");
+  const body = isJson ? response.json() : response.body;
+
+  t.equal(response.statusCode, 400, "should return 400");
+  t.ok(
+    contentType.includes("application/json"),
+    "should return JSON content type"
+  );
+  t.ok(body.type, "should have type field in JSON body");
+
+  await store.close();
+});
+
 // Fastify-specific tests
 // These tests cover Fastify-specific handler patterns that differ from the
 // generic (req, res) interface used by the shared test suite.
