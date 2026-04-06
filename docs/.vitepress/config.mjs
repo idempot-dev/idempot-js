@@ -10,7 +10,8 @@ const docsSidebar = [
     items: [
       { text: "Overview", link: "/guide/" },
       { text: "Installation", link: "/guide/installation" },
-      { text: "Configuration", link: "/guide/configuration" }
+      { text: "Configuration", link: "/guide/configuration" },
+      { text: "Sharing Middleware", link: "/guide/shared-middleware" }
     ]
   },
   {
