@@ -124,7 +124,7 @@ class IdempotencyWorld {
       "Content-Type": "application/json"
     };
 
-    if (idempotencyKey) {
+    if (idempotencyKey !== null && idempotencyKey !== undefined) {
       headers["Idempotency-Key"] = idempotencyKey;
     }
 
