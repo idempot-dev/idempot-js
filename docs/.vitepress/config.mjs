@@ -11,7 +11,8 @@ const docsSidebar = [
       { text: "Overview", link: "/guide/" },
       { text: "Installation", link: "/guide/installation" },
       { text: "Configuration", link: "/guide/configuration" },
-      { text: "Sharing Middleware", link: "/guide/shared-middleware" }
+      { text: "Sharing Middleware", link: "/guide/shared-middleware" },
+      { text: "Error Reference", link: "/reference/errors" }
     ]
   },
   {
@@ -35,8 +36,7 @@ const docsSidebar = [
   {
     text: "Reference",
     items: [
-      { text: "Core", link: "/reference/core" },
-      { text: "Error Reference", link: "/reference/errors" }
+      { text: "Core", link: "/reference/core" }
     ]
   }
 ];
