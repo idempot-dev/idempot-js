@@ -27,6 +27,13 @@ Run `pnpm run test:verify-coverage` before committing. When trying to learn whic
 
 **Important:** The codebase is in JavaScript. TypeScript definitions are offered as a convenience to consumers of the library. No code should be written in TypeScript
 
+## Containerization
+
+This project uses **apple/container** (not Docker) for containerized tests.
+
+- Start: `container system start`
+- Convenience scripts available in `package.json` and `scripts/`
+
 ## Package Manager
 
 **pnpm is the required package manager for this project.** Always use `pnpm` instead of `npm` or `yarn`.
