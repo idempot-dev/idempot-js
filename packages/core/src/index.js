@@ -20,5 +20,12 @@ export { DEFAULT_OPTIONS as defaultOptions } from "./default-options.js";
 export {
   conflictErrorResponse,
   keyValidationErrorResponse,
-  missingKeyResponse
+  missingKeyResponse,
+  storeUnavailableResponse
 } from "./problem-json.js";
+export {
+  parseAcceptHeader,
+  selectResponseFormat,
+  SUPPORTED_FORMATS
+} from "./content-negotiation.js";
+export { formatAsMarkdown } from "./markdown-formatter.js";
