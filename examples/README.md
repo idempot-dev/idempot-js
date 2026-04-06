@@ -29,14 +29,15 @@ All examples follow a similar pattern. To run any example:
 
 ### Node.js Server Examples
 
-| File               | Storage             | Description                                                                                 |
-| ------------------ | ------------------- | ------------------------------------------------------------------------------------------- |
-| `basic-app.js`     | SQLite (in-memory)  | Basic Node.js server with SQLite, demonstrating optional/required keys and field exclusions |
-| `sqlite-app.js`    | SQLite (file-based) | Node.js server with persistent SQLite storage                                               |
-| `bun-basic-app.js` | SQLite (in-memory)  | Bun runtime with SQLite storage (in-memory)                                                 |
-| `bun-sql-app.js`   | SQLite/PG/MySQL     | Bun runtime with configurable SQL storage (SQLite, PostgreSQL, MySQL via connection string) |
-| `redis-app.js`     | Redis               | Node.js server with Redis persistence (requires Redis server)                               |
-| `postgres-app.js`  | PostgreSQL          | Node.js server with PostgreSQL persistence                                                  |
+| File                                 | Storage             | Description                                                                                 |
+| ------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------- |
+| `basic-app.js`                       | SQLite (in-memory)  | Basic Node.js server with SQLite, demonstrating optional/required keys and field exclusions |
+| `sqlite-app.js`                      | SQLite (file-based) | Node.js server with persistent SQLite storage                                               |
+| `bun-basic-app.js`                   | SQLite (in-memory)  | Bun runtime with SQLite storage (in-memory)                                                 |
+| `bun-sql-app.js`                     | SQLite/PG/MySQL     | Bun runtime with configurable SQL storage (SQLite, PostgreSQL, MySQL via connection string) |
+| `redis-app.js`                       | Redis               | Node.js server with Redis persistence (requires Redis server)                               |
+| `postgres-app.js`                    | PostgreSQL          | Node.js server with PostgreSQL persistence                                                  |
+| `express-postgres-multi-endpoint.js` | PostgreSQL          | Express with shared middleware instance across multiple endpoints                           |
 
 ### Deno Examples
 
@@ -140,6 +141,33 @@ psql -d your_database -f examples/postgres-setup.sh
 ```
 
 ## Feature Demonstrations
+
+### Sharing Middleware Across Endpoints
+
+You can reuse the same middleware instance across multiple endpoints. This provides consistent configuration and shared circuit breaker monitoring:
+
+```javascript
+import express from "express";
+import { idempotency } from "@idempot/express-middleware";
+
+const app = express();
+const store = new PostgresIdempotencyStore({
+  connectionString: process.env.DATABASE_URL
+});
+
+// Create ONE middleware instance
+const sharedMiddleware = idempotency({ store, required: true });
+
+// Use it on multiple endpoints
+app.post("/orders", sharedMiddleware, createOrder);
+app.post("/payments", sharedMiddleware, processPayment);
+app.post("/transfers", sharedMiddleware, createTransfer);
+
+// Circuit breaker state is shared
+console.log(sharedMiddleware.circuit.status); // 'closed', 'open', or 'half-open'
+```
+
+See [`express-postgres-multi-endpoint.js`](./express-postgres-multi-endpoint.js) for a complete example.
 
 ### Optional vs Required Idempotency Keys
 
