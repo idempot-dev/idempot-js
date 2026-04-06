@@ -20,9 +20,14 @@ Given("the SQLite store is clean", function () {
   // Store is already clean - initialized in Before hook
 });
 
-Given("the idempotency store is unavailable", function () {
+Given("the idempotency store is unavailable", async function () {
   // Replace the SQLite store with an unavailable store
   this.store = new UnavailableIdempotencyStore();
+  // Restart the server with the new store if it's already running
+  if (this.server) {
+    await this.stopServer();
+    await this.startServer();
+  }
 });
 
 Given("an Idempotency-Key {string}", function (key) {
