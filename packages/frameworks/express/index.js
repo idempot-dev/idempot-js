@@ -5,6 +5,7 @@
  */
 
 // @ts-nocheck
+import { randomUUID } from "node:crypto";
 import {
   generateFingerprint,
   validateExcludeFields,
@@ -18,7 +19,10 @@ import {
   defaultOptions,
   conflictErrorResponse,
   keyValidationErrorResponse,
-  missingKeyResponse
+  missingKeyResponse,
+  storeUnavailableResponse,
+  selectResponseFormat,
+  formatAsMarkdown
 } from "@idempot/core";
 
 /**
@@ -28,6 +32,42 @@ import {
  * @type {string}
  */
 const HEADER_NAME = "idempotency-key";
+
+/**
+ * Send error response in appropriate format based on Accept header
+ * @param {import("express").Response} res - Express response
+ * @param {number} status - HTTP status code
+ * @param {Object} problem - RFC 9457 problem details
+ */
+function sendErrorResponse(res, status, problem) {
+  const acceptHeader = res.req.headers["accept"] || "";
+  const format = selectResponseFormat(acceptHeader);
+
+  if (format === "text/markdown") {
+    res
+      .status(status)
+      .set("Content-Type", "text/markdown; charset=utf-8")
+      .send(formatAsMarkdown(problem));
+  } else {
+    const contentType =
+      format === "application/problem+json"
+        ? "application/problem+json"
+        : "application/json";
+
+    res
+      .status(status)
+      .set("Content-Type", `${contentType}; charset=utf-8`)
+      .json(problem);
+  }
+}
+
+/**
+ * Generate unique instance identifier
+ * @returns {string} URI in the format urn:uuid:<uuid>
+ */
+function generateInstanceId() {
+  return `urn:uuid:${randomUUID()}`;
+}
 
 /**
  * Express middleware for idempotency
@@ -62,12 +102,15 @@ export function idempotency(options = {}) {
     }
 
     const key = /** @type {string} */ (req.headers[HEADER_NAME]);
+    const instanceId = generateInstanceId();
+
     if (key === undefined) {
       if (opts.required) {
-        res
-          .status(400)
-          .set("Content-Type", "application/problem+json")
-          .json(missingKeyResponse());
+        const problem = missingKeyResponse({
+          status: 400,
+          instance: instanceId
+        });
+        sendErrorResponse(res, 400, problem);
         return;
       }
       next();
@@ -79,14 +122,15 @@ export function idempotency(options = {}) {
       maxKeyLength
     });
     if (!keyValidation.valid) {
-      res
-        .status(400)
-        .set("Content-Type", "application/problem+json")
-        .json(
-          keyValidationErrorResponse(
-            /** @type {string} */ (keyValidation.error)
-          )
-        );
+      const problem = keyValidationErrorResponse(
+        /** @type {string} */ (keyValidation.error),
+        {
+          status: 400,
+          instance: instanceId,
+          idempotencyKey: key
+        }
+      );
+      sendErrorResponse(res, 400, problem);
       return;
     }
 
@@ -101,21 +145,25 @@ export function idempotency(options = {}) {
     try {
       lookup = await resilientStore.lookup(key, fingerprint);
     } catch {
-      res.status(503).json({ error: "Service temporarily unavailable" });
+      const problem = storeUnavailableResponse({
+        status: 503,
+        instance: instanceId
+      });
+      sendErrorResponse(res, 503, problem);
       return;
     }
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
-      res
-        .status(/** @type {number} */ (conflict.status))
-        .set("Content-Type", "application/problem+json")
-        .json(
-          conflictErrorResponse(
-            /** @type {number} */ (conflict.status),
-            conflict.error
-          )
-        );
+      const problem = conflictErrorResponse(
+        /** @type {number} */ (conflict.status),
+        /** @type {string} */ (conflict.error),
+        {
+          instance: instanceId,
+          idempotencyKey: key
+        }
+      );
+      sendErrorResponse(res, /** @type {number} */ (conflict.status), problem);
       return;
     }
 
@@ -134,7 +182,11 @@ export function idempotency(options = {}) {
       try {
         await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
       } catch {
-        res.status(503).json({ error: "Service temporarily unavailable" });
+        const problem = storeUnavailableResponse({
+          status: 503,
+          instance: instanceId
+        });
+        sendErrorResponse(res, 503, problem);
         return;
       }
 

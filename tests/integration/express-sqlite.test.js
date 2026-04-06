@@ -127,3 +127,26 @@ t.test(
     );
   }
 );
+
+t.test(
+  "Express + SQLite - returns markdown format when requested",
+  async (t) => {
+    const { port } = t.context;
+
+    const response = await makeRequest(port, {
+      idempotencyKey: undefined,
+      body: { foo: "bar" },
+      headers: { Accept: "text/markdown" }
+    });
+
+    t.equal(response.status, 400, "should return 400");
+    t.ok(
+      response.headers["content-type"].includes("text/markdown"),
+      "should return markdown content type"
+    );
+    // Body is now a string (not parsed JSON)
+    t.ok(response.body.includes("---"), "should have YAML frontmatter");
+    t.ok(response.body.includes("type:"), "should have type field");
+    t.ok(response.body.includes("#"), "should have markdown header");
+  }
+);
