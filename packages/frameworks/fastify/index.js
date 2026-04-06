@@ -5,6 +5,7 @@
  * @typedef {import("@idempot/core").IdempotencyOptions} IdempotencyOptions
  */
 
+import { randomUUID } from "node:crypto";
 import {
   generateFingerprint,
   validateExcludeFields,
@@ -18,10 +19,50 @@ import {
   defaultOptions,
   conflictErrorResponse,
   keyValidationErrorResponse,
-  missingKeyResponse
+  missingKeyResponse,
+  storeUnavailableResponse,
+  selectResponseFormat,
+  formatAsMarkdown
 } from "@idempot/core";
 
 const HEADER_NAME = "idempotency-key";
+
+/**
+ * Send error response in appropriate format based on Accept header
+ * @param {import("fastify").FastifyReply} reply - Fastify reply
+ * @param {number} status - HTTP status code
+ * @param {Object} problem - RFC 9457 problem details
+ * @returns {import("fastify").FastifyReply}
+ */
+function sendErrorResponse(reply, status, problem) {
+  const acceptHeader = reply.request.headers["accept"] || "";
+  const format = selectResponseFormat(acceptHeader);
+
+  if (format === "text/markdown") {
+    return reply
+      .code(status)
+      .header("Content-Type", "text/markdown; charset=utf-8")
+      .send(formatAsMarkdown(problem));
+  } else {
+    const contentType =
+      format === "application/problem+json"
+        ? "application/problem+json"
+        : "application/json";
+
+    return reply
+      .code(status)
+      .header("Content-Type", `${contentType}; charset=utf-8`)
+      .send(problem);
+  }
+}
+
+/**
+ * Generate unique instance identifier
+ * @returns {string} URI in the format urn:uuid:<uuid>
+ */
+function generateInstanceId() {
+  return `urn:uuid:${randomUUID()}`;
+}
 
 /**
  * Fastify middleware for idempotency
@@ -42,15 +83,12 @@ export function idempotency(options = {}) {
   validateExcludeFields(opts.excludeFields);
   validateIdempotencyOptions(opts);
   const store = opts.store;
+  const { minKeyLength, maxKeyLength } = opts;
   const { store: resilientStore, circuit } = withResilience(
     store,
     opts.resilience
   );
 
-  /**
-   * @param {import("fastify").FastifyRequest} request
-   * @param {import("fastify").FastifyReply} reply
-   */
   const middleware = async (request, reply) => {
     const requestMeta = new WeakMap();
     const method = request.method;
@@ -58,35 +96,34 @@ export function idempotency(options = {}) {
       return;
     }
 
-    /**
-     * Fastify returns duplicate headers as a comma-separated string per RFC 7230.
-     * The TypeScript type is string | string[] for compatibility, but Fastify
-     * normalizes to a single string at runtime.
-     */
     const key = /** @type {string} */ (request.headers[HEADER_NAME]);
+    const instanceId = generateInstanceId();
+
     if (key === undefined) {
       if (opts.required) {
-        return reply
-          .code(400)
-          .header("Content-Type", "application/problem+json")
-          .send(missingKeyResponse());
+        const problem = missingKeyResponse({
+          status: 400,
+          instance: instanceId
+        });
+        return sendErrorResponse(reply, 400, problem);
       }
       return;
     }
 
     const keyValidation = validateIdempotencyKey(key, {
-      minKeyLength: opts.minKeyLength,
-      maxKeyLength: opts.maxKeyLength
+      minKeyLength,
+      maxKeyLength
     });
     if (!keyValidation.valid) {
-      return reply
-        .code(400)
-        .header("Content-Type", "application/problem+json")
-        .send(
-          keyValidationErrorResponse(
-            /** @type {string} */ (keyValidation.error)
-          )
-        );
+      const problem = keyValidationErrorResponse(
+        /** @type {string} */ (keyValidation.error),
+        {
+          status: 400,
+          instance: instanceId,
+          idempotencyKey: key
+        }
+      );
+      return sendErrorResponse(reply, 400, problem);
     }
 
     const bodyText = request.body
@@ -100,17 +137,28 @@ export function idempotency(options = {}) {
     try {
       lookup = await resilientStore.lookup(key, fingerprint);
     } catch {
-      return reply.code(503).send({ error: "Service temporarily unavailable" });
+      const problem = storeUnavailableResponse({
+        status: 503,
+        instance: instanceId
+      });
+      return sendErrorResponse(reply, 503, problem);
     }
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
     if (conflict.conflict) {
-      const status = /** @type {409|422} */ (conflict.status);
-      const errorMsg = /** @type {string} */ (conflict.error);
-      return reply
-        .code(status)
-        .header("Content-Type", "application/problem+json")
-        .send(conflictErrorResponse(status, errorMsg));
+      const problem = conflictErrorResponse(
+        /** @type {number} */ (conflict.status),
+        /** @type {string} */ (conflict.error),
+        {
+          instance: instanceId,
+          idempotencyKey: key
+        }
+      );
+      return sendErrorResponse(
+        reply,
+        /** @type {number} */ (conflict.status),
+        problem
+      );
     }
 
     const cached = getCachedResponse(lookup);
@@ -127,9 +175,11 @@ export function idempotency(options = {}) {
       try {
         await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
       } catch {
-        return reply
-          .code(503)
-          .send({ error: "Service temporarily unavailable" });
+        const problem = storeUnavailableResponse({
+          status: 503,
+          instance: instanceId
+        });
+        return sendErrorResponse(reply, 503, problem);
       }
 
       requestMeta.set(request, { idempotencyKey: key });
