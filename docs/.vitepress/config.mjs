@@ -65,10 +65,12 @@ export default defineConfig({
     ["meta", { property: "og:title", content: siteName }],
     ["meta", { property: "og:description", content: siteDescription }],
     ["meta", { property: "og:url", content: siteUrl }],
+    ["meta", { property: "og:image", content: "https://js.idempot.dev/og-image.png" }],
     // Twitter Card
     ["meta", { name: "twitter:card", content: "summary_large_image" }],
     ["meta", { name: "twitter:title", content: siteName }],
     ["meta", { name: "twitter:description", content: siteDescription }],
+    ["meta", { name: "twitter:image", content: "https://js.idempot.dev/og-image.png" }],
     // Canonical URL (will be overridden per page)
     ["link", { rel: "canonical", href: siteUrl }],
     // Structured Data: Organization
