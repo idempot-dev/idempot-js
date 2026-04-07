@@ -112,6 +112,16 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
 
+  packages/frameworks/bun:
+    dependencies:
+      '@idempot/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      '@idempot/sqlite-store':
+        specifier: workspace:*
+        version: link:../../stores/sqlite
+
   packages/frameworks/express:
     dependencies:
       '@idempot/core':
