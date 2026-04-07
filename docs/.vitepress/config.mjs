@@ -20,7 +20,8 @@ const docsSidebar = [
     items: [
       { text: "Express", link: "/frameworks/express" },
       { text: "Fastify", link: "/frameworks/fastify" },
-      { text: "Hono", link: "/frameworks/hono" }
+      { text: "Hono", link: "/frameworks/hono" },
+      { text: "Bun", link: "/frameworks/bun" }
     ]
   },
   {
