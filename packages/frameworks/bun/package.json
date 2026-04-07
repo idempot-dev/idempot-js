@@ -1,0 +1,42 @@
+{
+  "name": "@idempot/bun-handler",
+  "version": "1.0.0",
+  "description": "Bun.serve handler wrapper for idempotency",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": {
+      "import": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "bun",
+    "handler",
+    "idempotency",
+    "idempotent",
+    "ietf"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/idempot-dev/idempot-js.git"
+  },
+  "license": "BSD-3-Clause",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "tap bun-handler.test.js"
+  },
+  "dependencies": {
+    "@idempot/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@idempot/sqlite-store": "workspace:*"
+  }
+}
