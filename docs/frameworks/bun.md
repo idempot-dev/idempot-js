@@ -26,8 +26,8 @@ Bun.serve({
       const body = await req.json();
       const orderId = crypto.randomUUID();
       return Response.json({ id: orderId, ...body }, { status: 201 });
-    }),
-  },
+    })
+  }
 });
 ```
 
@@ -64,14 +64,20 @@ Bun.serve({
   routes: {
     "/orders": withIdempotency(async (req) => {
       const body = await req.json();
-      return Response.json({ id: crypto.randomUUID(), ...body }, { status: 201 });
+      return Response.json(
+        { id: crypto.randomUUID(), ...body },
+        { status: 201 }
+      );
     }),
 
     "/payments": withIdempotency(async (req) => {
       const body = await req.json();
-      return Response.json({ id: crypto.randomUUID(), ...body }, { status: 201 });
-    }),
-  },
+      return Response.json(
+        { id: crypto.randomUUID(), ...body },
+        { status: 201 }
+      );
+    })
+  }
 });
 ```
 
