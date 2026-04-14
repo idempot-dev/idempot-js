@@ -33,8 +33,8 @@ Bun.serve({
       const orderId = crypto.randomUUID();
       const body = await req.json();
       return Response.json({ id: orderId, ...body }, { status: 201 });
-    }),
-  },
+    })
+  }
 });
 ```
 
