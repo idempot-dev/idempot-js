@@ -46,6 +46,7 @@ idempot-js/
 │   ├── frameworks/              # Framework adapters
 │   │   ├── hono/
 │   │   ├── express/
+│   │   ├── bun/
 │   │   └── fastify/
 │   │
 │   └── stores/                  # Storage backend implementations
@@ -128,6 +129,15 @@ Each framework adapter implements the idempotency middleware pattern for its fra
 - Accesses request via `req` and `res` objects
 - Handles async handlers properly
 - Supports `preHandler` style for Fastify compatibility
+
+### Bun Adapter (`packages/frameworks/bun/`)
+
+**Key characteristics:**
+
+- Uses Bun's `Request => Response` handler pattern
+- Returns a wrapper function that wraps handlers with idempotency enforcement
+- Re-creates the request after body consumption so handlers can read the body
+- Exposes circuit breaker via `wrap.circuit`
 
 ### Fastify Adapter (`packages/frameworks/fastify/`)
 

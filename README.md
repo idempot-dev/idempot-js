@@ -39,7 +39,7 @@ This approach simplifies maintenance while giving TypeScript users an excellent 
 | Category       | Options                                                             |
 | -------------- | ------------------------------------------------------------------- |
 | **Runtimes**   | Node.js, Bun, Deno (Lambda & Cloudflare Workers planned)            |
-| **Frameworks** | Express, Hono, Fastify                                              |
+| **Frameworks** | Express, Hono, Fastify, Bun Server                                  |
 | **Stores**     | Redis, PostgreSQL, MySQL, SQLite (DynamoDB & Cloudflare KV planned) |
 
 ## Response Headers
