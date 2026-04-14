@@ -15,6 +15,7 @@ export default {
           { type: "ci", release: false },
           { type: "chore", release: false },
           { type: "fix", scope: "config", release: false },
+          { type: "fix", scope: "fallow", release: false },
           { type: "feat", scope: "config", release: false }
         ]
       }
