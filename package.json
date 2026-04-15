@@ -96,6 +96,7 @@
     "semantic-release": "^25.0.0",
     "sinon": "^21.0.0",
     "tap": "^21.5.0",
+    "typescript": "^6.0.2",
     "ulid": "^3.0.2",
     "vitepress": "^1.6.4"
   },

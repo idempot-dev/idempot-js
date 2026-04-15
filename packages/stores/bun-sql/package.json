@@ -4,14 +4,16 @@
   "description": "Bun SQL storage backend for idempotency (SQLite, PostgreSQL, MySQL)",
   "type": "module",
   "main": "./index.js",
+  "types": "./types/index.d.ts",
   "exports": {
     ".": {
+      "types": "./types/index.d.ts",
       "import": "./index.js"
     }
   },
   "files": [
     "index.js",
-    "dist",
+    "types",
     "README.md",
     "LICENSE"
   ],
@@ -34,6 +36,8 @@
     "access": "public"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm run build",
     "test": "echo 'Tests are in tests/runtime/bun/ - run: npm run test:bun' && exit 0"
   },
   "dependencies": {

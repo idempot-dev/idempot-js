@@ -1,0 +1,8 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "declarationDir": "types"
+  },
+  "include": ["node-redis.js", "deno-redis.js"]
+}

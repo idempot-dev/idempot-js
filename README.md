@@ -11,28 +11,14 @@ Idempotency middleware for Hono, Express, and Fastify.
 
 ## TypeScript Support
 
-This library uses JavaScript with JSDoc comments for type information. Enable `allowJs` in your TypeScript configuration to use these types directly—no separate .d.ts files needed.
+This library uses JavaScript with JSDoc comments for type information. Each package ships `.d.ts` declaration files generated from the JSDoc-annotated source.
+TypeScript picks them up automatically via the `types` field in each `package.json`.
 
-To use this library in a TypeScript project:
+```typescript
+import { idempotency } from "@idempot/hono-middleware";
+```
 
-1. Add these settings to your `tsconfig.json`:
-
-   ```json
-   {
-     "allowJs": true,
-     "checkJs": true
-   }
-   ```
-
-2. Import the library as you normally would:
-
-   ```typescript
-   import { idempotency } from "@idempot/express-middleware";
-   ```
-
-3. JSDoc comments provide full type safety: parameter types, return types, and detailed documentation in your IDE.
-
-This approach simplifies maintenance while giving TypeScript users an excellent developer experience.
+The declarations are generated at publish time to ensure types match the published version.
 
 ## Supported Runtimes, Frameworks, and Stores
 
