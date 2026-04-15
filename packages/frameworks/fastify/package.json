@@ -1,6 +1,6 @@
 {
   "name": "@idempot/fastify-middleware",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Fastify middleware for idempotency",
   "type": "module",
   "main": "./index.js",
@@ -37,7 +37,8 @@
     "fastify": ">=4.0.0"
   },
   "dependencies": {
-    "@idempot/core": "workspace:*"
+    "@idempot/core": "workspace:*",
+    "fastify-plugin": "^4.0.0"
   },
   "devDependencies": {
     "@idempot/sqlite-store": "workspace:*"
