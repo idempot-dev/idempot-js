@@ -4,16 +4,21 @@
   "description": "Redis storage backend for idempotency",
   "type": "module",
   "main": "./node-redis.js",
+  "types": "./types/node-redis.d.ts",
   "exports": {
     ".": {
+      "types": "./types/node-redis.d.ts",
       "import": "./node-redis.js"
     },
-    "./deno-redis.js": "./deno-redis.js"
+    "./deno-redis.js": {
+      "types": "./types/deno-redis.d.ts",
+      "import": "./deno-redis.js"
+    }
   },
   "files": [
     "node-redis.js",
     "deno-redis.js",
-    "dist",
+    "types",
     "README.md",
     "LICENSE"
   ],
@@ -32,6 +37,8 @@
     "access": "public"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm run build",
     "test": "tap tests/"
   },
   "peerDependencies": {

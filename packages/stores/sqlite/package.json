@@ -4,15 +4,17 @@
   "description": "SQLite storage backend for idempotency",
   "type": "module",
   "main": "./index.js",
+  "types": "./types/index.d.ts",
   "exports": {
     ".": {
+      "types": "./types/index.d.ts",
       "import": "./index.js"
     }
   },
   "files": [
     "index.js",
     "deno-sqlite.js",
-    "dist",
+    "types",
     "README.md",
     "LICENSE"
   ],
@@ -31,6 +33,8 @@
     "access": "public"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm run build",
     "test": "tap tests/"
   },
   "peerDependencies": {
