@@ -33,10 +33,6 @@ import {
 const HEADER_NAME = "idempotency-key";
 
 /**
- * @typedef {(req: Request) => Response | Promise<Response>} BunHandler
- */
-
-/**
  * Build an error Response in the appropriate format based on the Accept header
  * @param {string} acceptHeader - Value of the Accept request header
  * @param {number} status - HTTP status code
@@ -86,7 +82,7 @@ const generateInstanceId = () => {
  * @param {IdempotencyStore} options.store - Storage backend
  * @param {number} [options.maxKeyLength=255] - Maximum key length
  * @param {number} [options.minKeyLength=21] - Minimum key length (default: 21 for nanoid)
- * @returns {((handler: BunHandler) => BunHandler) & { circuit: import("opossum").CircuitBreaker | null }}
+ * @returns {((handler: (req: Request) => Response | Promise<Response>) => (req: Request) => Response | Promise<Response>) & { circuit: import("opossum").CircuitBreaker | null }}
  */
 export const idempotency = (options = {}) => {
   const opts = { ...defaultOptions, ...options };
@@ -105,8 +101,8 @@ export const idempotency = (options = {}) => {
   );
 
   /**
-   * @param {BunHandler} handler
-   * @returns {BunHandler}
+   * @param {(req: Request) => Response | Promise<Response>} handler
+   * @returns {(req: Request) => Response | Promise<Response>}
    */
   const wrap = (handler) => {
     const wrappedHandler = async (/** @type {Request} */ req) => {
