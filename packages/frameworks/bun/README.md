@@ -57,28 +57,15 @@ Creates a handler wrapper for idempotency.
 
 ## TypeScript Support
 
-This library uses JavaScript with JSDoc comments for type information. Enable `allowJs` in your TypeScript configuration to use these types directly—no separate .d.ts files needed.
+This library ships with TypeScript type definitions. No additional configuration needed.
 
-To use this library in a TypeScript project:
+```typescript
+import { idempotency } from "@idempot/bun-handler";
+import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 
-1. Add these settings to your `tsconfig.json`:
-
-   ```json
-   {
-     "allowJs": true,
-     "checkJs": true
-   }
-   ```
-
-2. Import the library as you normally would:
-
-   ```typescript
-   import { idempotency } from "@idempot/bun-handler";
-   ```
-
-3. JSDoc comments provide full type safety: parameter types, return types, and detailed documentation in your IDE.
-
-This approach simplifies maintenance while giving TypeScript users an excellent developer experience.
+const store = new SqliteIdempotencyStore({ path: ":memory:" });
+const withIdempotency = idempotency({ store });
+```
 
 ## License
 
