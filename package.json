@@ -59,7 +59,8 @@
     "spec:sync": "./scripts/sync-spec.sh",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "lint:links": "./scripts/link-check.sh"
   },
   "dependencies": {
     "jsonpath-plus": "^10.3.0",
