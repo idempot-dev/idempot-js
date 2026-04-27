@@ -1,0 +1,59 @@
+name: Link Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+
+jobs:
+  link-checker:
+    name: Link Checker
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write  # Required for creating issues from file
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build docs
+        run: pnpm run docs:build
+
+      - name: Link Checker
+        id: lychee
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2
+        with:
+          # Check all files in the built site
+          args: |
+            docs/.vitepress/dist
+            --root-dir docs/.vitepress/dist
+            --include-mail=false
+            --exclude "^file://"
+            --accept '200..=299,403'
+          # Don't fail action on broken links (we'll create an issue instead)
+          fail: false
+          # Output format
+          format: markdown
+          # Output file path
+          output: lychee/out.md
+
+      - name: Create Issue From File
+        if: steps.lychee.outputs.exit_code != 0
+        uses: peter-evans/create-issue-from-file@e8ef132d6df98ed982188e460ebb3b5d4ef3a9cd # v5
+        with:
+          title: Link Checker Report
+          content-filepath: ./lychee/out.md
+          labels: report, automated issue
