@@ -31,12 +31,18 @@ export class BunSqlIdempotencyStore {
   isMySQL;
 
   /**
+   * @type {boolean}
+   */
+  isPostgres;
+
+  /**
    * @param {string} connectionString - Database connection string or path
    * @param {BunSqlIdempotencyStoreOptions} [options]
    */
   constructor(connectionString, options = {}) {
     this.isSqlite = this.isSqliteConnection(connectionString);
     this.isMySQL = this.isMySqlConnection(connectionString);
+    this.isPostgres = this.isPostgresConnection(connectionString);
 
     if (this.isSqlite) {
       const sqlitePath = this.normalizeSqlitePath(connectionString);
@@ -116,6 +122,17 @@ export class BunSqlIdempotencyStore {
     if (!connectionString) return false;
     const lower = connectionString.toLowerCase();
     return lower.includes("mysql") || lower.includes("mariadb");
+  }
+
+  /**
+   * Check if connection string is PostgreSQL
+   * @param {string} [connectionString]
+   * @returns {boolean}
+   */
+  isPostgresConnection(connectionString) {
+    if (!connectionString) return false;
+    const lower = connectionString.toLowerCase();
+    return lower.includes("postgres") || lower.includes("postgresql");
   }
 
   /**
@@ -261,8 +278,12 @@ export class BunSqlIdempotencyStore {
         byFingerprint: this.parseRecord(byFingerprintRow)
       };
     } else {
-      await this
-        .db`DELETE FROM idempotency_records WHERE expires_at <= ${Date.now()}`;
+      // PostgreSQL doesn't support LIMIT in DELETE, use subquery
+      const deleteSql = this.isPostgres
+        ? "DELETE FROM idempotency_records WHERE key IN (SELECT key FROM idempotency_records WHERE expires_at <= $1 LIMIT 10)"
+        : "DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10";
+      const deleteParams = this.isPostgres ? [Date.now()] : [Date.now()];
+      await this.db.unsafe(deleteSql, deleteParams);
 
       const keyColumn = this.isMySQL ? "`key`" : '"key"';
       const paramPlaceholder = this.isMySQL ? "?" : "$1";

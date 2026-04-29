@@ -126,7 +126,7 @@ export class MysqlIdempotencyStore {
    */
   async lookup(key, fingerprint) {
     await this.client.execute(
-      "DELETE FROM idempotency_records WHERE expires_at <= ?",
+      "DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10",
       [Date.now()]
     );
 

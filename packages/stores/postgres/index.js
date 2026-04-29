@@ -113,8 +113,9 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
+    // Use subquery with LIMIT since PostgreSQL doesn't support LIMIT in DELETE directly
     await this.pool.query(
-      `DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE expires_at <= $1`,
+      `DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE key IN (SELECT key FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE expires_at <= $1 LIMIT 10)`,
       [Date.now()]
     );
 
