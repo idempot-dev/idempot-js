@@ -89,7 +89,7 @@ export class MysqlIdempotencyStore {
    */
   async lookup(key, fingerprint) {
     await this.pool.query(
-      `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ?`,
+      `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ? LIMIT 10`,
       [Date.now()]
     );
 
