@@ -6,6 +6,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import fp from "fastify-plugin";
 import {
   generateFingerprint,
   validateExcludeFields,
@@ -27,13 +28,6 @@ import {
 
 const HEADER_NAME = "idempotency-key";
 
-/**
- * Send error response in appropriate format based on Accept header
- * @param {import("fastify").FastifyReply} reply - Fastify reply
- * @param {number} status - HTTP status code
- * @param {Object} problem - RFC 9457 problem details
- * @returns {import("fastify").FastifyReply}
- */
 function sendErrorResponse(reply, status, problem) {
   const acceptHeader = reply.request.headers["accept"] || "";
   const format = selectResponseFormat(acceptHeader);
@@ -56,23 +50,11 @@ function sendErrorResponse(reply, status, problem) {
   }
 }
 
-/**
- * Generate unique instance identifier
- * @returns {string} URI in the format urn:uuid:<uuid>
- */
 function generateInstanceId() {
   return `urn:uuid:${randomUUID()}`;
 }
 
-/**
- * Fastify middleware for idempotency
- * @param {Object} opts - Middleware options
- * @param {IdempotencyStore} opts.store - Storage backend
- * @param {number} [opts.maxKeyLength=255] - Maximum key length
- * @param {number} [opts.minKeyLength=21] - Minimum key length (default: 21 for nanoid)
- * @returns {(request: import("fastify").FastifyRequest, reply: import("fastify").FastifyReply) => Promise<void>}
- */
-export function idempotency(options = {}) {
+async function idempotencyPlugin(fastify, options) {
   const opts = { ...defaultOptions, ...options };
   if (!opts.store) {
     throw new Error(
@@ -89,8 +71,9 @@ export function idempotency(options = {}) {
     opts.resilience
   );
 
-  const middleware = async (request, reply) => {
-    const requestMeta = new WeakMap();
+  const requestData = new WeakMap();
+
+  fastify.addHook("preHandler", async (request, reply) => {
     const method = request.method;
     if (!shouldProcessRequest(method)) {
       return;
@@ -126,11 +109,12 @@ export function idempotency(options = {}) {
       return sendErrorResponse(reply, 400, problem);
     }
 
-    const bodyText = request.body
-      ? typeof request.body === "string"
-        ? request.body
-        : JSON.stringify(request.body)
-      : "";
+    const bodyText =
+      request.body !== undefined
+        ? typeof request.body === "string"
+          ? request.body
+          : JSON.stringify(request.body)
+        : "";
     const fingerprint = await generateFingerprint(bodyText, opts.excludeFields);
 
     let lookup;
@@ -168,6 +152,7 @@ export function idempotency(options = {}) {
       for (const [headerKey, value] of Object.entries(response.headers)) {
         reply.header(headerKey, /** @type {string} */ (value));
       }
+      reply.header("x-idempotent-replay", "true");
       return reply.send(response.body);
     }
 
@@ -182,45 +167,41 @@ export function idempotency(options = {}) {
         return sendErrorResponse(reply, 503, problem);
       }
 
-      requestMeta.set(request, { idempotencyKey: key });
-
-      const originalSend = reply.send.bind(reply);
-      let capturedBody = "";
-
-      reply.send = (payload) => {
-        capturedBody =
-          typeof payload === "string" ? payload : JSON.stringify(payload);
-        const meta = requestMeta.get(request);
-        meta.idempotencyBody = capturedBody;
-        requestMeta.set(request, meta);
-        return originalSend(payload);
-      };
-
-      reply.then(
-        () => {
-          const meta = requestMeta.get(request);
-          if (meta?.idempotencyKey) {
-            resilientStore
-              .complete(meta.idempotencyKey, {
-                status: reply.statusCode,
-                headers: Object.fromEntries(
-                  Object.entries(reply.getHeaders()).map(([k, v]) => [
-                    k,
-                    String(v)
-                  ])
-                ),
-                body: meta.idempotencyBody || ""
-              })
-              .catch((err) => {
-                console.error("Failed to cache response:", err);
-              });
-          }
-        },
-        () => {}
-      );
+      requestData.set(request, { key, fingerprint });
     }
-  };
+  });
 
-  middleware.circuit = circuit;
-  return middleware;
+  fastify.addHook("onSend", async (request, reply, payload) => {
+    const data = requestData.get(request);
+    if (!data) {
+      return payload;
+    }
+
+    const { key } = data;
+    const body =
+      typeof payload === "string" ? payload : JSON.stringify(payload || "");
+
+    try {
+      await resilientStore.complete(key, {
+        status: reply.statusCode,
+        headers: Object.fromEntries(
+          Object.entries(reply.getHeaders()).map(([k, v]) => [k, String(v)])
+        ),
+        body
+      });
+    } catch (err) {
+      console.error("Failed to cache response:", err);
+    }
+
+    return payload;
+  });
+
+  fastify.decorate("circuit", circuit);
 }
+
+idempotencyPlugin.circuit = null;
+
+export const idempotency = fp(idempotencyPlugin, {
+  name: "idempotency",
+  fastify: ">=4.0.0"
+});

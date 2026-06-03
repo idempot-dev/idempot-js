@@ -14,8 +14,8 @@ function createFastifyRedisApp(store, client) {
       done(null, req.body);
     }
   );
-  app.addHook("preHandler", idempotency({ store }));
-  app.post("/api", async (req, res) => {
+  app.register(idempotency, { store });
+  app.post("/api", async (req, _res) => {
     await client.set(
       `orders:${req.headers["idempotency-key"]}`,
       JSON.stringify(req.body)

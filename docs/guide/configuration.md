@@ -186,25 +186,22 @@ const store = new PostgresIdempotencyStore({
   database: "payments"
 });
 
-fastify.post(
-  "/payments",
-  {
-    preHandler: idempotency({
-      store,
-      ttlMs: 7 * 24 * 60 * 60 * 1000, // 7 days
-      excludeFields: ["timestamp", "$.audit.clientTimestamp"],
-      resilience: {
-        timeoutMs: 2000, // Allow slower database operations
-        maxRetries: 5, // More retries for critical operations
-        resetTimeoutMs: 60000 // 1 minute recovery window
-      }
-    })
-  },
-  async (request, reply) => {
-    const payment = await processPayment(request.body);
-    return payment;
+// Register as plugin
+fastify.register(idempotency, {
+  store,
+  ttlMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+  excludeFields: ["timestamp", "$.audit.clientTimestamp"],
+  resilience: {
+    timeoutMs: 2000, // Allow slower database operations
+    maxRetries: 5, // More retries for critical operations
+    resetTimeoutMs: 60000 // 1 minute recovery window
   }
-);
+});
+
+fastify.post("/payments", async (request, reply) => {
+  const payment = await processPayment(request.body);
+  return payment;
+});
 ```
 
 ## Choosing a Storage Backend

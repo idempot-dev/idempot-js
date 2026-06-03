@@ -1,6 +1,6 @@
 ---
 title: Fastify Plugin - idempot-js
-description: Add IETF-compliant idempotency to Fastify applications using preHandler hooks. Supports Redis, PostgreSQL, MySQL, and SQLite storage backends.
+description: Add IETF-compliant idempotency to Fastify applications using a Fastify plugin. Supports Redis, PostgreSQL, MySQL, and SQLite storage backends.
 ---
 
 # Fastify
@@ -21,23 +21,32 @@ import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 const fastify = Fastify();
 const store = new SqliteIdempotencyStore({ path: ":memory:" });
 
-fastify.post(
-  "/orders",
-  { preHandler: idempotency({ store }) },
-  async (request, reply) => {
-    const orderId = crypto.randomUUID();
-    return { id: orderId, ...request.body };
-  }
-);
+// Register as a plugin - applies to all routes in this scope
+fastify.register(idempotency, { store });
+
+fastify.post("/orders", async (request, reply) => {
+  const orderId = crypto.randomUUID();
+  return { id: orderId, ...request.body };
+});
 
 fastify.listen({ port: 3000 });
+```
+
+### Migration from v1.x
+
+```javascript
+// v1.x (deprecated)
+fastify.addHook("preHandler", idempotency({ store }));
+
+// v2.x
+fastify.register(idempotency, { store });
 ```
 
 ## API
 
 ### `idempotency(options)`
 
-Creates Fastify preHandler hook for idempotency.
+Creates a Fastify plugin for idempotency. The plugin registers `preHandler` and `onSend` hooks internally.
 
 **Options:**
 
@@ -47,4 +56,4 @@ Creates Fastify preHandler hook for idempotency.
 - `excludeFields`: Fields to exclude from fingerprint calculation
 - `resilience`: Circuit breaker and retry options
 
-**Returns:** Fastify preHandler hook function with `circuit` property for monitoring.
+**Returns:** Fastify plugin with `circuit` property for monitoring.

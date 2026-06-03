@@ -14,8 +14,8 @@ function createFastifySqliteApp(store) {
       done(null, req.body);
     }
   );
-  app.addHook("preHandler", idempotency({ store }));
-  app.post("/api", async (req, res) => {
+  app.register(idempotency, { store });
+  app.post("/api", async (req, _res) => {
     store.db
       .prepare("INSERT INTO orders (data) VALUES (?)")
       .run(JSON.stringify(req.body));

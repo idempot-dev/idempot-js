@@ -25,7 +25,7 @@ function createFastifyPostgresApp(store) {
       done(null, req.body);
     }
   );
-  app.addHook("preHandler", idempotency({ store }));
+  app.register(idempotency, { store });
   app.post("/api", async (req) => {
     await store.pool.query(
       `INSERT INTO ${store.quotedSchemaIdentifier}.orders (data) VALUES ($1)`,

@@ -19,7 +19,7 @@ function createFastifyMysqlApp(store) {
       done(null, req.body);
     }
   );
-  app.addHook("preHandler", idempotency({ store }));
+  app.register(idempotency, { store });
   app.post("/api", async (req) => {
     return { success: true, body: req.body };
   });
