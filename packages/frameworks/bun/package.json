@@ -41,6 +41,7 @@
     "@idempot/core": "workspace:*"
   },
   "devDependencies": {
-    "@idempot/sqlite-store": "workspace:*"
+    "@idempot/sqlite-store": "workspace:*",
+    "opossum": "^9.0.0"
   }
 }
