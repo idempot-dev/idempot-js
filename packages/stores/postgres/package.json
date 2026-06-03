@@ -42,5 +42,8 @@
   },
   "dependencies": {
     "@idempot/core": "workspace:*"
+  },
+  "devDependencies": {
+    "sinon": "^21.0.0"
   }
 }
