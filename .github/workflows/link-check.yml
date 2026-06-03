@@ -40,7 +40,6 @@ jobs:
           args: |
             docs/.vitepress/dist
             --root-dir docs/.vitepress/dist
-            --include-mail=false
             --exclude "^file://"
             --accept '200..=299,403'
           # Don't fail action on broken links (we'll create an issue instead)
