@@ -1,6 +1,15 @@
 /**
  * RFC 9457 Problem Details for HTTP APIs
  * @module problem-json
+ *
+ * @typedef {Object} ProblemDetails
+ * @property {string} type - URI identifying the problem type
+ * @property {string} title - Short human-readable summary
+ * @property {string} [detail] - Detailed explanation
+ * @property {number} status - HTTP status code
+ * @property {string} instance - Unique identifier for this error occurrence
+ * @property {boolean} retryable - Whether retrying might succeed
+ * @property {string} [idempotency_key] - The idempotency key from the request
  */
 
 const SPEC_URL =

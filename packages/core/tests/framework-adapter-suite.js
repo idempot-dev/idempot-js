@@ -739,4 +739,97 @@ export function runAdapterTests(adapter) {
 
     await teardown();
   });
+
+  // Test: Custom errorFormatter transforms JSON error body
+  test(`${adapter.name} - custom errorFormatter transforms JSON error body`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const customFormatter = (problem) => ({
+      error: problem.title,
+      message: problem.detail,
+      code: problem.status
+    });
+
+    const middleware = adapter.createMiddleware({
+      store,
+      required: true,
+      errorFormatter: customFormatter
+    });
+
+    mount("POST", "/test", middleware, async (req, res) => {
+      return res.send({ ok: true });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: {},
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 400, "should return 400");
+    const contentType = response.headers["content-type"] || "";
+    t.ok(
+      contentType.includes("application/json"),
+      "should return JSON content type"
+    );
+    t.notOk(
+      contentType.includes("problem+json"),
+      "should not return problem+json"
+    );
+    t.equal(
+      response.body?.error,
+      "Idempotency-Key is missing",
+      "should have custom error field"
+    );
+    t.equal(
+      response.body?.message,
+      "This operation is idempotent and it requires correct usage of Idempotency Key.",
+      "should have custom message field"
+    );
+    t.equal(response.body?.code, 400, "should have custom code field");
+    t.notOk(response.body?.type, "should not have RFC 9457 type field");
+
+    await teardown();
+  });
+
+  // Test: Markdown format ignores errorFormatter
+  test(`${adapter.name} - markdown format ignores errorFormatter`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const customFormatter = () => ({ custom: true });
+
+    const middleware = adapter.createMiddleware({
+      store,
+      required: true,
+      errorFormatter: customFormatter
+    });
+
+    mount("POST", "/test", middleware, async (req, res) => {
+      return res.send({ ok: true });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { accept: "text/markdown" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 400, "should return 400");
+    const body = typeof response.body === "string" ? response.body : "";
+    t.ok(body.includes("---"), "should have YAML frontmatter");
+    t.ok(
+      body.includes("Idempotency-Key is missing"),
+      "should have original title"
+    );
+
+    await teardown();
+  });
 }

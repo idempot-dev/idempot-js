@@ -53,7 +53,8 @@ const validOptionsArbitrary = () =>
             fc.integer({ min: 1 })
           )
         })
-      )
+      ),
+      errorFormatter: fc.oneof(fc.constant(undefined), fc.func(fc.anything()))
     },
     { withDeletedKeys: true }
   );
@@ -308,7 +309,8 @@ test("validateIdempotencyOptions - unknown options throw", async (t) => {
               "store",
               "minKeyLength",
               "maxKeyLength",
-              "resilience"
+              "resilience",
+              "errorFormatter"
             ].includes(s)
         ),
       fc.anything(),
