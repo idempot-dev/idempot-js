@@ -15,15 +15,16 @@ The library enforces sensible defaults that prioritize security and reliability.
 
 ### Core Options
 
-| Option          | Type               | Default               | Description                                                    |
-| --------------- | ------------------ | --------------------- | -------------------------------------------------------------- |
-| `store`         | `IdempotencyStore` | **required**          | Storage backend for persisting idempotency records             |
-| `required`      | `boolean`          | `true`                | Whether requests must include an `Idempotency-Key` header      |
-| `ttlMs`         | `number`           | `86400000` (24 hours) | Time-to-live in milliseconds for idempotency records           |
-| `minKeyLength`  | `number`           | `21`                  | Minimum allowed length for idempotency keys                    |
-| `maxKeyLength`  | `number`           | `255`                 | Maximum allowed length for idempotency keys                    |
-| `excludeFields` | `string[]`         | `[]`                  | Body fields to exclude when generating the request fingerprint |
-| `resilience`    | `object`           | see below             | Circuit breaker and retry configuration                        |
+| Option           | Type               | Default               | Description                                                          |
+| ---------------- | ------------------ | --------------------- | -------------------------------------------------------------------- |
+| `store`          | `IdempotencyStore` | **required**          | Storage backend for persisting idempotency records                   |
+| `required`       | `boolean`          | `true`                | Whether requests must include an `Idempotency-Key` header            |
+| `ttlMs`          | `number`           | `86400000` (24 hours) | Time-to-live in milliseconds for idempotency records                 |
+| `minKeyLength`   | `number`           | `21`                  | Minimum allowed length for idempotency keys                          |
+| `maxKeyLength`   | `number`           | `255`                 | Maximum allowed length for idempotency keys                          |
+| `excludeFields`  | `string[]`         | `[]`                  | Body fields to exclude when generating the request fingerprint       |
+| `resilience`     | `object`           | see below             | Circuit breaker and retry configuration                              |
+| `errorFormatter` | `Function`         | `undefined`           | Transform RFC 9457 problem details into a custom error response body |
 
 ### Resilience Options
 
@@ -206,6 +207,36 @@ fastify.post(
   }
 );
 ```
+
+## Custom Error Response Format
+
+By default, error responses follow [RFC 9457](https://datatracker.ietf.org/doc/html/rfc9457) (Problem Details for HTTP APIs). Use `errorFormatter` to make idempotency error responses match your API's existing error structure.
+
+```javascript
+idempotency({
+  store,
+  errorFormatter: (problem) => ({
+    error: problem.title,
+    message: problem.detail,
+    code: problem.status,
+    requestId: problem.instance
+  })
+});
+```
+
+The function receives the full RFC 9457 problem object with these fields:
+
+| Field             | Type      | Description                                            |
+| ----------------- | --------- | ------------------------------------------------------ |
+| `type`            | `string`  | URI identifying the error type                         |
+| `title`           | `string`  | Short, human-readable summary                          |
+| `detail`          | `string`  | Detailed explanation of what happened                  |
+| `status`          | `number`  | HTTP status code                                       |
+| `instance`        | `string`  | Unique identifier for this error occurrence            |
+| `retryable`       | `boolean` | Whether retrying the request might succeed             |
+| `idempotency_key` | `string`  | The idempotency key from the request (when applicable) |
+
+**Important:** `errorFormatter` only transforms JSON responses. When a client requests `text/markdown`, the response continues to use the raw RFC 9457 fields so the YAML frontmatter stays meaningful. When `errorFormatter` is present, JSON responses use `application/json` instead of `application/problem+json`.
 
 ## Choosing a Storage Backend
 
