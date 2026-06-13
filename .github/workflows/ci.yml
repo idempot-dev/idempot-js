@@ -30,6 +30,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Check code quality
         run: pnpm run check
+      - name: Audit dependencies
+        run: pnpm run audit:deps
 
   fallow:
     name: Fallow
