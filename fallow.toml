@@ -23,7 +23,8 @@ entry = [
 ]
 
 # Dependencies to ignore - these are runtime-native modules (Deno/Bun)
-# that will never be in package.json
+# that will never be in package.json, or transitive dependencies required
+# by tools (e.g. VitePress/rolldown-vite) but not directly imported.
 ignoreDependencies = [
   # Deno native modules
   "@db/redis",  # Deno Redis client
@@ -31,6 +32,8 @@ ignoreDependencies = [
   "sqlite",     # Deno SQLite client
   # Bun runtime namespace
   "bun",
+  # Transitive dependency required by VitePress via rolldown-vite
+  "oxc-minify",
 ]
 
 # Patterns for files to exclude from analysis entirely
@@ -43,6 +46,5 @@ ignorePatterns = [
 
 # Override rules for specific file patterns
 # Examples and tests are expected to have duplication - ignore it
-[[overrides]]
-files = ["examples/**/*.js", "tests/**/*.js", "packages/stores/*/tests/*.js"]
-rules = { duplicates = "off" }
+[duplicates]
+ignore = ["examples/**/*.js", "tests/**/*.js", "packages/stores/*/tests/*.js"]
