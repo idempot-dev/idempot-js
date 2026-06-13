@@ -4,5 +4,6 @@ packages:
   - "packages/stores/*"
 allowBuilds:
   better-sqlite3: true
+  esbuild: true
 
 enableGlobalVirtualStore: true
