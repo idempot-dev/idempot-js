@@ -48,7 +48,7 @@
     "@idempot/core": "workspace:*"
   },
   "devDependencies": {
-    "fast-check": "^4.6.0",
-    "sinon": "^21.0.0"
+    "fast-check": "^4.8.0",
+    "sinon": "^21.1.2"
   }
 }
