@@ -32,9 +32,10 @@ const HEADER_NAME = "idempotency-key";
  * @param {import("fastify").FastifyReply} reply - Fastify reply
  * @param {number} status - HTTP status code
  * @param {Object} problem - RFC 9457 problem details
+ * @param {Function} [errorFormatter] - Optional function to transform problem details
  * @returns {import("fastify").FastifyReply}
  */
-function sendErrorResponse(reply, status, problem) {
+function sendErrorResponse(reply, status, problem, errorFormatter) {
   const acceptHeader = reply.request.headers["accept"] || "";
   const format = selectResponseFormat(acceptHeader);
 
@@ -44,15 +45,17 @@ function sendErrorResponse(reply, status, problem) {
       .header("Content-Type", "text/markdown; charset=utf-8")
       .send(formatAsMarkdown(problem));
   } else {
-    const contentType =
-      format === "application/problem+json"
+    const body = errorFormatter ? errorFormatter(problem) : problem;
+    const contentType = errorFormatter
+      ? "application/json"
+      : format === "application/problem+json"
         ? "application/problem+json"
         : "application/json";
 
     return reply
       .code(status)
       .header("Content-Type", `${contentType}; charset=utf-8`)
-      .send(problem);
+      .send(body);
   }
 }
 
@@ -105,7 +108,7 @@ export function idempotency(options = {}) {
           status: 400,
           instance: instanceId
         });
-        return sendErrorResponse(reply, 400, problem);
+        return sendErrorResponse(reply, 400, problem, opts.errorFormatter);
       }
       return;
     }
@@ -123,7 +126,7 @@ export function idempotency(options = {}) {
           idempotencyKey: key
         }
       );
-      return sendErrorResponse(reply, 400, problem);
+      return sendErrorResponse(reply, 400, problem, opts.errorFormatter);
     }
 
     const bodyText = request.body
@@ -141,7 +144,7 @@ export function idempotency(options = {}) {
         status: 503,
         instance: instanceId
       });
-      return sendErrorResponse(reply, 503, problem);
+      return sendErrorResponse(reply, 503, problem, opts.errorFormatter);
     }
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
@@ -157,7 +160,8 @@ export function idempotency(options = {}) {
       return sendErrorResponse(
         reply,
         /** @type {number} */ (conflict.status),
-        problem
+        problem,
+        opts.errorFormatter
       );
     }
 
@@ -179,7 +183,7 @@ export function idempotency(options = {}) {
           status: 503,
           instance: instanceId
         });
-        return sendErrorResponse(reply, 503, problem);
+        return sendErrorResponse(reply, 503, problem, opts.errorFormatter);
       }
 
       requestMeta.set(request, { idempotencyKey: key });

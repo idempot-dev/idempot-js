@@ -44,5 +44,6 @@ Creates Express middleware for idempotency.
 - `ttlMs`: Time-to-live for idempotency records in milliseconds
 - `excludeFields`: Fields to exclude from fingerprint calculation
 - `resilience`: Circuit breaker and retry options
+- `errorFormatter`: Function to transform RFC 9457 problem details into a custom error response body
 
 **Returns:** Express middleware function with `circuit` property for monitoring.
