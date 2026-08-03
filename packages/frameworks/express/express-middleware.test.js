@@ -4,6 +4,10 @@ import http from "http";
 import { runAdapterTests } from "../../core/tests/framework-adapter-suite.js";
 import { idempotency } from "./index.js";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
+import {
+  createRaceStubStore,
+  RACE_KEY
+} from "../../core/tests/race-store-helper.js";
 
 // Content negotiation tests
 test("express - returns markdown format when Accept: text/markdown", async (t) => {
@@ -112,6 +116,110 @@ test("express - returns JSON format when Accept: application/json", async (t) =>
 
   server.close();
   await store.close();
+});
+
+// --- Lost-race reroute: startProcessing throws IdempotencyKeyExistsError ---
+
+async function raceRequest(store) {
+  const app = express();
+  app.use(express.json());
+  app.post("/test", idempotency({ store, required: true }), (req, res) =>
+    res.json({ ok: true })
+  );
+
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+
+  const response = await new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: "localhost",
+        port,
+        path: "/test",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": RACE_KEY
+        }
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          resolve({
+            status: res.statusCode,
+            headers: res.headers,
+            body: data
+          });
+        });
+      }
+    );
+    req.on("error", reject);
+    req.write(JSON.stringify({}));
+    req.end();
+  });
+
+  server.close();
+  return response;
+}
+
+test("express - lost race with winner still processing returns 409", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: { status: "processing" }
+  });
+  const response = await raceRequest(store);
+
+  t.equal(response.status, 409, "loser should get 409 conflict");
+  t.match(
+    JSON.parse(response.body).type,
+    /#section-2\.6$/,
+    "conflict references spec section 2.6"
+  );
+});
+
+test("express - lost race with winner complete replays cached response 200", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: {
+      status: "complete",
+      response: {
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: '{"winner":true}'
+      }
+    }
+  });
+  const response = await raceRequest(store);
+
+  t.equal(response.status, 200, "loser should get 200 replay");
+  t.equal(response.body, '{"winner":true}', "replays winner body");
+});
+
+test("express - lost race re-lookup finds no record returns 409", async (t) => {
+  const store = createRaceStubStore({ secondLookup: null });
+  const response = await raceRequest(store);
+
+  t.equal(response.status, 409, "no-record re-lookup returns 409 per KTD2");
+});
+
+test("express - lost race re-lookup throws returns 503", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: null,
+    relookupError: new Error("connection refused")
+  });
+  const response = await raceRequest(store);
+
+  t.equal(response.status, 503, "re-lookup failure stays a 503");
+});
+
+test("express - non-key-exists error from startProcessing stays 503", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: null,
+    startError: new Error("connection refused")
+  });
+  const response = await raceRequest(store);
+
+  t.equal(response.status, 503, "unrelated store error stays a 503");
 });
 
 // Run shared adapter test suite

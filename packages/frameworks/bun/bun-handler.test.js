@@ -2,6 +2,10 @@ import { test } from "tap";
 import { runAdapterTests } from "../../core/tests/framework-adapter-suite.js";
 import { idempotency } from "./index.js";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
+import {
+  createRaceStubStore,
+  RACE_KEY
+} from "../../core/tests/race-store-helper.js";
 
 test("bun - returns markdown format when Accept: text/markdown", async (t) => {
   const store = new SqliteIdempotencyStore({ path: ":memory:" });
@@ -61,6 +65,78 @@ test("bun - returns JSON format when Accept: application/json", async (t) => {
   t.ok(body.type, "should have type field in JSON body");
 
   await store.close();
+});
+
+// --- Lost-race reroute: startProcessing throws IdempotencyKeyExistsError ---
+
+async function raceRequest(store) {
+  const wrap = idempotency({ store, required: true });
+  const handler = wrap(async () => Response.json({ ok: true }));
+  return handler(
+    new Request("http://localhost/test", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": RACE_KEY
+      },
+      body: JSON.stringify({})
+    })
+  );
+}
+
+test("bun - lost race with winner still processing returns 409", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: { status: "processing" }
+  });
+  const res = await raceRequest(store);
+
+  t.equal(res.status, 409, "loser should get 409 conflict");
+  const body = await res.json();
+  t.match(body.type, /#section-2\.6$/, "conflict references spec section 2.6");
+});
+
+test("bun - lost race with winner complete replays cached response 200", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: {
+      status: "complete",
+      response: {
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: '{"winner":true}'
+      }
+    }
+  });
+  const res = await raceRequest(store);
+
+  t.equal(res.status, 200, "loser should get 200 replay");
+  t.equal(await res.text(), '{"winner":true}', "replays winner body");
+});
+
+test("bun - lost race re-lookup finds no record returns 409", async (t) => {
+  const store = createRaceStubStore({ secondLookup: null });
+  const res = await raceRequest(store);
+
+  t.equal(res.status, 409, "no-record re-lookup returns 409 per KTD2");
+});
+
+test("bun - lost race re-lookup throws returns 503", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: null,
+    relookupError: new Error("connection refused")
+  });
+  const res = await raceRequest(store);
+
+  t.equal(res.status, 503, "re-lookup failure stays a 503");
+});
+
+test("bun - non-key-exists error from startProcessing stays 503", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: null,
+    startError: new Error("connection refused")
+  });
+  const res = await raceRequest(store);
+
+  t.equal(res.status, 503, "unrelated store error stays a 503");
 });
 
 runAdapterTests({

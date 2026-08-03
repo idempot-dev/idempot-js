@@ -3,6 +3,10 @@ import Fastify from "fastify";
 import { runAdapterTests } from "../../core/tests/framework-adapter-suite.js";
 import { idempotency } from "./index.js";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
+import {
+  createRaceStubStore,
+  RACE_KEY
+} from "../../core/tests/race-store-helper.js";
 
 // Run shared adapter test suite
 runAdapterTests({
@@ -52,7 +56,7 @@ test("fastify - returns markdown format when Accept: text/markdown", async (t) =
   app.post(
     "/test",
     { preHandler: idempotency({ store, required: true }) },
-    async (request, reply) => {
+    async (_request, _reply) => {
       return { ok: true };
     }
   );
@@ -84,7 +88,7 @@ test("fastify - returns JSON format when Accept: application/json", async (t) =>
   app.post(
     "/test",
     { preHandler: idempotency({ store, required: true }) },
-    async (request, reply) => {
+    async (_request, _reply) => {
       return { ok: true };
     }
   );
@@ -131,7 +135,7 @@ test("fastify - handles handler that returns value without calling send", async 
   app.post(
     "/test",
     { preHandler: idempotency({ store }) },
-    async (request, reply) => {
+    async (_request, _reply) => {
       return { direct: "return" };
     }
   );
@@ -160,7 +164,7 @@ test("fastify - handles handler that sends undefined", async (t) => {
   app.post(
     "/test",
     { preHandler: idempotency({ store }) },
-    async (request, reply) => {
+    async (_request, reply) => {
       return reply.send(undefined);
     }
   );
@@ -173,4 +177,154 @@ test("fastify - handles handler that sends undefined", async (t) => {
   });
 
   t.equal(response.statusCode, 200);
+});
+
+// --- Lost-race reroute: startProcessing throws IdempotencyKeyExistsError ---
+
+test("fastify - lost race with winner still processing returns 409", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: { status: "processing" }
+  });
+  const app = Fastify();
+
+  app.post(
+    "/test",
+    { preHandler: idempotency({ store, required: true }) },
+    async () => {
+      return { ok: true };
+    }
+  );
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/test",
+    payload: {},
+    headers: {
+      "Content-Type": "application/json",
+      "idempotency-key": RACE_KEY
+    }
+  });
+
+  t.equal(response.statusCode, 409, "loser should get 409 conflict");
+  t.match(
+    response.json().type,
+    /#section-2\.6$/,
+    "conflict references spec section 2.6"
+  );
+});
+
+test("fastify - lost race with winner complete replays cached response 200", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: {
+      status: "complete",
+      response: {
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: '{"winner":true}'
+      }
+    }
+  });
+  const app = Fastify();
+
+  app.post(
+    "/test",
+    { preHandler: idempotency({ store, required: true }) },
+    async () => {
+      return { ok: true };
+    }
+  );
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/test",
+    payload: {},
+    headers: {
+      "Content-Type": "application/json",
+      "idempotency-key": RACE_KEY
+    }
+  });
+
+  t.equal(response.statusCode, 200, "loser should get 200 replay");
+  t.equal(response.body, '{"winner":true}', "replays winner body");
+});
+
+test("fastify - lost race re-lookup finds no record returns 409", async (t) => {
+  const store = createRaceStubStore({ secondLookup: null });
+  const app = Fastify();
+
+  app.post(
+    "/test",
+    { preHandler: idempotency({ store, required: true }) },
+    async () => {
+      return { ok: true };
+    }
+  );
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/test",
+    payload: {},
+    headers: {
+      "Content-Type": "application/json",
+      "idempotency-key": RACE_KEY
+    }
+  });
+
+  t.equal(response.statusCode, 409, "no-record re-lookup returns 409 per KTD2");
+});
+
+test("fastify - lost race re-lookup throws returns 503", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: null,
+    relookupError: new Error("connection refused")
+  });
+  const app = Fastify();
+
+  app.post(
+    "/test",
+    { preHandler: idempotency({ store, required: true }) },
+    async () => {
+      return { ok: true };
+    }
+  );
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/test",
+    payload: {},
+    headers: {
+      "Content-Type": "application/json",
+      "idempotency-key": RACE_KEY
+    }
+  });
+
+  t.equal(response.statusCode, 503, "re-lookup failure stays a 503");
+});
+
+test("fastify - non-key-exists error from startProcessing stays 503", async (t) => {
+  const store = createRaceStubStore({
+    secondLookup: null,
+    startError: new Error("connection refused")
+  });
+  const app = Fastify();
+
+  app.post(
+    "/test",
+    { preHandler: idempotency({ store, required: true }) },
+    async () => {
+      return { ok: true };
+    }
+  );
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/test",
+    payload: {},
+    headers: {
+      "Content-Type": "application/json",
+      "idempotency-key": RACE_KEY
+    }
+  });
+
+  t.equal(response.statusCode, 503, "unrelated store error stays a 503");
 });

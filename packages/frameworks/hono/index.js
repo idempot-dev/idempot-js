@@ -21,7 +21,9 @@ import {
   missingKeyResponse,
   storeUnavailableResponse,
   selectResponseFormat,
-  formatAsMarkdown
+  formatAsMarkdown,
+  IdempotencyKeyExistsError,
+  IDEMPOTENCY_KEY_PROCESSING_MESSAGE
 } from "@idempot/core";
 
 /**
@@ -170,7 +172,59 @@ export function idempotency(options = {}) {
     if (!lookup.byKey && !lookup.byFingerprint) {
       try {
         await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
-      } catch {
+      } catch (error) {
+        if (error instanceof IdempotencyKeyExistsError) {
+          let recheck;
+          try {
+            recheck = await resilientStore.lookup(key, fingerprint);
+          } catch {
+            const problem = storeUnavailableResponse({
+              status: 503,
+              instance: instanceId
+            });
+            return sendErrorResponse(c, 503, problem);
+          }
+
+          const recheckConflict = checkLookupConflicts(
+            recheck,
+            key,
+            fingerprint
+          );
+          if (recheckConflict.conflict) {
+            const problem = conflictErrorResponse(
+              /** @type {number} */ (recheckConflict.status),
+              /** @type {string} */ (recheckConflict.error),
+              {
+                instance: instanceId,
+                idempotencyKey: key
+              }
+            );
+            return sendErrorResponse(
+              c,
+              /** @type {number} */ (recheckConflict.status),
+              problem
+            );
+          }
+
+          const cached = getCachedResponse(recheck);
+          if (cached) {
+            const response = prepareCachedResponse(cached);
+            return c.body(response.body, response.status, response.headers);
+          }
+
+          // No record found (winner's record may have expired): per KTD2 the
+          // loser still gets a 409 conflict and the client retries fresh.
+          const problem = conflictErrorResponse(
+            409,
+            IDEMPOTENCY_KEY_PROCESSING_MESSAGE,
+            {
+              instance: instanceId,
+              idempotencyKey: key
+            }
+          );
+          return sendErrorResponse(c, 409, problem);
+        }
+
         const problem = storeUnavailableResponse({
           status: 503,
           instance: instanceId

@@ -22,7 +22,9 @@ import {
   missingKeyResponse,
   storeUnavailableResponse,
   selectResponseFormat,
-  formatAsMarkdown
+  formatAsMarkdown,
+  IdempotencyKeyExistsError,
+  IDEMPOTENCY_KEY_PROCESSING_MESSAGE
 } from "@idempot/core";
 
 const HEADER_NAME = "idempotency-key";
@@ -174,7 +176,63 @@ export function idempotency(options = {}) {
     if (!lookup.byKey && !lookup.byFingerprint) {
       try {
         await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
-      } catch {
+      } catch (error) {
+        if (error instanceof IdempotencyKeyExistsError) {
+          let recheck;
+          try {
+            recheck = await resilientStore.lookup(key, fingerprint);
+          } catch {
+            const problem = storeUnavailableResponse({
+              status: 503,
+              instance: instanceId
+            });
+            return sendErrorResponse(reply, 503, problem);
+          }
+
+          const recheckConflict = checkLookupConflicts(
+            recheck,
+            key,
+            fingerprint
+          );
+          if (recheckConflict.conflict) {
+            const problem = conflictErrorResponse(
+              /** @type {number} */ (recheckConflict.status),
+              /** @type {string} */ (recheckConflict.error),
+              {
+                instance: instanceId,
+                idempotencyKey: key
+              }
+            );
+            return sendErrorResponse(
+              reply,
+              /** @type {number} */ (recheckConflict.status),
+              problem
+            );
+          }
+
+          const cached = getCachedResponse(recheck);
+          if (cached) {
+            const response = prepareCachedResponse(cached);
+            reply.code(response.status);
+            for (const [headerKey, value] of Object.entries(response.headers)) {
+              reply.header(headerKey, /** @type {string} */ (value));
+            }
+            return reply.send(response.body);
+          }
+
+          // No record found (winner's record may have expired): per KTD2 the
+          // loser still gets a 409 conflict and the client retries fresh.
+          const problem = conflictErrorResponse(
+            409,
+            IDEMPOTENCY_KEY_PROCESSING_MESSAGE,
+            {
+              instance: instanceId,
+              idempotencyKey: key
+            }
+          );
+          return sendErrorResponse(reply, 409, problem);
+        }
+
         const problem = storeUnavailableResponse({
           status: 503,
           instance: instanceId
