@@ -50,8 +50,8 @@ importers:
         specifier: ^9.39.5
         version: 9.39.5
       '@hono/node-server':
-        specifier: ^1.19.17
-        version: 1.19.17(hono@4.12.34)
+        specifier: ^2.0.10
+        version: 2.0.12(hono@4.12.34)
       '@semantic-release/git':
         specifier: ^10.0.1
         version: 10.0.1(semantic-release@25.0.8(typescript@6.0.3))
@@ -543,9 +543,9 @@ packages:
     resolution: {integrity: sha512-GmzA9ckNokPypTg10pgpeHNQe7ph+iIKKmhKu3Ob9ANkswreCx7R3cKmY781K8QK3AqVL3xVh9A42JvIAbkkSA==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
-  '@hono/node-server@1.19.17':
-    resolution: {integrity: sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ==}
-    engines: {node: '>=18.14.1'}
+  '@hono/node-server@2.0.12':
+    resolution: {integrity: sha512-eWpQYr67tqJLeaSUl0Q+TquuYfUdTibpOJlUMV2FfUP7+KqCC5TufnwnlXL6mobZBJbGAYRd7ZvEBDCbLInjhg==}
+    engines: {node: '>=20'}
     peerDependencies:
       hono: ^4.12.25
 
@@ -5313,7 +5313,7 @@ snapshots:
 
   '@gar/promise-retry@1.0.3': {}
 
-  '@hono/node-server@1.19.17(hono@4.12.34)':
+  '@hono/node-server@2.0.12(hono@4.12.34)':
     dependencies:
       hono: 4.12.34
 
