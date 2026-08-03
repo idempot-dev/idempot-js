@@ -1,4 +1,12 @@
 /**
+ * Message returned when an idempotency key is already being processed by a
+ * concurrent request. Exposed as a constant so the fallback path in framework
+ * middlewares can reuse the same text as `checkLookupConflicts`.
+ */
+export const IDEMPOTENCY_KEY_PROCESSING_MESSAGE =
+  "A request with this idempotency key is already being processed";
+
+/**
  * Validates that a value is a safe integer (not null, within safe range)
  * @param {*} value
  * @param {string} name
@@ -312,7 +320,7 @@ export function checkLookupConflicts(lookup, key, fingerprint) {
     return {
       conflict: true,
       status: 409,
-      error: "A request with this idempotency key is already being processed"
+      error: IDEMPOTENCY_KEY_PROCESSING_MESSAGE
     };
   }
 

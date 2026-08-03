@@ -13,7 +13,8 @@ export {
   checkLookupConflicts,
   shouldProcessRequest,
   getCachedResponse,
-  prepareCachedResponse
+  prepareCachedResponse,
+  IDEMPOTENCY_KEY_PROCESSING_MESSAGE
 } from "./validation.js";
 export { withResilience } from "./resilience.js";
 export { IdempotencyKeyExistsError } from "./errors.js";
