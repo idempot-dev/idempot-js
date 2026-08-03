@@ -44,6 +44,11 @@ export function createFakePgPool() {
 
   const pool = {
     __store: store,
+    /**
+     * Optional injected error thrown by INSERT operations.
+     * @type {Error | null}
+     */
+    __insertError: null,
 
     query: sinon.fake(async (sql, params = []) => {
       const parsed = parseSql(sql);
@@ -69,7 +74,19 @@ export function createFakePgPool() {
       }
 
       if (parsed.operation === "INSERT") {
+        if (pool.__insertError) {
+          const injected = pool.__insertError;
+          pool.__insertError = null;
+          throw injected;
+        }
         const [key, fingerprint, expiresAt] = params;
+        if (store.has(key)) {
+          const error = new Error(
+            `duplicate key value violates unique constraint "idempotency_records_pkey"`
+          );
+          error.code = "23505";
+          throw error;
+        }
         store.set(key, {
           key,
           fingerprint,

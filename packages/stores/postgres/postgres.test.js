@@ -50,3 +50,36 @@ test("PostgresIdempotencyStore - close calls pool.end", async (t) => {
   t.equal(pool.end.calledOnce, true, "pool.end should be called once");
   t.end();
 });
+
+test("PostgresIdempotencyStore - startProcessing on existing key throws IdempotencyKeyExistsError", async (t) => {
+  const { IdempotencyKeyExistsError } = await import("@idempot/core");
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  await store.startProcessing("dup-key", "fp-1", 60000);
+
+  await t.rejects(
+    store.startProcessing("dup-key", "fp-2", 60000),
+    IdempotencyKeyExistsError,
+    "duplicate insert should throw IdempotencyKeyExistsError"
+  );
+
+  await store.close();
+  t.end();
+});
+
+test("PostgresIdempotencyStore - startProcessing propagates non-constraint driver errors", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  pool.__insertError = new Error("connection refused");
+
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    /connection refused/,
+    "transient driver error should propagate unchanged"
+  );
+
+  await store.close();
+  t.end();
+});

@@ -17,6 +17,7 @@
 
 // @ts-nocheck - Deno runtime only
 import { DB as Database } from "sqlite";
+import { IdempotencyKeyExistsError } from "@idempot/core";
 
 export class DenoSqliteIdempotencyStore {
   /** @type {Database} */
@@ -123,10 +124,29 @@ export class DenoSqliteIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
-    this.db.query(
-      `INSERT INTO idempotency_records (key, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)`,
-      [key, fingerprint, Date.now() + ttlMs]
-    );
+    try {
+      this.db.query(
+        `INSERT INTO idempotency_records (key, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)`,
+        [key, fingerprint, Date.now() + ttlMs]
+      );
+    } catch (error) {
+      // The deno.land/x/sqlite driver reports code 19 (SQLITE_CONSTRAINT) for
+      // ALL constraint violations, so matching on the code alone would also
+      // translate NOT NULL violations (e.g. a missing fingerprint) into a
+      // false 409. `key` is the only unique constraint, so matching the
+      // "UNIQUE constraint failed" message precisely targets the PK-duplicate
+      // race while letting other constraint errors propagate as 503.
+      const isDuplicateKey =
+        typeof error?.message === "string" &&
+        error.message.includes("UNIQUE constraint failed");
+      if (isDuplicateKey) {
+        throw new IdempotencyKeyExistsError(
+          `Idempotency key already exists: ${key}`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
   }
 
   /**

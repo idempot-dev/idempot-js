@@ -19,3 +19,34 @@ test("sqlite - creates store with default path when no options provided", (t) =>
   fs.unlinkSync("./idempotency.db");
   t.end();
 });
+
+test("sqlite - startProcessing on existing key throws IdempotencyKeyExistsError", async (t) => {
+  const { IdempotencyKeyExistsError } = await import("@idempot/core");
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  await store.startProcessing("dup-key", "fp-1", 60000);
+
+  await t.rejects(
+    store.startProcessing("dup-key", "fp-2", 60000),
+    IdempotencyKeyExistsError,
+    "duplicate insert should throw IdempotencyKeyExistsError"
+  );
+
+  store.close();
+  t.end();
+});
+
+test("sqlite - startProcessing propagates non-constraint driver errors", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  // A NOT NULL violation (fingerprint undefined) is a SQLITE_CONSTRAINT_NOTNULL
+  // error, not the PRIMARY KEY constraint; it must propagate unchanged.
+  await t.rejects(
+    store.startProcessing("fresh-key", undefined, 60000),
+    /NOT NULL/,
+    "non-key constraint errors propagate unchanged"
+  );
+
+  store.close();
+  t.end();
+});

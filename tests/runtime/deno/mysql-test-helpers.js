@@ -40,6 +40,9 @@ export function createFakeMysqlClient(sharedStore) {
 
       if (normalized.startsWith("INSERT")) {
         const [key, fingerprint, expiresAt] = params;
+        if (store.has(key)) {
+          throw new Error(`Duplicate entry '${key}' for key 'PRIMARY'`);
+        }
         store.set(key, {
           key,
           fingerprint,

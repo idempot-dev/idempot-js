@@ -4,6 +4,7 @@
  */
 
 import { createRequire } from "module";
+import { IdempotencyKeyExistsError } from "@idempot/core";
 
 const require = createRequire(import.meta.url);
 
@@ -118,10 +119,24 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
-    await this.pool.query(
-      `INSERT INTO \`${this.tableName}\` (\`key\`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)`,
-      [key, fingerprint, Date.now() + ttlMs]
-    );
+    try {
+      await this.pool.query(
+        `INSERT INTO \`${this.tableName}\` (\`key\`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)`,
+        [key, fingerprint, Date.now() + ttlMs]
+      );
+    } catch (error) {
+      const isDuplicate =
+        error?.code === "ER_DUP_ENTRY" ||
+        (typeof error?.message === "string" &&
+          error.message.includes("Duplicate entry"));
+      if (isDuplicate) {
+        throw new IdempotencyKeyExistsError(
+          `Idempotency key already exists: ${key}`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
   }
 
   /**
