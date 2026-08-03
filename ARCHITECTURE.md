@@ -182,12 +182,11 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 **Implementation:**
 
 - Uses `pg` pool for connection management
-- JSONB column for response headers
+- TEXT column for response headers
 - Indexed queries on key and fingerprint
 
 **Similar schema to SQLite but with:**
 
-- JSONB type for headers (more efficient than TEXT)
 - Connection pooling via `pg.Pool`
 
 ### MySQL (`packages/stores/mysql/`)
