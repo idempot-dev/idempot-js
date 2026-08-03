@@ -33,6 +33,12 @@ export default {
         message: "chore(release): ${nextRelease.version} [skip ci]"
       }
     ],
-    "@semantic-release/github"
+    [
+      "@semantic-release/github",
+      {
+        successComment: false,
+        releasedLabels: false
+      }
+    ]
   ]
 };
