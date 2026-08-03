@@ -1,5 +1,5 @@
 /** @type {import('semantic-release').GlobalConfig} */
-export default {
+module.exports = {
   branches: ["main"],
   plugins: [
     [
@@ -36,7 +36,7 @@ export default {
     [
       "@semantic-release/github",
       {
-        successComment: false,
+        successCommentCondition: false,
         releasedLabels: false
       }
     ]
