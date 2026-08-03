@@ -3,6 +3,8 @@ import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
 import { makeRequest } from "./shared/request.js";
 import { createRedisStore, cleanupRedis } from "./shared/redis.js";
+import { createLostRaceStore } from "./shared/lost-race-store.js";
+import { generateFingerprint } from "../../packages/core/src/fingerprint.js";
 
 function createExpressRedisApp(store, client) {
   const app = express();
@@ -65,7 +67,7 @@ t.test("Express + Redis - first request creates record", async (t) => {
 t.test(
   "Express + Redis - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
-    const { store, client, prefix, port } = t.context;
+    const { client, prefix, port } = t.context;
 
     const response1 = await makeRequest(port, {
       idempotencyKey: "test-key-dupe-123456789012345",
@@ -134,5 +136,69 @@ t.test(
       1,
       "should only have one order despite two different idempotency keys (same fingerprint)"
     );
+  }
+);
+
+t.test(
+  "Express + Redis - lost startProcessing race returns 409 when winner still processing",
+  async (t) => {
+    const { store, client, prefix } = t.context;
+    const key = "redis-race-12345678901234567890";
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    // Seed the winner's processing record so the loser's SET NX misses
+    // on the real driver, exactly like the SQL race tests.
+    await store.startProcessing(key, fp, 60000);
+
+    const wrapped = createLostRaceStore(store);
+    const app = createExpressRedisApp(wrapped, client);
+    const server = app.listen(0);
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 409, "loser should get 409 conflict");
+    t.match(response.body.type, /#section-2\.6$/, "conflict spec reference");
+    t.equal(response.body.retryable, true, "conflict is retryable");
+
+    const keys = await client.keys(`*${prefix}:orders:*`);
+    t.equal(keys.length, 0, "loser must not create an order");
+  }
+);
+
+t.test(
+  "Express + Redis - lost startProcessing race replays 200 when winner completed",
+  async (t) => {
+    const { store, client } = t.context;
+    const key = "redis-race-complete-12345678901";
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+    await store.complete(key, {
+      status: 200,
+      headers: { "content-type": "application/json" },
+      body: '{"winner":true}'
+    });
+
+    const wrapped = createLostRaceStore(store);
+    const app = createExpressRedisApp(wrapped, client);
+    const server = app.listen(0);
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 200, "loser gets 200 replay");
+    t.equal(response.body.winner, true, "body is the winner's body");
+    t.equal(response.headers["x-idempotent-replayed"], "true", "replay header");
   }
 );

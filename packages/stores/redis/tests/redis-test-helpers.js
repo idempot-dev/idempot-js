@@ -54,8 +54,8 @@ export function createFakeRedisClient() {
           commands.push(["get", key]);
           return pipelineObj;
         },
-        setex: (key, ttl, value) => {
-          commands.push(["setex", key, ttl, value]);
+        set: (key, value, ...flags) => {
+          commands.push(["set", key, value, ...flags]);
           return pipelineObj;
         },
         exec: sinon.fake(async () => {
@@ -64,11 +64,15 @@ export function createFakeRedisClient() {
             if (cmd === "get") {
               const val = store.get(args[0]) ?? null;
               results.push([null, val]);
-            } else if (cmd === "setex") {
-              const [key, ttl, value] = args;
-              store.set(key, value);
-              store.expiryTimers.set(key, Date.now() + ttl * 1000);
-              results.push([null, "OK"]);
+            } else if (cmd === "set") {
+              const [skey, svalue, , sttl, nx] = args;
+              if (nx === "NX" && store.has(skey)) {
+                results.push([null, null]);
+              } else {
+                store.set(skey, svalue);
+                store.expiryTimers.set(skey, Date.now() + sttl * 1000);
+                results.push([null, "OK"]);
+              }
             }
           }
           return results;
