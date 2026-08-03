@@ -146,35 +146,81 @@
     ],
     "packageJson": {
       "dependencies": [
-        "npm:@commitlint/cli@^20.4.1",
-        "npm:@commitlint/config-conventional@^20.4.1",
-        "npm:@cucumber/cucumber@^12.7.0",
-        "npm:@eslint/js@^9.39.2",
-        "npm:@hono/node-server@^1.19.9",
-        "npm:better-sqlite3@^12.6.2",
+        "npm:@commitlint/cli@^20.5.3",
+        "npm:@commitlint/config-conventional@^20.5.3",
+        "npm:@cucumber/cucumber@^12.9.0",
+        "npm:@eslint/js@^9.39.5",
+        "npm:@hono/node-server@^2.0.10",
+        "npm:@semantic-release/git@^10.0.1",
+        "npm:@semantic-release/npm@^13.1.5",
+        "npm:better-sqlite3@^12.11.1",
         "npm:eslint-config-prettier@^10.1.8",
         "npm:eslint-plugin-jsdoc@50",
-        "npm:eslint@10",
+        "npm:eslint@^10.8.0",
         "npm:express@^5.2.1",
-        "npm:fast-check@^4.6.0",
-        "npm:fastify@5",
-        "npm:globals@^17.1.0",
-        "npm:hono@^4.11.5",
+        "npm:fast-check@^4.9.0",
+        "npm:fastify@^5.10.0",
+        "npm:globals@^17.8.0",
+        "npm:hono@^4.12.23",
         "npm:husky@^9.1.7",
-        "npm:ioredis-mock@^8.13.1",
-        "npm:ioredis@^5.9.2",
+        "npm:ioredis@^5.11.1",
         "npm:jsonpath-plus@^10.3.0",
         "npm:lint-staged@^16.4.0",
-        "npm:mysql2@^3.20.0",
+        "npm:multi-semantic-release@^3.1.0",
+        "npm:mysql2@^3.23.1",
         "npm:opossum@9",
-        "npm:pg@^8.18.0",
-        "npm:pgmock@^1.0.3",
-        "npm:prettier@^3.8.1",
-        "npm:sinon@21",
-        "npm:tap@^21.5.0",
+        "npm:oxc-minify@0.141",
+        "npm:pg@^8.22.0",
+        "npm:prettier@^3.9.6",
+        "npm:semantic-release@^25.0.8",
+        "npm:sinon@^21.1.2",
+        "npm:tap@^21.7.4",
+        "npm:typescript@^6.0.3",
         "npm:ulid@^3.0.2",
+        "npm:vitepress@2.0.0-alpha.17",
         "npm:xxhash-wasm@^1.1.0"
       ]
+    },
+    "members": {
+      "packages/core": {
+        "packageJson": {
+          "dependencies": [
+            "npm:fast-check@^4.9.0",
+            "npm:jsonpath-plus@^10.3.0",
+            "npm:opossum@9",
+            "npm:xxhash-wasm@^1.1.0"
+          ]
+        }
+      },
+      "packages/frameworks/bun": {
+        "packageJson": {
+          "dependencies": [
+            "npm:opossum@9"
+          ]
+        }
+      },
+      "packages/stores/mysql": {
+        "packageJson": {
+          "dependencies": [
+            "npm:sinon@^21.1.2"
+          ]
+        }
+      },
+      "packages/stores/postgres": {
+        "packageJson": {
+          "dependencies": [
+            "npm:sinon@^21.1.2"
+          ]
+        }
+      },
+      "packages/stores/redis": {
+        "packageJson": {
+          "dependencies": [
+            "npm:fast-check@^4.9.0",
+            "npm:sinon@^21.1.2"
+          ]
+        }
+      }
     }
   }
 }
