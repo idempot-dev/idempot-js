@@ -5,6 +5,7 @@
 
 // @ts-nocheck - bun:sqlite and bun:sql are only available in Bun runtime
 import { Database } from "bun:sqlite";
+import { IdempotencyKeyExistsError } from "@idempot/core";
 
 /**
  * @typedef {Object} BunSqlIdempotencyStoreOptions
@@ -314,30 +315,49 @@ export class BunSqlIdempotencyStore {
   async startProcessing(key, fingerprint, ttlMs) {
     await this.ensureSchema();
 
-    if (this.isSqlite) {
-      this.db
-        .prepare(
-          `
+    try {
+      if (this.isSqlite) {
+        this.db
+          .prepare(
+            `
         INSERT INTO idempotency_records
         (key, fingerprint, status, expires_at)
         VALUES (?, ?, 'processing', ?)
       `
-        )
-        .run(key, fingerprint, Date.now() + ttlMs);
-    } else {
-      const keyColumn = this.isMySQL ? "`key`" : '"key"';
-
-      if (this.isMySQL) {
-        await this.db.unsafe(
-          `INSERT INTO idempotency_records (${keyColumn}, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)`,
-          [key, fingerprint, Date.now() + ttlMs]
-        );
+          )
+          .run(key, fingerprint, Date.now() + ttlMs);
       } else {
-        await this.db.unsafe(
-          `INSERT INTO idempotency_records (${keyColumn}, fingerprint, status, expires_at) VALUES ($1, $2, 'processing', $3)`,
-          [key, fingerprint, Date.now() + ttlMs]
+        const keyColumn = this.isMySQL ? "`key`" : '"key"';
+
+        if (this.isMySQL) {
+          await this.db.unsafe(
+            `INSERT INTO idempotency_records (${keyColumn}, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)`,
+            [key, fingerprint, Date.now() + ttlMs]
+          );
+        } else {
+          await this.db.unsafe(
+            `INSERT INTO idempotency_records (${keyColumn}, fingerprint, status, expires_at) VALUES ($1, $2, 'processing', $3)`,
+            [key, fingerprint, Date.now() + ttlMs]
+          );
+        }
+      }
+    } catch (error) {
+      const isDuplicateKey =
+        error?.code === "SQLITE_CONSTRAINT_PRIMARYKEY" ||
+        error?.code === "23505" ||
+        error?.errno === "23505" ||
+        error?.errno === 1062 ||
+        (typeof error?.message === "string" &&
+          (error.message.includes("UNIQUE constraint failed") ||
+            error.message.includes("Duplicate entry") ||
+            error.message.includes("duplicate key value violates")));
+      if (isDuplicateKey) {
+        throw new IdempotencyKeyExistsError(
+          `Idempotency key already exists: ${key}`,
+          { cause: error }
         );
       }
+      throw error;
     }
   }
 

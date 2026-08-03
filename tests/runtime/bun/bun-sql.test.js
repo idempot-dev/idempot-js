@@ -86,6 +86,22 @@ describe("BunSqlIdempotencyStore", () => {
       expect(result.byKey.expiresAt).toBeGreaterThanOrEqual(beforeTime);
       expect(result.byKey.expiresAt).toBeLessThanOrEqual(afterTime);
     });
+
+    test("throws IdempotencyKeyExistsError on duplicate key", async () => {
+      await store.startProcessing("dup-key", "fp1", 60000);
+
+      await expect(
+        store.startProcessing("dup-key", "fp2", 60000)
+      ).rejects.toThrow("Idempotency key already exists: dup-key");
+    });
+
+    test("propagates non-constraint driver errors unchanged", async () => {
+      // A NOT NULL violation (fingerprint undefined) is not a duplicate-key
+      // constraint; it must propagate rather than be translated to 409.
+      await expect(
+        store.startProcessing("fresh-key", undefined, 60000)
+      ).rejects.toThrow(/NOT NULL/);
+    });
   });
 
   describe("complete", () => {

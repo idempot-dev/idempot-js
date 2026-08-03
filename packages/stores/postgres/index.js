@@ -4,6 +4,7 @@
  */
 
 import { createRequire } from "module";
+import { IdempotencyKeyExistsError } from "@idempot/core";
 
 const require = createRequire(import.meta.url);
 
@@ -144,11 +145,21 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
-    await this.pool.query(
-      `INSERT INTO ${this.quotedSchemaIdentifier}.idempotency_records (key, fingerprint, status, expires_at)
+    try {
+      await this.pool.query(
+        `INSERT INTO ${this.quotedSchemaIdentifier}.idempotency_records (key, fingerprint, status, expires_at)
        VALUES ($1, $2, 'processing', $3)`,
-      [key, fingerprint, Date.now() + ttlMs]
-    );
+        [key, fingerprint, Date.now() + ttlMs]
+      );
+    } catch (error) {
+      if (error?.code === "23505") {
+        throw new IdempotencyKeyExistsError(
+          `Idempotency key already exists: ${key}`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
   }
 
   /**

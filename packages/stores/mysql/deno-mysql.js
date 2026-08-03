@@ -17,6 +17,7 @@
 
 // @ts-nocheck - Deno runtime only
 import { Client } from "mysql";
+import { IdempotencyKeyExistsError } from "@idempot/core";
 
 /**
  * @typedef {Object} MysqlIdempotencyStoreOptions
@@ -153,10 +154,24 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
-    await this.client.execute(
-      "INSERT INTO idempotency_records (`key`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)",
-      [key, fingerprint, Date.now() + ttlMs]
-    );
+    try {
+      await this.client.execute(
+        "INSERT INTO idempotency_records (`key`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)",
+        [key, fingerprint, Date.now() + ttlMs]
+      );
+    } catch (error) {
+      const isDuplicateKey =
+        error?.code === "ER_DUP_ENTRY" ||
+        (typeof error?.message === "string" &&
+          error.message.includes("Duplicate entry"));
+      if (isDuplicateKey) {
+        throw new IdempotencyKeyExistsError(
+          `Idempotency key already exists: ${key}`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
   }
 
   /**

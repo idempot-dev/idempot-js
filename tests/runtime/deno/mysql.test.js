@@ -1,5 +1,9 @@
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import {
+  assertEquals,
+  assertRejects
+} from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { MysqlIdempotencyStore } from "../../../packages/stores/mysql/deno-mysql.js";
+import { IdempotencyKeyExistsError } from "../../../packages/core/src/errors.js";
 import { createFakeMysqlClient } from "./mysql-test-helpers.js";
 
 Deno.test(
@@ -23,6 +27,81 @@ Deno.test(
     const completed = await store.lookup("key1", "fingerprint1");
     assertEquals(completed.byKey?.status, "complete");
     assertEquals(completed.byKey?.response?.status, 200);
+
+    await store.close();
+  }
+);
+
+Deno.test(
+  "MysqlIdempotencyStore (Deno) startProcessing throws IdempotencyKeyExistsError on duplicate key",
+  async () => {
+    const client = createFakeMysqlClient();
+    const store = new MysqlIdempotencyStore({});
+    store.client = client;
+
+    await store.startProcessing("dup-key", "fingerprint1", 60000);
+
+    await assertRejects(
+      () => store.startProcessing("dup-key", "fingerprint2", 60000),
+      IdempotencyKeyExistsError
+    );
+
+    await store.close();
+  }
+);
+
+Deno.test(
+  "MysqlIdempotencyStore (Deno) translates driver ER_DUP_ENTRY code to IdempotencyKeyExistsError",
+  async () => {
+    const client = createFakeMysqlClient();
+    const store = new MysqlIdempotencyStore({});
+    store.client = client;
+
+    // Override execute to throw a coded duplicate error whose message does NOT
+    // contain the "Duplicate entry" substring, so only the code branch matches.
+    const originalExecute = client.execute.bind(client);
+    client.execute = async (sql, params = []) => {
+      if (sql.trim().toUpperCase().startsWith("INSERT")) {
+        const err = new Error("some other driver message");
+        err.code = "ER_DUP_ENTRY";
+        throw err;
+      }
+      return originalExecute(sql, params);
+    };
+
+    await assertRejects(
+      () => store.startProcessing("any-key", "fp", 60000),
+      IdempotencyKeyExistsError
+    );
+
+    await store.close();
+  }
+);
+
+Deno.test(
+  "MysqlIdempotencyStore (Deno) propagates non-duplicate errors unchanged",
+  async () => {
+    const client = createFakeMysqlClient();
+    const store = new MysqlIdempotencyStore({});
+    store.client = client;
+
+    const originalExecute = client.execute.bind(client);
+    client.execute = async (sql, params = []) => {
+      if (sql.trim().toUpperCase().startsWith("INSERT")) {
+        const err = new Error("connection reset");
+        err.code = "ECONNRESET";
+        throw err;
+      }
+      return originalExecute(sql, params);
+    };
+
+    try {
+      await store.startProcessing("any-key", "fp", 60000);
+      throw new Error("Should have thrown");
+    } catch (e) {
+      assertEquals(e instanceof IdempotencyKeyExistsError, false);
+      assertEquals(e.code, "ECONNRESET");
+    }
 
     await store.close();
   }

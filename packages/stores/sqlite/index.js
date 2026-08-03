@@ -4,6 +4,7 @@
  */
 
 import Database from "better-sqlite3";
+import { IdempotencyKeyExistsError } from "@idempot/core";
 
 /**
  * @implements {IdempotencyStore}
@@ -116,15 +117,25 @@ export class SqliteIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
-    this.db
-      .prepare(
-        `
+    try {
+      this.db
+        .prepare(
+          `
       INSERT INTO idempotency_records
       (key, fingerprint, status, expires_at)
       VALUES (?, ?, 'processing', ?)
     `
-      )
-      .run(key, fingerprint, Date.now() + ttlMs);
+        )
+        .run(key, fingerprint, Date.now() + ttlMs);
+    } catch (error) {
+      if (error?.code === "SQLITE_CONSTRAINT_PRIMARYKEY") {
+        throw new IdempotencyKeyExistsError(
+          `Idempotency key already exists: ${key}`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
   }
 
   /**

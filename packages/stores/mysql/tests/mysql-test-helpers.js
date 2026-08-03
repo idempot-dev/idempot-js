@@ -41,6 +41,11 @@ export function createFakeMysqlPool() {
 
   const pool = {
     __store: store,
+    /**
+     * Optional injected error thrown by INSERT operations.
+     * @type {Error | null}
+     */
+    __insertError: null,
 
     query: sinon.fake(async (sql, params = []) => {
       const parsed = parseSql(sql);
@@ -62,7 +67,17 @@ export function createFakeMysqlPool() {
       }
 
       if (parsed.operation === "INSERT") {
+        if (pool.__insertError) {
+          const injected = pool.__insertError;
+          pool.__insertError = null;
+          throw injected;
+        }
         const [key, fingerprint, expiresAt] = params;
+        if (store.has(key)) {
+          const error = new Error(`Duplicate entry '${key}' for key 'PRIMARY'`);
+          error.code = "ER_DUP_ENTRY";
+          throw error;
+        }
         store.set(key, {
           key,
           fingerprint,
