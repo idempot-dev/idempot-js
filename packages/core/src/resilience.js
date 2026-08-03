@@ -1,4 +1,5 @@
 import CircuitBreaker from "opossum";
+import { IdempotencyKeyExistsError } from "./errors.js";
 
 /**
  * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
@@ -36,7 +37,8 @@ export function withResilience(store, options = {}) {
     timeout: opts.timeoutMs,
     errorThresholdPercentage: opts.errorThresholdPercentage,
     resetTimeout: opts.resetTimeoutMs,
-    volumeThreshold: opts.volumeThreshold
+    volumeThreshold: opts.volumeThreshold,
+    errorFilter: (error) => error instanceof IdempotencyKeyExistsError
   };
 
   /**
@@ -49,6 +51,9 @@ export function withResilience(store, options = {}) {
       try {
         return await operation();
       } catch (error) {
+        if (error instanceof IdempotencyKeyExistsError) {
+          throw error;
+        }
         lastError = error;
         if (i < opts.maxRetries - 1) {
           await new Promise((r) => setTimeout(r, opts.retryDelayMs));

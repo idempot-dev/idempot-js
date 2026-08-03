@@ -1,5 +1,5 @@
 import { test } from "tap";
-import { withResilience } from "@idempot/core";
+import { withResilience, IdempotencyKeyExistsError } from "@idempot/core";
 
 test("withResilience - wraps store operations", async (t) => {
   let lookupCalled = false;
@@ -70,6 +70,65 @@ test("withResilience - throws after max retries", async (t) => {
   }
 });
 
+test("withResilience - key-exists error is invoked once and not retried", async (t) => {
+  let attempts = 0;
+  const duplicateStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      attempts++;
+      throw new IdempotencyKeyExistsError("duplicate key");
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(duplicateStore, { maxRetries: 3 });
+
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    IdempotencyKeyExistsError,
+    "key-exists error should propagate to caller"
+  );
+  t.equal(attempts, 1, "key-exists error should not be retried");
+});
+
+test("withResilience - key-exists error keeps the circuit closed", async (t) => {
+  let attempts = 0;
+  const duplicateThenSuccessStore = {
+    lookup: async () => {
+      attempts++;
+      if (attempts === 1) {
+        throw new IdempotencyKeyExistsError("duplicate key");
+      }
+      return { byKey: null, byFingerprint: null };
+    },
+    startProcessing: async () => {},
+    complete: async () => {}
+  };
+
+  const { store, circuit } = withResilience(duplicateThenSuccessStore, {
+    maxRetries: 1,
+    errorThresholdPercentage: 1,
+    volumeThreshold: 1
+  });
+
+  await t.rejects(
+    store.lookup("key", "fp"),
+    IdempotencyKeyExistsError,
+    "first lookups throws key-exists error"
+  );
+
+  const result = await store.lookup("key", "fp");
+  t.same(
+    result,
+    { byKey: null, byFingerprint: null },
+    "subsequent call succeeds"
+  );
+  t.notOk(
+    circuit.opened,
+    "circuit should remain closed after key-exists error"
+  );
+});
+
 test("withResilience - respects timeout", async (t) => {
   const slowStore = {
     lookup: async () => {
@@ -80,7 +139,7 @@ test("withResilience - respects timeout", async (t) => {
     complete: async () => {}
   };
 
-  const { store, circuit } = withResilience(slowStore, { timeoutMs: 100 });
+  const { store } = withResilience(slowStore, { timeoutMs: 100 });
 
   try {
     await store.lookup("key", "fp");
@@ -91,10 +150,10 @@ test("withResilience - respects timeout", async (t) => {
 });
 
 test("withResilience - circuit breaker opens after failures", async (t) => {
-  let attempts = 0;
+  let _attempts = 0;
   const failingStore = {
     lookup: async () => {
-      attempts++;
+      _attempts++;
       throw new Error("Failure");
     },
     startProcessing: async () => {},
@@ -110,7 +169,7 @@ test("withResilience - circuit breaker opens after failures", async (t) => {
   // First call should fail
   try {
     await store.lookup("key", "fp");
-  } catch (e) {
+  } catch {
     // Expected
   }
 
