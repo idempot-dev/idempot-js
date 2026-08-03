@@ -9,6 +9,8 @@ import {
   createNodeMysqlStore,
   waitForIdempotencyRecordComplete
 } from "./shared/mysql.js";
+import { createLostRaceStore } from "./shared/lost-race-store.js";
+import { generateFingerprint } from "../../packages/core/src/fingerprint.js";
 
 function createHonoMysqlApp(store) {
   const app = new Hono();
@@ -126,5 +128,94 @@ t.test(
     });
 
     t.equal(response2.status, 409, "should return 409 conflict");
+  }
+);
+
+t.test(
+  "Hono + MySQL - lost insert race returns 409 when winner is still processing",
+  async (t) => {
+    const { store } = t.context;
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    // Seed the winner's processing record directly on the real store so the
+    // loser's insert hits the real driver's duplicate-key constraint (ER_DUP_ENTRY).
+    await store.startProcessing(key, fp, 60000);
+
+    const wrapped = createLostRaceStore(store);
+    const app = createHonoMysqlApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 409, "loser should get 409 conflict");
+    t.match(response.body.type, /#section-2\.6$/, "conflict spec reference");
+    t.equal(response.body.retryable, true, "conflict is retryable");
+  }
+);
+
+t.test(
+  "Hono + MySQL - lost race replays 200 when winner already completed",
+  async (t) => {
+    const { store } = t.context;
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+    await store.complete(key, {
+      status: 200,
+      headers: { "content-type": "application/json" },
+      body: '{"winner":true}'
+    });
+
+    const wrapped = createLostRaceStore(store);
+    const app = createHonoMysqlApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 200, "loser gets 200 replay");
+    t.equal(response.body.winner, true, "body is the winner's body");
+    t.equal(response.headers["x-idempotent-replayed"], "true", "replay header");
+  }
+);
+
+t.test(
+  "Hono + MySQL - lost race re-lookup finds no record returns 409 (TTL expiry)",
+  async (t) => {
+    const { store } = t.context;
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+
+    // missRecheck: simulate the winner's record having expired (TTL) before
+    // the loser's re-lookup runs -> KTD2 says the loser still gets a 409.
+    const wrapped = createLostRaceStore(store, { missRecheck: true });
+    const app = createHonoMysqlApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 409, "no-record re-lookup returns 409 per KTD2");
+    t.equal(response.body.retryable, true, "conflict is retryable");
   }
 );

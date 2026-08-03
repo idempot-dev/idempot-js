@@ -4,6 +4,8 @@ import { Hono } from "hono";
 import { idempotency } from "../../packages/frameworks/hono/index.js";
 import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
 import { makeRequest } from "./shared/request.js";
+import { createLostRaceStore } from "./shared/lost-race-store.js";
+import { generateFingerprint } from "../../packages/core/src/fingerprint.js";
 
 function createHonoSqliteApp(store) {
   const app = new Hono();
@@ -131,5 +133,94 @@ t.test(
       1,
       "should only have one order despite two different idempotency keys (same fingerprint)"
     );
+  }
+);
+
+t.test(
+  "Hono + SQLite - lost insert race returns 409 when winner is still processing",
+  async (t) => {
+    const { store } = t.context;
+    const key = "race-key-12345678901234567890";
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    // Seed the winner's processing record directly on the real store so the
+    // loser's insert hits the real driver's primary-key constraint.
+    await store.startProcessing(key, fp, 60000);
+
+    const wrapped = createLostRaceStore(store);
+    const app = createHonoSqliteApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 409, "loser should get 409 conflict");
+    t.match(response.body.type, /#section-2\.6$/, "conflict spec reference");
+    t.equal(response.body.retryable, true, "conflict is retryable");
+  }
+);
+
+t.test(
+  "Hono + SQLite - lost race replays 200 when winner already completed",
+  async (t) => {
+    const { store } = t.context;
+    const key = "race-complete-key-12345678901";
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+    await store.complete(key, {
+      status: 200,
+      headers: { "content-type": "application/json" },
+      body: '{"winner":true}'
+    });
+
+    const wrapped = createLostRaceStore(store);
+    const app = createHonoSqliteApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 200, "loser gets 200 replay");
+    t.equal(response.body.winner, true, "body is the winner's body");
+    t.equal(response.headers["x-idempotent-replayed"], "true", "replay header");
+  }
+);
+
+t.test(
+  "Hono + SQLite - lost race re-lookup finds no record returns 409 (TTL expiry)",
+  async (t) => {
+    const { store } = t.context;
+    const key = "race-expired-key-12345678901";
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+
+    // missRecheck: simulate the winner's record having expired (TTL) before
+    // the loser's re-lookup runs -> KTD2 says the loser still gets a 409.
+    const wrapped = createLostRaceStore(store, { missRecheck: true });
+    const app = createHonoSqliteApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 409, "no-record re-lookup returns 409 per KTD2");
+    t.equal(response.body.retryable, true, "conflict is retryable");
   }
 );
