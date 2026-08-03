@@ -1,6 +1,6 @@
 ---
 title: PostgreSQL Store - idempot-js
-description: PostgreSQL-backed storage for idempotency middleware. Persistent storage with automatic schema creation. Uses JSONB for response headers.
+description: PostgreSQL-backed storage for idempotency middleware. Persistent storage with automatic schema creation. Uses TEXT for response headers.
 ---
 
 # PostgreSQL Store
@@ -41,7 +41,7 @@ The store creates a table named `idempotency_records` with:
 - `fingerprint` (TEXT, indexed)
 - `status` (TEXT: 'processing' or 'complete')
 - `response_status` (INTEGER)
-- `response_headers` (JSONB)
+- `response_headers` (TEXT)
 - `response_body` (TEXT)
 - `expires_at` (TIMESTAMP, indexed)
 
