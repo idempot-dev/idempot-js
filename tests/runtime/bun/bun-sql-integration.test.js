@@ -3,6 +3,8 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { idempotency } from "../../../packages/frameworks/hono/index.js";
 import { BunSqlIdempotencyStore } from "../../../packages/stores/bun-sql/index.js";
+import { createLostRaceStore } from "../../../tests/integration/shared/lost-race-store.js";
+import { generateFingerprint } from "../../../packages/core/src/fingerprint.js";
 import mysql from "mysql2/promise";
 import { createRequire } from "module";
 import { ulid } from "ulid";
@@ -154,6 +156,83 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
     expect(response1.status).toBe(200);
     expect(response2.status).toBe(200);
     expect(response2.headers["x-idempotent-replayed"]).toBe("true");
+  });
+
+  test("lost insert race returns 409 when winner is still processing", async () => {
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    // Seed the winner's processing record directly on the real bun-sql store
+    // so the loser's insert hits the real driver's primary-key constraint.
+    await store.startProcessing(key, fp, 60000);
+
+    const wrapped = createLostRaceStore(store);
+    const raceApp = createApp(wrapped);
+    const raceServer = serve({ fetch: raceApp.fetch, port: 0 });
+    await new Promise((resolve) => raceServer.on("listening", resolve));
+    const racePort = raceServer.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    raceServer.close();
+
+    expect(response.status).toBe(409);
+    expect(response.body.type).toMatch(/#section-2\.6$/);
+    expect(response.body.retryable).toBe(true);
+  });
+
+  test("lost race replays 200 when winner already completed", async () => {
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+    await store.complete(key, {
+      status: 200,
+      headers: { "content-type": "application/json" },
+      body: '{"winner":true}'
+    });
+
+    const wrapped = createLostRaceStore(store);
+    const raceApp = createApp(wrapped);
+    const raceServer = serve({ fetch: raceApp.fetch, port: 0 });
+    await new Promise((resolve) => raceServer.on("listening", resolve));
+    const racePort = raceServer.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    raceServer.close();
+
+    expect(response.status).toBe(200);
+    expect(response.body.winner).toBe(true);
+    expect(response.headers["x-idempotent-replayed"]).toBe("true");
+  });
+
+  test("lost race re-lookup finds no record returns 409 (TTL expiry)", async () => {
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+
+    // missRecheck: simulate the winner's record having expired (TTL) before
+    // the loser's re-lookup runs -> KTD2 says the loser still gets a 409.
+    const wrapped = createLostRaceStore(store, { missRecheck: true });
+    const raceApp = createApp(wrapped);
+    const raceServer = serve({ fetch: raceApp.fetch, port: 0 });
+    await new Promise((resolve) => raceServer.on("listening", resolve));
+    const racePort = raceServer.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    raceServer.close();
+
+    expect(response.status).toBe(409);
+    expect(response.body.retryable).toBe(true);
   });
 
   test("conflict with same fingerprint different key", async () => {

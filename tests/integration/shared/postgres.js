@@ -21,7 +21,22 @@ export async function createPostgresStore(schema) {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
-  return store;
+  // The store constructor fires initSchema() without awaiting it, so the
+  // idempotency_records table may still be in flight. Poll until it exists so
+  // direct store calls in tests don't race the DDL.
+  for (let i = 0; i < 50; i++) {
+    try {
+      await store.pool.query(
+        `SELECT 1 FROM ${quotedSchema}.idempotency_records LIMIT 1`
+      );
+      return store;
+    } catch {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  }
+  throw new Error(
+    `idempotency_records table not ready for schema ${schema} after 1s`
+  );
 }
 
 export async function waitForIdempotencyRecordComplete(

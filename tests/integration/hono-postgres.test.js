@@ -15,6 +15,9 @@ import {
   createPostgresStore,
   waitForIdempotencyRecordComplete
 } from "./shared/postgres.js";
+import { createLostRaceStore } from "./shared/lost-race-store.js";
+import { generateFingerprint } from "../../packages/core/src/fingerprint.js";
+import { IdempotencyKeyExistsError } from "../../packages/core/src/errors.js";
 
 function createHonoPostgresApp(store) {
   const app = new Hono();
@@ -189,6 +192,123 @@ t.test(
       response2.body.title,
       /already used|different/i,
       "should indicate key is already used"
+    );
+  }
+);
+
+t.test(
+  "Hono + Postgres - lost insert race returns 409 when winner is still processing",
+  async (t) => {
+    const { store } = t.context;
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    // Seed the winner's processing record directly on the real store so the
+    // loser's insert hits the real driver's primary-key constraint (23505).
+    await store.startProcessing(key, fp, 60000);
+
+    const wrapped = createLostRaceStore(store);
+    const app = createHonoPostgresApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 409, "loser should get 409 conflict");
+    t.match(response.body.type, /#section-2\.6$/, "conflict spec reference");
+    t.equal(response.body.retryable, true, "conflict is retryable");
+  }
+);
+
+t.test(
+  "Hono + Postgres - lost race replays 200 when winner already completed",
+  async (t) => {
+    const { store } = t.context;
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+    await store.complete(key, {
+      status: 200,
+      headers: { "content-type": "application/json" },
+      body: '{"winner":true}'
+    });
+
+    const wrapped = createLostRaceStore(store);
+    const app = createHonoPostgresApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 200, "loser gets 200 replay");
+    t.equal(response.body.winner, true, "body is the winner's body");
+    t.equal(response.headers["x-idempotent-replayed"], "true", "replay header");
+  }
+);
+
+t.test(
+  "Hono + Postgres - lost race re-lookup finds no record returns 409 (TTL expiry)",
+  async (t) => {
+    const { store } = t.context;
+    const key = generateIdempotencyKey();
+    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, fp, 60000);
+
+    // missRecheck: simulate the winner's record having expired (TTL) before
+    // the loser's re-lookup runs -> KTD2 says the loser still gets a 409.
+    const wrapped = createLostRaceStore(store, { missRecheck: true });
+    const app = createHonoPostgresApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    server.close();
+
+    t.equal(response.status, 409, "no-record re-lookup returns 409 per KTD2");
+    t.equal(response.body.retryable, true, "conflict is retryable");
+  }
+);
+
+t.test(
+  "Hono + Postgres - two concurrent startProcessing calls on the same key: exactly one wins",
+  async (t) => {
+    const { store } = t.context;
+    const key = generateIdempotencyKey();
+    const fp = generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    const results = await Promise.allSettled([
+      store.startProcessing(key, fp, 60000),
+      store.startProcessing(key, fp, 60000)
+    ]);
+
+    // The primary key on `key` guarantees exactly one INSERT commits and the
+    // other hits 23505 -> IdempotencyKeyExistsError, regardless of which
+    // request wins the race.
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+
+    t.equal(fulfilled.length, 1, "exactly one concurrent insert wins");
+    t.equal(rejected.length, 1, "exactly one concurrent insert loses");
+    t.match(
+      rejected[0]?.reason,
+      IdempotencyKeyExistsError,
+      "the loser surfaces IdempotencyKeyExistsError (not a 503-style driver error)"
     );
   }
 );
