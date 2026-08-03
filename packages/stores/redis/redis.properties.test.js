@@ -1,5 +1,6 @@
 import { test } from "tap";
 import * as fc from "fast-check";
+import { IdempotencyKeyExistsError } from "@idempot/core";
 import { RedisIdempotencyStore } from "@idempot/redis-store";
 import { createFakeRedisClient } from "./tests/redis-test-helpers.js";
 
@@ -40,7 +41,7 @@ test("redis - lookup determinism (same inputs yield same outputs)", async (t) =>
   t.pass("lookup determinism invariant holds");
 });
 
-test("redis - startProcessing idempotency", async (t) => {
+test("redis - startProcessing rejects a duplicate key without overwriting", async (t) => {
   await fc.assert(
     fc.asyncProperty(
       fcString(),
@@ -49,14 +50,23 @@ test("redis - startProcessing idempotency", async (t) => {
       async (key, fingerprint, ttlMs) => {
         const store = createStore();
 
+        // Winner acquires the key and owns the record.
         await store.startProcessing(key, fingerprint, ttlMs);
-        await store.startProcessing(key, fingerprint, ttlMs);
-        await store.startProcessing(key, fingerprint, ttlMs);
+
+        // A loser racing the same key must be signalled, not silently
+        // overwrite the winner's in-flight record (#182).
+        let loserRejected = false;
+        try {
+          await store.startProcessing(key, fingerprint, ttlMs);
+        } catch (error) {
+          loserRejected = error instanceof IdempotencyKeyExistsError;
+        }
 
         const result = await store.lookup(key, fingerprint);
 
         await store.close();
         return (
+          loserRejected &&
           result.byKey !== null &&
           result.byKey.key === key &&
           result.byKey.fingerprint === fingerprint
@@ -65,7 +75,7 @@ test("redis - startProcessing idempotency", async (t) => {
     ),
     { numRuns: 100 }
   );
-  t.pass("startProcessing idempotency invariant holds");
+  t.pass("duplicate-key rejection invariant holds");
 });
 
 test("redis - fingerprint lookup finds record", async (t) => {

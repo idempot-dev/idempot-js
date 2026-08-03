@@ -5,6 +5,8 @@
 
 /** @typedef {import("ioredis").Redis} Redis */
 
+import { IdempotencyKeyExistsError } from "@idempot/core";
+
 /**
  * @typedef {Object} RedisIdempotencyStoreOptions
  * @property {Redis} client - The Redis client instance
@@ -92,11 +94,45 @@ export class RedisIdempotencyStore {
 
     const ttlSeconds = Math.ceil(ttlMs / 1000);
 
-    // Pipeline both writes
+    // Atomically claim the key so only one concurrent request wins. SET ... NX
+    // resolves "OK" for the winner only; the loser gets null and surfaces the
+    // conflict via IdempotencyKeyExistsError (mirrors the SQL stores' integrity
+    // error translation), routing the loser to 409/200 in the middleware.
     const pipeline = this.client.pipeline();
-    pipeline.setex(`${this.prefix}${key}`, ttlSeconds, JSON.stringify(record));
-    pipeline.setex(`fingerprint:${fingerprint}`, ttlSeconds, key);
-    await pipeline.exec();
+    pipeline.set(
+      `${this.prefix}${key}`,
+      JSON.stringify(record),
+      "EX",
+      ttlSeconds,
+      "NX"
+    );
+    // Fingerprint index is non-unique (multiple keys may share a fingerprint,
+    // matching the SQL stores and deno-redis), so it is a plain SET, not NX.
+    pipeline.set(`fingerprint:${fingerprint}`, key, "EX", ttlSeconds);
+    const results = await pipeline.exec();
+
+    if (!results) {
+      throw new Error("Redis pipeline failed");
+    }
+
+    // ioredis exec returns [err, result] per command; surface a real driver
+    // error (infra failure -> 503) rather than misreporting it as a conflict.
+    const [keyErr, keyResult] = results[0];
+    if (keyErr) {
+      throw keyErr;
+    }
+    if (keyResult !== "OK") {
+      throw new IdempotencyKeyExistsError(
+        `Idempotency key already exists: ${key}`
+      );
+    }
+    // The fingerprint-index SET shares the same pipeline; surface its driver
+    // error too, so a partial write (key claimed, index missing) is not
+    // reported as success and silently bypasses byFingerprint dedup.
+    const [fpErr] = results[1] ?? [];
+    if (fpErr) {
+      throw fpErr;
+    }
   }
 
   /**

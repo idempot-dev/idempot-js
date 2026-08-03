@@ -17,6 +17,7 @@
 
 // @ts-nocheck - Deno runtime only
 import { connect } from "@db/redis";
+import { IdempotencyKeyExistsError } from "@idempot/core";
 
 /**
  * @typedef {Object} RedisIdempotencyStoreOptions
@@ -85,14 +86,20 @@ export class RedisIdempotencyStore {
       expiresAt: Date.now() + ttlMs
     };
 
-    await Promise.all([
-      this.redis.set(`${this.prefix}${key}`, JSON.stringify(record), {
-        expireIn: ttlSeconds
-      }),
-      this.redis.set(`fingerprint:${fingerprint}`, key, {
-        expireIn: ttlSeconds
-      })
-    ]);
+    const acquired = await this.redis.set(
+      `${this.prefix}${key}`,
+      JSON.stringify(record),
+      { nx: true, expireIn: ttlSeconds }
+    );
+    if (acquired !== "OK") {
+      throw new IdempotencyKeyExistsError(
+        `Idempotency key already exists: ${key}`
+      );
+    }
+
+    await this.redis.set(`fingerprint:${fingerprint}`, key, {
+      expireIn: ttlSeconds
+    });
   }
 
   /**
