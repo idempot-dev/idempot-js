@@ -1,4 +1,5 @@
 import { test } from "tap";
+import { generateFingerprint } from "../src/fingerprint.js";
 
 /**
  * Validates adapter interface
@@ -303,8 +304,12 @@ export function runAdapterTests(adapter) {
     const store = adapter.createStore();
     const { mount, request, teardown } = await adapter.setup();
 
-    // Pre-populate store with "processing" state
-    const fingerprint = "test-fingerprint-123";
+    // Pre-populate store with "processing" state for the SAME payload the
+    // request will send, so it is a same-payload retry (-> 409), not a
+    // fingerprint-mismatch (which would be -> 422).
+    const fingerprint = await generateFingerprint(
+      JSON.stringify({ foo: "bar" })
+    );
     await store.startProcessing(
       "concurrent-key-12345678901",
       fingerprint,

@@ -166,6 +166,33 @@ t.test(
 );
 
 t.test(
+  "Hono + SQLite - lost race with different payload returns 422",
+  async (t) => {
+    const { store } = t.context;
+    const key = "race-key-12345678901234567890";
+    const winnerFp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, winnerFp, 60000);
+
+    const wrapped = createLostRaceStore(store);
+    const app = createHonoSqliteApp(wrapped);
+    const server = serve({ fetch: app.fetch, port: 0 });
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "different" }
+    });
+    server.close();
+
+    t.equal(response.status, 422, "loser should get 422 unprocessable");
+    t.match(response.body.type, /#section-2\.2$/, "422 spec reference");
+    t.equal(response.body.retryable, false, "422 is not retryable");
+  }
+);
+
+t.test(
   "Hono + SQLite - lost race replays 200 when winner already completed",
   async (t) => {
     const { store } = t.context;
