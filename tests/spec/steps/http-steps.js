@@ -1,4 +1,5 @@
 import { Given, When } from "@cucumber/cucumber";
+import { generateFingerprint } from "../../../packages/core/src/fingerprint.js";
 import { UnavailableIdempotencyStore } from "./unavailable-store.js";
 
 Given(
@@ -47,8 +48,10 @@ Given("the endpoint will delay processing by {int}ms", function (delayMs) {
 });
 
 Given("the key {string} is currently being processed", async function (key) {
-  // Pre-populate store with "processing" state
-  const fingerprint = "test-fingerprint-placeholder";
+  // Pre-populate store with "processing" state for the SAME payload the
+  // concurrent scenarios send ({"foo":"bar"}), so this is a same-payload
+  // retry (-> 409), not a fingerprint-mismatch (which would be -> 422).
+  const fingerprint = await generateFingerprint(JSON.stringify({ foo: "bar" }));
   await this.store.startProcessing(key, fingerprint, 60000);
 });
 
