@@ -316,6 +316,14 @@ export function validateIdempotencyKey(key, options = {}) {
  * @returns {{conflict: boolean, status?: number, error?: string}}
  */
 export function checkLookupConflicts(lookup, key, fingerprint) {
+  if (lookup.byKey && lookup.byKey.fingerprint !== fingerprint) {
+    return {
+      conflict: true,
+      status: 422,
+      error: "Idempotency key reused with different request payload"
+    };
+  }
+
   if (lookup.byKey?.status === "processing") {
     return {
       conflict: true,
@@ -330,14 +338,6 @@ export function checkLookupConflicts(lookup, key, fingerprint) {
       status: 409,
       error:
         "This request was already processed with a different idempotency key"
-    };
-  }
-
-  if (lookup.byKey && lookup.byKey.fingerprint !== fingerprint) {
-    return {
-      conflict: true,
-      status: 422,
-      error: "Idempotency key reused with different request payload"
     };
   }
 

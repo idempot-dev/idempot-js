@@ -172,6 +172,36 @@ t.test(
 );
 
 t.test(
+  "Express + Redis - lost race with different payload returns 422",
+  async (t) => {
+    const { store, client, prefix } = t.context;
+    const key = "redis-race-12345678901234567890";
+    const winnerFp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, winnerFp, 60000);
+
+    const wrapped = createLostRaceStore(store);
+    const app = createExpressRedisApp(wrapped, client);
+    const server = app.listen(0);
+    await new Promise((resolve) => server.on("listening", resolve));
+    const racePort = server.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "different" }
+    });
+    server.close();
+
+    t.equal(response.status, 422, "loser should get 422 unprocessable");
+    t.match(response.body.type, /#section-2\.2$/, "422 spec reference");
+    t.equal(response.body.retryable, false, "422 is not retryable");
+
+    const keys = await client.keys(`*${prefix}:orders:*`);
+    t.equal(keys.length, 0, "loser must not create an order");
+  }
+);
+
+t.test(
   "Express + Redis - lost startProcessing race replays 200 when winner completed",
   async (t) => {
     const { store, client } = t.context;

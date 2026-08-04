@@ -183,6 +183,29 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
     expect(response.body.retryable).toBe(true);
   });
 
+  test("lost race with different payload returns 422", async () => {
+    const key = generateIdempotencyKey();
+    const winnerFp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+
+    await store.startProcessing(key, winnerFp, 60000);
+
+    const wrapped = createLostRaceStore(store);
+    const raceApp = createApp(wrapped);
+    const raceServer = serve({ fetch: raceApp.fetch, port: 0 });
+    await new Promise((resolve) => raceServer.on("listening", resolve));
+    const racePort = raceServer.address().port;
+
+    const response = await makeRequest(racePort, {
+      idempotencyKey: key,
+      body: { foo: "different" }
+    });
+    raceServer.close();
+
+    expect(response.status).toBe(422);
+    expect(response.body.type).toMatch(/#section-2\.2$/);
+    expect(response.body.retryable).toBe(false);
+  });
+
   test("lost race replays 200 when winner already completed", async () => {
     const key = generateIdempotencyKey();
     const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));

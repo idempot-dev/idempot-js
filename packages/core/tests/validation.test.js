@@ -150,13 +150,25 @@ test("checkLookupConflicts - no conflicts when lookup is empty", (t) => {
 
 test("checkLookupConflicts - detects processing conflict", (t) => {
   const lookup = {
-    byKey: { status: "processing" },
+    byKey: { status: "processing", fingerprint: "fp" },
     byFingerprint: null
   };
   const result = checkLookupConflicts(lookup, "key", "fp");
   t.equal(result.conflict, true);
   t.equal(result.status, 409);
   t.match(result.error, /already being processed/i);
+  t.end();
+});
+
+test("checkLookupConflicts - 422 wins over 409 when processing record has different payload", (t) => {
+  const lookup = {
+    byKey: { status: "processing", fingerprint: "winner-fp" },
+    byFingerprint: null
+  };
+  const result = checkLookupConflicts(lookup, "key", "loser-fp");
+  t.equal(result.conflict, true);
+  t.equal(result.status, 422);
+  t.match(result.error, /different request payload/i);
   t.end();
 });
 
