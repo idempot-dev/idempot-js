@@ -39,9 +39,10 @@ const HEADER_NAME = "idempotency-key";
  * @param {import("hono").Context} c - Hono context
  * @param {number} status - HTTP status code
  * @param {Object} problem - RFC 9457 problem details
+ * @param {Function} [errorFormatter] - Optional function to transform problem details
  * @returns {import("hono").Response}
  */
-function sendErrorResponse(c, status, problem) {
+function sendErrorResponse(c, status, problem, errorFormatter) {
   const acceptHeader = c.req.header("accept") || "";
   const format = selectResponseFormat(acceptHeader);
 
@@ -50,12 +51,14 @@ function sendErrorResponse(c, status, problem) {
       "Content-Type": "text/markdown; charset=utf-8"
     });
   } else {
-    const contentType =
-      format === "application/problem+json"
+    const body = errorFormatter ? errorFormatter(problem) : problem;
+    const contentType = errorFormatter
+      ? "application/json"
+      : format === "application/problem+json"
         ? "application/problem+json"
         : "application/json";
 
-    return c.json(problem, status, {
+    return c.json(body, status, {
       "Content-Type": `${contentType}; charset=utf-8`
     });
   }
@@ -110,7 +113,7 @@ export function idempotency(options = {}) {
           status: 400,
           instance: instanceId
         });
-        return sendErrorResponse(c, 400, problem);
+        return sendErrorResponse(c, 400, problem, opts.errorFormatter);
       }
       await next();
       return;
@@ -129,7 +132,7 @@ export function idempotency(options = {}) {
           idempotencyKey: key
         }
       );
-      return sendErrorResponse(c, 400, problem);
+      return sendErrorResponse(c, 400, problem, opts.errorFormatter);
     }
 
     const body = await c.req.text();
@@ -143,7 +146,7 @@ export function idempotency(options = {}) {
         status: 503,
         instance: instanceId
       });
-      return sendErrorResponse(c, 503, problem);
+      return sendErrorResponse(c, 503, problem, opts.errorFormatter);
     }
 
     const conflict = checkLookupConflicts(lookup, key, fingerprint);
@@ -159,7 +162,8 @@ export function idempotency(options = {}) {
       return sendErrorResponse(
         c,
         /** @type {number} */ (conflict.status),
-        problem
+        problem,
+        opts.errorFormatter
       );
     }
 
@@ -229,7 +233,7 @@ export function idempotency(options = {}) {
           status: 503,
           instance: instanceId
         });
-        return sendErrorResponse(c, 503, problem);
+        return sendErrorResponse(c, 503, problem, opts.errorFormatter);
       }
 
       await next();

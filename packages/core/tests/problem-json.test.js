@@ -65,6 +65,20 @@ describe("problem-json", () => {
       assert.strictEqual(result.retryable, false);
       assert.strictEqual(result.status, 422);
     });
+
+    it("should include idempotency_key when provided", () => {
+      const result = conflictErrorResponse(
+        409,
+        "A request with this idempotency key is already being processed",
+        {
+          instance: "urn:uuid:test-concurrent",
+          idempotencyKey: "concurrent-key"
+        }
+      );
+
+      assert.strictEqual(result.idempotency_key, "concurrent-key");
+      assert.strictEqual(result.retryable, true);
+    });
   });
 
   describe("storeUnavailableResponse", () => {

@@ -140,6 +140,36 @@ test("validateIdempotencyKey - rejects keys containing commas", (t) => {
   t.end();
 });
 
+test("validateIdempotencyOptions - accepts errorFormatter as function", (t) => {
+  t.doesNotThrow(() =>
+    validateIdempotencyOptions({ errorFormatter: (problem) => problem })
+  );
+  t.end();
+});
+
+test("validateIdempotencyOptions - rejects non-function errorFormatter", (t) => {
+  t.throws(
+    () => validateIdempotencyOptions({ errorFormatter: "not a function" }),
+    {
+      message: "errorFormatter must be a function"
+    }
+  );
+  t.throws(() => validateIdempotencyOptions({ errorFormatter: 123 }), {
+    message: "errorFormatter must be a function"
+  });
+  t.throws(() => validateIdempotencyOptions({ errorFormatter: {} }), {
+    message: "errorFormatter must be a function"
+  });
+  t.end();
+});
+
+test("validateIdempotencyOptions - rejects null errorFormatter", (t) => {
+  t.throws(() => validateIdempotencyOptions({ errorFormatter: null }), {
+    message: "errorFormatter cannot be null"
+  });
+  t.end();
+});
+
 // checkLookupConflicts tests
 test("checkLookupConflicts - no conflicts when lookup is empty", (t) => {
   const lookup = { byKey: null, byFingerprint: null };

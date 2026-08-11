@@ -40,8 +40,9 @@ const HEADER_NAME = "idempotency-key";
  * @param {import("express").Response} res - Express response
  * @param {number} status - HTTP status code
  * @param {Object} problem - RFC 9457 problem details
+ * @param {Function} [errorFormatter] - Optional function to transform problem details
  */
-function sendErrorResponse(res, status, problem) {
+function sendErrorResponse(res, status, problem, errorFormatter) {
   const acceptHeader = res.req.headers["accept"] || "";
   const format = selectResponseFormat(acceptHeader);
 
@@ -51,15 +52,17 @@ function sendErrorResponse(res, status, problem) {
       .set("Content-Type", "text/markdown; charset=utf-8")
       .send(formatAsMarkdown(problem));
   } else {
-    const contentType =
-      format === "application/problem+json"
+    const body = errorFormatter ? errorFormatter(problem) : problem;
+    const contentType = errorFormatter
+      ? "application/json"
+      : format === "application/problem+json"
         ? "application/problem+json"
         : "application/json";
 
     res
       .status(status)
       .set("Content-Type", `${contentType}; charset=utf-8`)
-      .json(problem);
+      .json(body);
   }
 }
 
@@ -112,7 +115,7 @@ export function idempotency(options = {}) {
           status: 400,
           instance: instanceId
         });
-        sendErrorResponse(res, 400, problem);
+        sendErrorResponse(res, 400, problem, opts.errorFormatter);
         return;
       }
       next();
@@ -132,7 +135,7 @@ export function idempotency(options = {}) {
           idempotencyKey: key
         }
       );
-      sendErrorResponse(res, 400, problem);
+      sendErrorResponse(res, 400, problem, opts.errorFormatter);
       return;
     }
 
@@ -151,7 +154,7 @@ export function idempotency(options = {}) {
         status: 503,
         instance: instanceId
       });
-      sendErrorResponse(res, 503, problem);
+      sendErrorResponse(res, 503, problem, opts.errorFormatter);
       return;
     }
 
@@ -165,7 +168,12 @@ export function idempotency(options = {}) {
           idempotencyKey: key
         }
       );
-      sendErrorResponse(res, /** @type {number} */ (conflict.status), problem);
+      sendErrorResponse(
+        res,
+        /** @type {number} */ (conflict.status),
+        problem,
+        opts.errorFormatter
+      );
       return;
     }
 
@@ -248,7 +256,7 @@ export function idempotency(options = {}) {
           status: 503,
           instance: instanceId
         });
-        sendErrorResponse(res, 503, problem);
+        sendErrorResponse(res, 503, problem, opts.errorFormatter);
         return;
       }
 

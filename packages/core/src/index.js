@@ -3,6 +3,7 @@
  * @typedef {import("./store/interface.js").IdempotencyStore} IdempotencyStore
  * @typedef {import("./resilience.js").ResilienceOptions} ResilienceOptions
  * @typedef {import("./default-options.js").IdempotencyOptions} IdempotencyOptions
+ * @typedef {import("./problem-json.js").ProblemDetails} ProblemDetails
  */
 
 export { generateFingerprint } from "./fingerprint.js";

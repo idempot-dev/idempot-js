@@ -39,9 +39,10 @@ const HEADER_NAME = "idempotency-key";
  * @param {string} acceptHeader - Value of the Accept request header
  * @param {number} status - HTTP status code
  * @param {Object} problem - RFC 9457 problem details
+ * @param {Function} [errorFormatter] - Optional function to transform problem details
  * @returns {Response}
  */
-const buildErrorResponse = (acceptHeader, status, problem) => {
+const buildErrorResponse = (acceptHeader, status, problem, errorFormatter) => {
   const format = selectResponseFormat(acceptHeader);
 
   if (format === "text/markdown") {
@@ -51,12 +52,14 @@ const buildErrorResponse = (acceptHeader, status, problem) => {
     });
   }
 
-  const contentType =
-    format === "application/problem+json"
+  const body = errorFormatter ? errorFormatter(problem) : problem;
+  const contentType = errorFormatter
+    ? "application/json"
+    : format === "application/problem+json"
       ? "application/problem+json"
       : "application/json";
 
-  return Response.json(problem, {
+  return Response.json(body, {
     status,
     headers: { "Content-Type": `${contentType}; charset=utf-8` }
   });
@@ -122,7 +125,12 @@ export const idempotency = (options = {}) => {
             status: 400,
             instance: instanceId
           });
-          return buildErrorResponse(acceptHeader, 400, problem);
+          return buildErrorResponse(
+            acceptHeader,
+            400,
+            problem,
+            opts.errorFormatter
+          );
         }
         return handler(req);
       }
@@ -140,7 +148,12 @@ export const idempotency = (options = {}) => {
             idempotencyKey: key
           }
         );
-        return buildErrorResponse(acceptHeader, 400, problem);
+        return buildErrorResponse(
+          acceptHeader,
+          400,
+          problem,
+          opts.errorFormatter
+        );
       }
 
       const bodyText = await req.text();
@@ -157,7 +170,12 @@ export const idempotency = (options = {}) => {
           status: 503,
           instance: instanceId
         });
-        return buildErrorResponse(acceptHeader, 503, problem);
+        return buildErrorResponse(
+          acceptHeader,
+          503,
+          problem,
+          opts.errorFormatter
+        );
       }
 
       const conflict = checkLookupConflicts(lookup, key, fingerprint);
@@ -173,7 +191,8 @@ export const idempotency = (options = {}) => {
         return buildErrorResponse(
           acceptHeader,
           /** @type {number} */ (conflict.status),
-          problem
+          problem,
+          opts.errorFormatter
         );
       }
 
@@ -249,7 +268,12 @@ export const idempotency = (options = {}) => {
             status: 503,
             instance: instanceId
           });
-          return buildErrorResponse(acceptHeader, 503, problem);
+          return buildErrorResponse(
+            acceptHeader,
+            503,
+            problem,
+            opts.errorFormatter
+          );
         }
 
         // Re-create the request so the handler can read the body again

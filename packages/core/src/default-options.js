@@ -12,6 +12,7 @@
  * @property {number} [maxKeyLength] - Maximum allowed length for the Idempotency-Key header value
  * @property {number} [minKeyLength] - Minimum allowed length for the Idempotency-Key header value (default: 21)
  * @property {ResilienceOptions} [resilience] - Circuit breaker and retry configuration for store operations
+ * @property {Function} [errorFormatter] - Optional function to transform RFC 9457 problem details into a custom error response body. Receives the problem object and returns the response body. Only applied to JSON responses; markdown responses remain unchanged.
  */
 
 /** @type {Required<IdempotencyOptions>} */
@@ -36,6 +37,9 @@ const DEFAULT_OPTIONS = {
 
   /** Minimum allowed length for the Idempotency-Key header value. Default is 21 characters (nanoid default). */
   minKeyLength: 21,
+
+  /** Optional function to transform RFC 9457 problem details into a custom error response body. */
+  errorFormatter: undefined,
 
   /** Configuration for the circuit breaker and retry logic when interacting with the store. */
   resilience: {

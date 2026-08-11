@@ -198,7 +198,8 @@ export function validateIdempotencyOptions(options = {}) {
     "store",
     "minKeyLength",
     "maxKeyLength",
-    "resilience"
+    "resilience",
+    "errorFormatter"
   ];
 
   for (const key of Object.keys(options)) {
@@ -275,6 +276,16 @@ export function validateIdempotencyOptions(options = {}) {
       );
     }
   }
+
+  // Validate errorFormatter: function or undefined
+  validateOptional(options, "errorFormatter", (v, name) => {
+    if (v === null) {
+      throw new Error(`${name} cannot be null`);
+    }
+    if (typeof v !== "function") {
+      throw new Error(`${name} must be a function`);
+    }
+  });
 
   // Validate resilience: nested object
   validateOptional(options, "resilience", (v, name) => {

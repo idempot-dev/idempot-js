@@ -225,6 +225,32 @@ Error `type` URIs follow this pattern:
 
 The spec errors reference the IETF draft document. Infrastructure errors use the project's own URI space for implementation-specific issues.
 
+## Customizing Error Responses
+
+Use the `errorFormatter` configuration option to transform the default RFC 9457 response into your API's own error format:
+
+```javascript
+import { idempotency } from "@idempot/hono-middleware";
+
+app.post(
+  "/orders",
+  idempotency({
+    store,
+    errorFormatter: (problem) => ({
+      error: problem.title,
+      message: problem.detail,
+      code: problem.status,
+      requestId: problem.instance
+    })
+  }),
+  handler
+);
+```
+
+The `errorFormatter` receives the full problem object and returns the body that will be sent to the client. It only applies to JSON responses; `text/markdown` responses continue to use the raw RFC 9457 fields.
+
+When `errorFormatter` is configured, JSON responses use `application/json` as the content type instead of `application/problem+json`.
+
 ## Handling Errors
 
 ```javascript

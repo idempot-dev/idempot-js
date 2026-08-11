@@ -46,6 +46,7 @@ Creates a handler wrapper for idempotency enforcement.
 - `ttlMs`: Time-to-live for idempotency records in milliseconds
 - `excludeFields`: Fields to exclude from fingerprint calculation
 - `resilience`: Circuit breaker and retry options
+- `errorFormatter`: Function to transform RFC 9457 problem details into a custom error response body
 
 **Returns:** A function `(handler) => handler` that wraps a `Request => Response` handler. The returned wrapper function has a `circuit` property for circuit-breaker monitoring.
 

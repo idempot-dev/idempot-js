@@ -124,15 +124,16 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
 The middleware accepts an options object with the following properties:
 
-| Option          | Type               | Default               | Description                                          |
-| --------------- | ------------------ | --------------------- | ---------------------------------------------------- |
-| `store`         | `IdempotencyStore` | required              | Storage backend (Redis, PostgreSQL, MySQL, SQLite)   |
-| `required`      | `boolean`          | `true`                | Whether the `Idempotency-Key` header is required     |
-| `ttlMs`         | `number`           | `86400000` (24 hours) | Time-to-live for idempotency records in milliseconds |
-| `minKeyLength`  | `number`           | `21`                  | Minimum length for idempotency keys                  |
-| `maxKeyLength`  | `number`           | `255`                 | Maximum length for idempotency keys                  |
-| `excludeFields` | `string[]`         | `[]`                  | Body fields to exclude from request fingerprint      |
-| `resilience`    | `object`           | see below             | Circuit breaker and retry configuration              |
+| Option           | Type               | Default               | Description                                                                                                                                |
+| ---------------- | ------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `store`          | `IdempotencyStore` | required              | Storage backend (Redis, PostgreSQL, MySQL, SQLite)                                                                                         |
+| `required`       | `boolean`          | `true`                | Whether the `Idempotency-Key` header is required                                                                                           |
+| `ttlMs`          | `number`           | `86400000` (24 hours) | Time-to-live for idempotency records in milliseconds                                                                                       |
+| `minKeyLength`   | `number`           | `21`                  | Minimum length for idempotency keys                                                                                                        |
+| `maxKeyLength`   | `number`           | `255`                 | Maximum length for idempotency keys                                                                                                        |
+| `excludeFields`  | `string[]`         | `[]`                  | Body fields to exclude from request fingerprint                                                                                            |
+| `resilience`     | `object`           | see below             | Circuit breaker and retry configuration                                                                                                    |
+| `errorFormatter` | `Function`         | `undefined`           | Transform RFC 9457 problem details into a custom error response body. Only applied to JSON responses; markdown responses remain unchanged. |
 
 **Resilience options:**
 
@@ -158,6 +159,26 @@ app.post(
       timeoutMs: 1000,
       maxRetries: 5
     }
+  }),
+  handler
+);
+```
+
+**Custom error response format:**
+
+Use `errorFormatter` to make idempotency error responses match your API's existing error structure. The function receives the full RFC 9457 problem object and returns your custom response body. Only JSON responses are transformed; `text/markdown` responses continue to use the raw RFC 9457 fields.
+
+```javascript
+app.post(
+  "/orders",
+  idempotency({
+    store,
+    errorFormatter: (problem) => ({
+      error: problem.title,
+      message: problem.detail,
+      code: problem.status,
+      requestId: problem.instance
+    })
   }),
   handler
 );
