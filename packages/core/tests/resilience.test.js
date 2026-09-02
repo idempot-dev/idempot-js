@@ -176,6 +176,94 @@ test("withResilience - circuit breaker opens after failures", async (t) => {
   t.ok(circuit.opened, "circuit should be open after failures");
 });
 
+test("withResilience - coalesces concurrent same-key startProcessing", async (t) => {
+  let calls = 0;
+  let resolveWinner;
+  const deferredStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+      return new Promise((resolve) => {
+        resolveWinner = resolve;
+      });
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(deferredStore);
+
+  const winner = store.startProcessing("key", "fp", 60000);
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    IdempotencyKeyExistsError,
+    "concurrent same-key call should get key-exists error without hitting the store"
+  );
+  t.equal(calls, 1, "store startProcessing should be called exactly once");
+
+  resolveWinner();
+  await winner;
+  t.equal(calls, 1, "coalescing should not add store calls");
+});
+
+test("withResilience - concurrent different-key startProcessing does not coalesce", async (t) => {
+  let calls = 0;
+  const countingStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(countingStore);
+
+  await Promise.all([
+    store.startProcessing("key-1", "fp", 60000),
+    store.startProcessing("key-2", "fp", 60000)
+  ]);
+  t.equal(calls, 2, "different keys should each reach the store");
+});
+
+test("withResilience - in-flight entry clears after success", async (t) => {
+  let calls = 0;
+  const countingStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(countingStore);
+
+  await store.startProcessing("key", "fp", 60000);
+  await store.startProcessing("key", "fp", 60000);
+  t.equal(calls, 2, "sequential same-key calls should each reach the store");
+});
+
+test("withResilience - in-flight entry clears after failure", async (t) => {
+  let calls = 0;
+  const failingOnceStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+      if (calls === 1) {
+        throw new Error("Store failure");
+      }
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(failingOnceStore, { maxRetries: 1 });
+
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    "first call fails"
+  );
+  await store.startProcessing("key", "fp", 60000);
+  t.equal(calls, 2, "same key should reach the store again after failure");
+});
+
 test("withResilience - close calls underlying store close", async (t) => {
   let closeCalled = false;
   const mockStore = {
