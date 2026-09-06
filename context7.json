@@ -1,0 +1,15 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "idempot-js",
+  "description": "Idempotency middleware for Node.js, Bun, and Deno. Supports Express, Fastify, and Hono with pluggable storage backends including Redis, PostgreSQL, MySQL, SQLite, and Bun SQL.",
+  "excludeFolders": ["docs/plans"],
+  "excludeFiles": ["AGENTS.md"],
+  "rules": [
+    "Install one framework middleware package (@idempot/express-middleware, @idempot/fastify-middleware, @idempot/hono-middleware, or @idempot/bun-handler) plus one store package (@idempot/redis-store, @idempot/postgres-store, @idempot/mysql-store, @idempot/sqlite-store, or @idempot/bun-sql-store). @idempot/core is a transitive dependency, not installed directly.",
+    "Create a store instance and pass it to the idempotency() middleware via the store option.",
+    "Implements the IETF draft-ietf-httpapi-idempotency-key-header-07 specification. Clients send the Idempotency-Key header on requests that must not run twice.",
+    "Error responses follow RFC 9457 (Problem Details) with content negotiation via the Accept header; application/problem+json is the default.",
+    "Duplicate requests replay the cached response with the x-idempotent-replayed: true header.",
+    "Idempotency is enforced per key: a request with the same key but a different fingerprint returns a conflict error."
+  ]
+}

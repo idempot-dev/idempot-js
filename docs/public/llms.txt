@@ -1,0 +1,64 @@
+# idempot-js
+
+> Idempotency middleware for Node.js, Bun, and Deno. Native middleware for Express, Fastify, and Hono with pluggable storage backends: Redis, PostgreSQL, MySQL, SQLite, and Bun SQL. Implements the IETF draft-ietf-httpapi-idempotency-key-header-07 specification.
+
+Key facts:
+
+- Install one framework middleware package (@idempot/express-middleware, @idempot/fastify-middleware, @idempot/hono-middleware, or @idempot/bun-handler) plus one store package (@idempot/redis-store, @idempot/postgres-store, @idempot/mysql-store, @idempot/sqlite-store, or @idempot/bun-sql-store)
+- Pass a store instance to the `idempotency()` middleware via the `store` option
+- Clients send the `Idempotency-Key` header; duplicate requests replay the cached response with `x-idempotent-replayed: true`
+- Error responses follow RFC 9457 (Problem Details); `application/problem+json` is the default
+
+Quick start (Express):
+
+```javascript
+import express from "express";
+import { idempotency } from "@idempot/express-middleware";
+import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
+
+const app = express();
+const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+app.use(express.json());
+
+app.post("/orders", idempotency({ store }), async (req, res) => {
+  res.status(201).json({ id: crypto.randomUUID() });
+});
+
+app.listen(3000);
+```
+
+Links point to markdown sources in the GitHub repository. The published documentation site is at https://js.idempot.dev.
+
+## Guide
+
+- [Overview](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/guide/index.md): Core concepts and how the middleware works
+- [Installation](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/guide/installation.md): Package names and install commands per framework and store
+- [Configuration](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/guide/configuration.md): All middleware options, defaults, and resilience settings
+- [Sharing Middleware](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/guide/shared-middleware.md): Sharing middleware instances across routes
+
+## Frameworks
+
+- [Express](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/frameworks/express.md): Express middleware usage and API
+- [Fastify](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/frameworks/fastify.md): Fastify plugin usage and API
+- [Hono](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/frameworks/hono.md): Hono middleware usage and API
+- [Bun](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/frameworks/bun.md): Bun.serve handler wrapper usage and API
+
+## Stores
+
+- [Redis](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/redis.md): Redis storage backend for Node.js and Deno
+- [PostgreSQL](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/postgres.md): PostgreSQL storage backend
+- [MySQL](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/mysql.md): MySQL storage backend
+- [SQLite](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/sqlite.md): SQLite storage backend
+- [Bun SQL](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/bun-sql.md): Bun SQL storage backend (SQLite, PostgreSQL, MySQL)
+
+## Reference
+
+- [Errors](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/reference/errors.md): RFC 9457 problem details, error types, and retry behaviour
+- [Core](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/reference/core.md): Core API reference for custom stores and advanced use
+
+## Optional
+
+- [Architecture](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/ARCHITECTURE.md): Internal architecture of the monorepo
+- [IETF Draft](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/SPEC.md): Copy of draft-ietf-httpapi-idempotency-key-header-07 that this library implements
+- [Documentation site](https://js.idempot.dev/): Human-readable documentation
