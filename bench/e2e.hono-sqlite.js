@@ -88,15 +88,28 @@ export default {
     bench.add(
       FRESH_KEY_TASK,
       async () => {
-        await send(ensureMiddlewareState(state), { key: nextKey() });
+        await send(ensureMiddlewareState(state), { key: nextKey("key") });
       },
       {
+        beforeAll: async () => {
+          // Construct the store/app outside the timed region and verify the
+          // middleware path actually answers 200 — a 409/400/503 fast-fail
+          // would otherwise be timed and reported as a fast success.
+          const res = await send(ensureMiddlewareState(state), {
+            key: nextKey("key")
+          });
+          if (res.status !== 200) {
+            throw new Error(
+              `middleware fresh-key request failed: HTTP ${res.status}`
+            );
+          }
+        },
         afterAll: () => teardownMiddlewareState(state)
       }
     );
 
     const repeatState = {};
-    const repeatKey = nextKey();
+    const repeatKey = nextKey("key");
     bench.add(
       REPEAT_KEY_TASK,
       async () => {
@@ -107,8 +120,16 @@ export default {
           // Prime the cache-hit path: first request completes and stores
           // the response; every timed iteration then replays it. Runs once
           // per phase (warmup and timed) against a fresh store, so the
-          // priming request is always the first on the record.
-          await send(ensureMiddlewareState(repeatState), { key: repeatKey });
+          // priming request is always the first on the record. Also
+          // verifies the replay path answers 200.
+          const res = await send(ensureMiddlewareState(repeatState), {
+            key: repeatKey
+          });
+          if (res.status !== 200) {
+            throw new Error(
+              `middleware repeat-key request failed: HTTP ${res.status}`
+            );
+          }
         },
         afterAll: () => teardownMiddlewareState(repeatState)
       }

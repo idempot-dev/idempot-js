@@ -32,12 +32,13 @@ async function teardownStore(state) {
 }
 
 /**
- * State strategy (important — tinybench runs tasks concurrently, and runs
- * the warmup AND the timed phase for every task, each with its own
- * beforeAll/afterAll cycle):
+ * State strategy (important — tinybench runs the warmup AND the timed
+ * phase for every task, each with its own beforeAll/afterAll cycle; tasks
+ * run sequentially by default, but every task still gets a PRIVATE state
+ * object so the design does not depend on scheduling):
  *
  * - Every task owns a PRIVATE state object (bare store + resilience-wrapped
- *   variant built once per phase), so concurrent tasks never share mutable
+ *   variant built once per phase), so tasks never share mutable
  *   state and the opossum wrapper is never constructed inside a timed
  *   region.
  * - afterAll closes and nulls the store. Hooks run once per phase (warmup,

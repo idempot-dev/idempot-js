@@ -1,83 +1,100 @@
 # Benchmark results
 
-- Run date: 2026-09-06T11:21:12.228Z
-- Preset: quick
+- Run date: 2026-09-06T12:29:26.113Z
+- Preset: full
+- Modules: all modules
 - Runtime: Node v24.16.0 on darwin 25.6.0 (arm64, Apple M1)
 
 Numbers from a laptop are comparative, not absolute. Quick-preset numbers are noisier
 by design (single pass, few iterations); treat quick-preset swings as noise, not
 regressions, and validate with the full preset before acting.
 
-| module            | task                              | median_hz    | median_ms | rme_pct |
-| ----------------- | --------------------------------- | ------------ | --------- | ------- |
-| fixture           | noop                              | 23809523.870 | 0.000     | 1.252   |
-| micro.fingerprint | parse+hash (steady state)         | 116495.806   | 0.009     | 13.095  |
-| micro.fingerprint | exclusion filtering               | 63661.828    | 0.016     | 37.705  |
-| micro.fingerprint | raw hash (non-JSON body)          | 210526.316   | 0.005     | 11.920  |
-| micro.validation  | key validation accept             | 23809523.870 | 0.000     | 2.676   |
-| micro.validation  | key validation reject (too short) | 23809523.741 | 0.000     | 6.895   |
-| micro.validation  | key validation reject (too long)  | 23809523.741 | 0.000     | 6.880   |
-| micro.resilience  | lookup (bare)                     | 34782.609    | 0.029     | 38.534  |
-| micro.resilience  | lookup (resilient)                | 31250.000    | 0.032     | 30.911  |
-| micro.resilience  | startProcessing (bare)            | 93755.860    | 0.011     | 36.423  |
-| micro.resilience  | startProcessing (resilient)       | 68568.294    | 0.015     | 30.532  |
-| micro.resilience  | complete (bare)                   | 112145.340   | 0.009     | 25.679  |
-| micro.resilience  | complete (resilient)              | 75233.223    | 0.013     | 19.614  |
-| e2e.hono-sqlite   | middleware (fresh key)            | 13765.384    | 0.073     | 65.708  |
-| e2e.hono-sqlite   | middleware (repeat key)           | 15209.125    | 0.066     | 38.541  |
-| e2e.hono-sqlite   | baseline (no middleware)          | 65573.770    | 0.015     | 39.355  |
+| module            | task                              | median_hz    | median_ms | rme_pct | spread_pct |
+| ----------------- | --------------------------------- | ------------ | --------- | ------- | ---------- |
+| fixture           | noop                              | 23809523.810 | 0.000     | 0.006   | 2.439      |
+| micro.fingerprint | parse+hash (steady state)         | 107619.458   | 0.009     | 0.110   | 52.825     |
+| micro.fingerprint | exclusion filtering               | 66853.857    | 0.015     | 0.084   | 59.112     |
+| micro.fingerprint | raw hash (non-JSON body)          | 192012.289   | 0.005     | 0.078   | 58.360     |
+| micro.validation  | key validation accept             | 23809523.810 | 0.000     | 0.012   | 0.000      |
+| micro.validation  | key validation reject (too short) | 12048192.771 | 0.000     | 0.032   | 97.619     |
+| micro.validation  | key validation reject (too long)  | 12048192.771 | 0.000     | 0.034   | 98.810     |
+| micro.resilience  | lookup (bare)                     | 27335.101    | 0.037     | 0.428   | 62.248     |
+| micro.resilience  | lookup (resilient)                | 29020.837    | 0.034     | 0.272   | 55.438     |
+| micro.resilience  | startProcessing (bare)            | 83619.032    | 0.012     | 0.179   | 37.061     |
+| micro.resilience  | startProcessing (resilient)       | 67226.891    | 0.015     | 0.173   | 51.671     |
+| micro.resilience  | complete (bare)                   | 98765.432    | 0.010     | 0.126   | 55.584     |
+| micro.resilience  | complete (resilient)              | 85106.383    | 0.012     | 0.114   | 51.172     |
+| e2e.hono-sqlite   | middleware (fresh key)            | 16759.964    | 0.060     | 0.231   | 50.643     |
+| e2e.hono-sqlite   | middleware (repeat key)           | 17492.609    | 0.057     | 0.233   | 35.533     |
+| e2e.hono-sqlite   | baseline (no middleware)          | 93755.860    | 0.011     | 0.092   | 36.465     |
 
 ## METRIC lines
 
 ```
-METRIC fixture.noop.median_hz=23809523.86963708
-METRIC fixture.noop.median_ms=0.000041999999893960194
-METRIC fixture.noop.rme_pct=1.2519036529311147
-METRIC micro.fingerprint.parse+hash_(steady_state).median_hz=116495.80614887018
-METRIC micro.fingerprint.parse+hash_(steady_state).median_ms=0.008584000000155356
-METRIC micro.fingerprint.parse+hash_(steady_state).rme_pct=13.095095753482777
-METRIC micro.fingerprint.exclusion_filtering.median_hz=63661.82836809926
-METRIC micro.fingerprint.exclusion_filtering.median_ms=0.015707999999904132
-METRIC micro.fingerprint.exclusion_filtering.rme_pct=37.70459456043129
-METRIC micro.fingerprint.raw_hash_(non-json_body).median_hz=210526.31578689383
-METRIC micro.fingerprint.raw_hash_(non-json_body).median_ms=0.004750000000058208
-METRIC micro.fingerprint.raw_hash_(non-json_body).rme_pct=11.919866771159253
-METRIC micro.validation.key_validation_accept.median_hz=23809523.86963708
-METRIC micro.validation.key_validation_accept.median_ms=0.000041999999893960194
-METRIC micro.validation.key_validation_accept.rme_pct=2.675956334119246
-METRIC micro.validation.key_validation_reject_(too_short).median_hz=23809523.740740437
-METRIC micro.validation.key_validation_reject_(too_short).median_ms=0.00004200000012133387
-METRIC micro.validation.key_validation_reject_(too_short).rme_pct=6.894679964616871
-METRIC micro.validation.key_validation_reject_(too_long).median_hz=23809523.740740437
-METRIC micro.validation.key_validation_reject_(too_long).median_ms=0.00004200000012133387
-METRIC micro.validation.key_validation_reject_(too_long).rme_pct=6.879716259978205
-METRIC micro.resilience.lookup_(bare).median_hz=34782.608695168026
-METRIC micro.resilience.lookup_(bare).median_ms=0.028750000000400178
-METRIC micro.resilience.lookup_(bare).rme_pct=38.534458897394806
-METRIC micro.resilience.lookup_(resilient).median_hz=31249.999999850785
-METRIC micro.resilience.lookup_(resilient).median_ms=0.032000000000152795
-METRIC micro.resilience.lookup_(resilient).rme_pct=30.91107567818196
-METRIC micro.resilience.startprocessing_(bare).median_hz=93755.85974010512
-METRIC micro.resilience.startprocessing_(bare).median_ms=0.010666000000128406
-METRIC micro.resilience.startprocessing_(bare).rme_pct=36.42259072124247
-METRIC micro.resilience.startprocessing_(resilient).median_hz=68568.29402078141
-METRIC micro.resilience.startprocessing_(resilient).median_ms=0.014584000000013475
-METRIC micro.resilience.startprocessing_(resilient).rme_pct=30.531977898103147
-METRIC micro.resilience.complete_(bare).median_hz=112145.3403597193
-METRIC micro.resilience.complete_(bare).median_ms=0.00891700000011042
-METRIC micro.resilience.complete_(bare).rme_pct=25.679481329919213
-METRIC micro.resilience.complete_(resilient).median_hz=75233.22299075092
-METRIC micro.resilience.complete_(resilient).median_ms=0.01329200000009223
-METRIC micro.resilience.complete_(resilient).rme_pct=19.614243245927817
-METRIC e2e.hono-sqlite.middleware_(fresh_key).median_hz=13765.383965561312
-METRIC e2e.hono-sqlite.middleware_(fresh_key).median_ms=0.07264600000007704
-METRIC e2e.hono-sqlite.middleware_(fresh_key).rme_pct=65.70796095316808
-METRIC e2e.hono-sqlite.middleware_(repeat_key).median_hz=15209.125475342395
-METRIC e2e.hono-sqlite.middleware_(repeat_key).median_ms=0.06574999999975262
-METRIC e2e.hono-sqlite.middleware_(repeat_key).rme_pct=38.540920518565535
-METRIC e2e.hono-sqlite.baseline_(no_middleware).median_hz=65573.77049213178
-METRIC e2e.hono-sqlite.baseline_(no_middleware).median_ms=0.015249999999923602
-METRIC e2e.hono-sqlite.baseline_(no_middleware).rme_pct=39.35471287810126
-METRIC e2e.hono-sqlite.overhead_delta_ms=0.057396000000153435
-METRIC e2e.hono-sqlite.overhead_pct=376.3672131176457
+METRIC fixture.noop.median_hz=23809523.80952381
+METRIC fixture.noop.median_ms=0.000042
+METRIC fixture.noop.rme_pct=0.0061167994661714235
+METRIC fixture.noop.spread_pct=2.439024390243901
+METRIC micro.fingerprint.parse+hash_(steady_state).median_hz=107619.45759793371
+METRIC micro.fingerprint.parse+hash_(steady_state).median_ms=0.009292
+METRIC micro.fingerprint.parse+hash_(steady_state).rme_pct=0.10960937155293542
+METRIC micro.fingerprint.parse+hash_(steady_state).spread_pct=52.824615447672095
+METRIC micro.fingerprint.exclusion_filtering.median_hz=66853.85746757587
+METRIC micro.fingerprint.exclusion_filtering.median_ms=0.014958
+METRIC micro.fingerprint.exclusion_filtering.rme_pct=0.08360210053359216
+METRIC micro.fingerprint.exclusion_filtering.spread_pct=59.112426378917526
+METRIC micro.fingerprint.raw_hash_(non-json_body).median_hz=192012.28878648233
+METRIC micro.fingerprint.raw_hash_(non-json_body).median_ms=0.005208
+METRIC micro.fingerprint.raw_hash_(non-json_body).rme_pct=0.07755483539872335
+METRIC micro.fingerprint.raw_hash_(non-json_body).spread_pct=58.360441286729255
+METRIC micro.validation.key_validation_accept.median_hz=23809523.80952381
+METRIC micro.validation.key_validation_accept.median_ms=0.000042
+METRIC micro.validation.key_validation_accept.rme_pct=0.011769960939506312
+METRIC micro.validation.key_validation_accept.spread_pct=0
+METRIC micro.validation.key_validation_reject_(too_short).median_hz=12048192.771084338
+METRIC micro.validation.key_validation_reject_(too_short).median_ms=0.000083
+METRIC micro.validation.key_validation_reject_(too_short).rme_pct=0.032208234435013805
+METRIC micro.validation.key_validation_reject_(too_short).spread_pct=97.6190476190476
+METRIC micro.validation.key_validation_reject_(too_long).median_hz=12048192.771084338
+METRIC micro.validation.key_validation_reject_(too_long).median_ms=0.000083
+METRIC micro.validation.key_validation_reject_(too_long).rme_pct=0.034057224347745156
+METRIC micro.validation.key_validation_reject_(too_long).spread_pct=98.8095238095238
+METRIC micro.resilience.lookup_(bare).median_hz=27335.101003198208
+METRIC micro.resilience.lookup_(bare).median_ms=0.036583
+METRIC micro.resilience.lookup_(bare).rme_pct=0.4281192645376457
+METRIC micro.resilience.lookup_(bare).spread_pct=62.24834462996323
+METRIC micro.resilience.lookup_(resilient).median_hz=29020.83696093795
+METRIC micro.resilience.lookup_(resilient).median_ms=0.034458
+METRIC micro.resilience.lookup_(resilient).rme_pct=0.2718497315060733
+METRIC micro.resilience.lookup_(resilient).spread_pct=55.437733692905425
+METRIC micro.resilience.startprocessing_(bare).median_hz=83619.03169161301
+METRIC micro.resilience.startprocessing_(bare).median_ms=0.011959
+METRIC micro.resilience.startprocessing_(bare).rme_pct=0.1793960328480912
+METRIC micro.resilience.startprocessing_(bare).spread_pct=37.061148904006046
+METRIC micro.resilience.startprocessing_(resilient).median_hz=67226.89075630253
+METRIC micro.resilience.startprocessing_(resilient).median_ms=0.014875
+METRIC micro.resilience.startprocessing_(resilient).rme_pct=0.17268966111056344
+METRIC micro.resilience.startprocessing_(resilient).spread_pct=51.67085161120364
+METRIC micro.resilience.complete_(bare).median_hz=98765.43209876544
+METRIC micro.resilience.complete_(bare).median_ms=0.010125
+METRIC micro.resilience.complete_(bare).rme_pct=0.1263830295530623
+METRIC micro.resilience.complete_(bare).spread_pct=55.58437507515627
+METRIC micro.resilience.complete_(resilient).median_hz=85106.3829787234
+METRIC micro.resilience.complete_(resilient).median_ms=0.01175
+METRIC micro.resilience.complete_(resilient).rme_pct=0.1139428507410076
+METRIC micro.resilience.complete_(resilient).spread_pct=51.1717809295664
+METRIC e2e.hono-sqlite.middleware_(fresh_key).median_hz=16759.963798478195
+METRIC e2e.hono-sqlite.middleware_(fresh_key).median_ms=0.059666
+METRIC e2e.hono-sqlite.middleware_(fresh_key).rme_pct=0.23110741210357189
+METRIC e2e.hono-sqlite.middleware_(fresh_key).spread_pct=50.6427237266562
+METRIC e2e.hono-sqlite.middleware_(repeat_key).median_hz=17492.6093725401
+METRIC e2e.hono-sqlite.middleware_(repeat_key).median_ms=0.057167
+METRIC e2e.hono-sqlite.middleware_(repeat_key).rme_pct=0.23274087205550617
+METRIC e2e.hono-sqlite.middleware_(repeat_key).spread_pct=35.533129609266325
+METRIC e2e.hono-sqlite.baseline_(no_middleware).median_hz=93755.85974123383
+METRIC e2e.hono-sqlite.baseline_(no_middleware).median_ms=0.010666
+METRIC e2e.hono-sqlite.baseline_(no_middleware).rme_pct=0.09208039105655343
+METRIC e2e.hono-sqlite.baseline_(no_middleware).spread_pct=36.46495726495726
+METRIC e2e.hono-sqlite.overhead_delta_ms=0.048999999999999995
+METRIC e2e.hono-sqlite.overhead_pct=459.40371273204573
 ```

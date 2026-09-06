@@ -23,7 +23,12 @@ const MODULE_FILES = [
 export const PRESETS = {
   full: {
     repeats: 7,
-    benchOptions: { warmupTime: 100, warmupIterations: 1000, time: 300 }
+    benchOptions: {
+      warmupTime: 100,
+      warmupIterations: 1000,
+      time: 300,
+      timestampProvider: "hrtimeNow"
+    }
   },
   quick: {
     repeats: 1,
@@ -31,7 +36,8 @@ export const PRESETS = {
       warmupTime: 10,
       warmupIterations: 20,
       time: 50,
-      iterations: 1000
+      iterations: 1000,
+      timestampProvider: "hrtimeNow"
     }
   }
 };
@@ -95,12 +101,18 @@ function slug(text) {
 }
 
 function collectRunResults(bench, taskModule) {
-  return bench.tasks.map((task) => ({
-    module: taskModule.get(task.name),
-    task: task.name,
-    throughput: task.result.throughput,
-    latency: task.result.latency
-  }));
+  return bench.tasks.map((task) => {
+    if (task.result.state === "errored") {
+      const cause = task.result.error?.stack ?? String(task.result.error);
+      throw new Error(`Benchmark task "${task.name}" errored: ${cause}`);
+    }
+    return {
+      module: taskModule.get(task.name),
+      task: task.name,
+      throughput: task.result.throughput,
+      latency: task.result.latency
+    };
+  });
 }
 
 function aggregate(repeats) {
@@ -122,7 +134,7 @@ function aggregate(repeats) {
       task,
       median_hz: hzMedian,
       median_ms: median(runs.map((run) => run.latency.p50)),
-      rme_pct: median(runs.map((run) => run.throughput.rme)) * 100
+      rme_pct: median(runs.map((run) => run.throughput.rme))
     };
     if (runs.length > 1) {
       const spread = (Math.max(...hzValues) - Math.min(...hzValues)) / hzMedian;
@@ -187,13 +199,18 @@ function formatTable(results) {
   ].join("\n");
 }
 
-function writeResultsFile({ preset, results, lines }) {
+function writeResultsFile({ preset, modules, results, lines }) {
   const date = new Date().toISOString();
   const table = formatTable(results);
+  const modulesNote =
+    modules.length === MODULE_FILES.length
+      ? "all modules"
+      : modules.map((module) => module.name).join(", ");
   const content = `# Benchmark results
 
 - Run date: ${date}
 - Preset: ${preset}
+- Modules: ${modulesNote}
 - Runtime: Node ${process.version} on ${os.platform()} ${os.release()} (${os.arch()}, ${os.cpus()[0]?.model ?? "unknown CPU"})
 
 Numbers from a laptop are comparative, not absolute. Quick-preset numbers are noisier
@@ -242,6 +259,6 @@ export async function runSuite({ preset, modules }) {
   }
   console.log("");
   console.log(formatTable(results));
-  writeResultsFile({ preset, results, lines });
+  writeResultsFile({ preset, modules, results, lines });
   return { results, derived, lines };
 }
