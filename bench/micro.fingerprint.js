@@ -39,8 +39,8 @@ const EXCLUDE_FIELDS = [
 ];
 
 // Warm the lazy xxhash-wasm singleton once, outside any timed task, so
-// one-time async init cost is excluded from every benchmark below (U2
-// approach: init is measured implicitly as part of a cold call, not here).
+// one-time async init cost is excluded from every benchmark below. (A cold
+// call measures init as part of its own latency.)
 await generateFingerprint(BODY);
 
 /**

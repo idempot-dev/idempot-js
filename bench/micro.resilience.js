@@ -1,5 +1,6 @@
 import { withResilience } from "../packages/core/src/resilience.js";
 import { SqliteIdempotencyStore } from "../packages/stores/sqlite/index.js";
+import { createKeyFactory } from "./lib/keys.js";
 
 const FINGERPRINT = "fp-bench-4f9d2c";
 const TTL_MS = 60000;
@@ -9,16 +10,10 @@ const RESPONSE = {
   body: '{"ok":true}'
 };
 
-let keyCounter = 0;
-function nextKey(prefix) {
-  keyCounter += 1;
-  return `${prefix}-${String(keyCounter).padStart(20, "0")}`;
-}
+const nextKey = createKeyFactory(20);
 
-// All timed fns below are real `async` arrows: tinybench classifies a task
-// as async by the AsyncFunction constructor, and a plain arrow returning a
-// promise would be measured on the sync path (only up to the first await),
-// producing meaningless numbers.
+// All timed fns below are real `async` arrows (see bench/README.md for why
+// that classification matters).
 
 function ensureStore(state) {
   if (!state.store) {

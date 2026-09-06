@@ -37,13 +37,13 @@ export const PRESETS = {
 };
 
 export async function loadModules() {
-  const modules = [];
-  for (const file of MODULE_FILES) {
-    const modulePath = path.join(BENCH_DIR, path.basename(file));
-    const imported = await import(modulePath);
-    modules.push(imported.default);
-  }
-  return modules;
+  return Promise.all(
+    MODULE_FILES.map(async (file) => {
+      const modulePath = path.join(BENCH_DIR, path.basename(file));
+      const imported = await import(modulePath);
+      return imported.default;
+    })
+  );
 }
 
 export function validateSelection(modules, names) {

@@ -1,6 +1,13 @@
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/index.js";
 import { SqliteIdempotencyStore } from "../packages/stores/sqlite/index.js";
+import { createKeyFactory } from "./lib/keys.js";
+
+const MODULE_NAME = "e2e.hono-sqlite";
+const FRESH_KEY_TASK = "middleware (fresh key)";
+const REPEAT_KEY_TASK = "middleware (repeat key)";
+const BASELINE_TASK = "baseline (no middleware)";
+const nextKey = createKeyFactory(19);
 
 const BASE_HEADERS = {
   "Content-Type": "application/json",
@@ -13,13 +20,6 @@ const BODY = JSON.stringify({
   currency: "usd",
   items: [{ sku: "SKU-001", qty: 1 }]
 });
-
-let keyCounter = 0;
-function nextKey() {
-  keyCounter += 1;
-  // 24 chars, inside the required 21-255 window.
-  return `key-${String(keyCounter).padStart(19, "0")}`;
-}
 
 function createMiddlewareApp(store) {
   const app = new Hono();
@@ -86,7 +86,7 @@ export default {
   register(bench) {
     const state = {};
     bench.add(
-      "middleware (fresh key)",
+      FRESH_KEY_TASK,
       async () => {
         await send(ensureMiddlewareState(state), { key: nextKey() });
       },
@@ -98,7 +98,7 @@ export default {
     const repeatState = {};
     const repeatKey = nextKey();
     bench.add(
-      "middleware (repeat key)",
+      REPEAT_KEY_TASK,
       async () => {
         await send(ensureMiddlewareState(repeatState), { key: repeatKey });
       },
@@ -115,7 +115,7 @@ export default {
     );
 
     const baselineApp = createBaselineApp();
-    bench.add("baseline (no middleware)", async () => {
+    bench.add(BASELINE_TASK, async () => {
       await send(baselineApp);
     });
   },
@@ -125,20 +125,16 @@ export default {
    * Receives rows of { module, task, median_hz, median_ms, rme_pct }.
    */
   derive(moduleResults) {
-    const fresh = moduleResults.find(
-      (row) => row.task === "middleware (fresh key)"
-    );
-    const baseline = moduleResults.find(
-      (row) => row.task === "baseline (no middleware)"
-    );
+    const fresh = moduleResults.find((row) => row.task === FRESH_KEY_TASK);
+    const baseline = moduleResults.find((row) => row.task === BASELINE_TASK);
     if (!fresh || !baseline || !baseline.median_ms) {
       return [];
     }
     const deltaMs = fresh.median_ms - baseline.median_ms;
     return [
-      { name: "e2e.hono-sqlite.overhead_delta_ms", value: deltaMs },
+      { name: `${MODULE_NAME}.overhead_delta_ms`, value: deltaMs },
       {
-        name: "e2e.hono-sqlite.overhead_pct",
+        name: `${MODULE_NAME}.overhead_pct`,
         value: (deltaMs / baseline.median_ms) * 100
       }
     ];
