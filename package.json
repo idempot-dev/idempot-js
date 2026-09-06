@@ -46,6 +46,7 @@
   "scripts": {
     "bench": "node bench/run.js --preset full",
     "bench:quick": "node bench/run.js --preset quick",
+    "bench:smoke": "node bench/smoke.js",
     "build": "pnpm -r build",
     "test": "tap --reporter dot",
     "test:coverage": "tap --show-full-coverage",

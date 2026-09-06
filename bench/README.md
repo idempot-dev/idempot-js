@@ -11,6 +11,7 @@ pnpm bench            # full preset: warmup, 7 repeats, median + spread (couple 
 pnpm bench:quick      # quick preset: single pass, few iterations (a few seconds)
 pnpm bench --preset quick   # explicit preset override
 pnpm bench:quick fixture    # run selected benchmark modules by name
+pnpm bench:smoke      # self-check: METRIC output shape + selection/exit-code matrix
 ```
 
 Both presets print a human-readable table and `METRIC name=value` lines to stdout,
@@ -86,16 +87,21 @@ tinybench tasks and `derive` returns extra metric pairs computed from the module
 own aggregated results.
 
 Timed functions must be real `async` arrow functions when they await anything:
-tinybench classifies a task as async by the `AsyncFunction` constructor, and a
-plain arrow returning a promise gets measured on the sync path (only up to the
-first await), producing meaningless numbers.
+tinybench probe-calls a non-async function once at `add()` and thenable-checks
+the result, so a plain arrow returning a promise gets measured on the sync
+path (only up to the first await), producing meaningless numbers.
+
+Sub-microsecond tasks quantize to the timer tick: the presets use the
+`hrtimeNow` timestamp provider for nanosecond resolution, but rows whose
+`median_hz` values are bit-identical across different operations are
+timer-saturated — compare their medians with that in mind.
 
 ## Layout
 
 - `bench/run.js` — CLI (`--preset full|quick`, module names as positional args)
 - `bench/lib/runner.js` — presets, selection, METRIC emission, results file
 - `bench/fixture.demo.js` — harness smoke fixture
-- `bench/results.md` — output of the most recent run (committed, prettier-ignored)
+- `bench/results.md` — output of the most recent run (committed, prettier-ignored; the header records which modules ran)
 
 Bench code is dev tooling: it is excluded from the tap coverage gate (never added to
 `.taprc` `files:` globs) and verified by smoke runs, not tap unit tests.
