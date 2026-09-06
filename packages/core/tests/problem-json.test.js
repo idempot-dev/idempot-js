@@ -65,6 +65,15 @@ describe("problem-json", () => {
       assert.strictEqual(result.retryable, false);
       assert.strictEqual(result.status, 422);
     });
+
+    it("should include idempotency_key when provided", () => {
+      const result = conflictErrorResponse(409, "Fingerprint conflict", {
+        instance: "urn:uuid:test-key",
+        idempotencyKey: "my-key"
+      });
+
+      assert.strictEqual(result.idempotency_key, "my-key");
+    });
   });
 
   describe("storeUnavailableResponse", () => {
