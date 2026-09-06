@@ -36,6 +36,8 @@ const mysqlStore = new BunSqlIdempotencyStore(
 | PostgreSQL | `postgres://user:pass@localhost:5432/db`                             |
 | MySQL      | `mysql://user:pass@localhost:3306/db`, `mysql2://...`                |
 
+> **MySQL on Bun >= 1.4:** Bun's MySQL client refuses the `caching_sha2_password` RSA public-key handshake over insecure connections by default. Either pass `allowPublicKeyRetrieval: true` in the store options, or enable TLS on the connection. Bun <= 1.3 and TLS connections are unaffected.
+
 ## API
 
 ### `new BunSqlIdempotencyStore(connectionString, options?)`

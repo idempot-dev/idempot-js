@@ -291,7 +291,11 @@ describe("BunSqlIdempotencyStore with MySQL", () => {
       database: "test"
     });
 
-    store = new BunSqlIdempotencyStore(MYSQL_URL);
+    // Bun >= 1.4 refuses the MySQL caching_sha2_password RSA public-key
+    // handshake over insecure connections unless explicitly allowed.
+    store = new BunSqlIdempotencyStore(MYSQL_URL, {
+      allowPublicKeyRetrieval: true
+    });
     const app = createApp(store);
 
     server = serve({
