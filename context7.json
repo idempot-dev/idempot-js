@@ -7,7 +7,8 @@
   "excludeFolders": ["docs/plans"],
   "excludeFiles": ["AGENTS.md"],
   "rules": [
-    "Install one framework middleware package (@idempot/express-middleware, @idempot/fastify-middleware, @idempot/hono-middleware, or @idempot/bun-handler) plus one store package (@idempot/redis-store, @idempot/postgres-store, @idempot/mysql-store, @idempot/sqlite-store, or @idempot/bun-sql-store). @idempot/core is a transitive dependency, not installed directly.",
+    "Install one framework middleware package: @idempot/express-middleware, @idempot/fastify-middleware, @idempot/hono-middleware, or @idempot/bun-handler.",
+    "Install one store package: @idempot/redis-store, @idempot/postgres-store, @idempot/mysql-store, @idempot/sqlite-store, or @idempot/bun-sql-store. @idempot/core is transitive; do not install it directly.",
     "Create a store instance and pass it to the idempotency() middleware via the store option.",
     "Implements the IETF draft-ietf-httpapi-idempotency-key-header-07 specification. Clients send the Idempotency-Key header on requests that must not run twice.",
     "Error responses follow RFC 9457 (Problem Details) with content negotiation via the Accept header; application/problem+json is the default.",
