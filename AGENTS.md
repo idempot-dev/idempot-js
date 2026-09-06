@@ -20,6 +20,10 @@ Run `pnpm run test:verify-coverage` before committing. When trying to learn whic
 
 **Never use `--no-verify` when committing.** This flag bypasses pre-commit hooks that enforce the coverage and linting requirements.
 
+## Git Workflow
+
+**All changes go through a branch and a draft PR, regardless of size.** Never push directly to `main`. If a push reports "bypassed rule violations", the branch protection rule applies: stop and open a draft PR instead. Admin override is not permission.
+
 ## Architecture
 
 - **Language**: JavaScript with JSDoc
