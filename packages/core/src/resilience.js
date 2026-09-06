@@ -65,6 +65,16 @@ export function withResilience(store, options = {}) {
 
   const breaker = new CircuitBreaker(withRetry, breakerOptions);
 
+  /**
+   * In-flight single-flight registry: maps idempotency key to the in-progress
+   * startProcessing promise. Concurrent same-key callers coalesce onto the
+   * first attempt; later callers get IdempotencyKeyExistsError and take the
+   * middleware's existing lost-race path (re-lookup -> 409/replay/422)
+   * instead of issuing a doomed INSERT to the store.
+   * @type {Map<string, Promise<void>>}
+   */
+  const inFlight = new Map();
+
   /** @type {IdempotencyStore} */
   const wrappedStore = {
     /**
@@ -83,7 +93,20 @@ export function withResilience(store, options = {}) {
      * @returns {Promise<void>}
      */
     async startProcessing(key, fingerprint, ttlMs) {
-      return breaker.fire(() => store.startProcessing(key, fingerprint, ttlMs));
+      if (inFlight.has(key)) {
+        throw new IdempotencyKeyExistsError(
+          `startProcessing already in flight for this idempotency key`
+        );
+      }
+      const attempt = breaker.fire(() =>
+        store.startProcessing(key, fingerprint, ttlMs)
+      );
+      inFlight.set(key, attempt);
+      try {
+        return await attempt;
+      } finally {
+        inFlight.delete(key);
+      }
     },
 
     /**

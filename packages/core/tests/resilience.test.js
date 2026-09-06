@@ -1,6 +1,13 @@
 import { test } from "tap";
 import { withResilience, IdempotencyKeyExistsError } from "@idempot/core";
 
+/** Await a promise while keeping its rejection handled for the test. */
+function wrappedCatch(promise) {
+  return promise.catch((error) => {
+    throw error;
+  });
+}
+
 test("withResilience - wraps store operations", async (t) => {
   let lookupCalled = false;
   let startProcessingCalled = false;
@@ -174,6 +181,187 @@ test("withResilience - circuit breaker opens after failures", async (t) => {
   }
 
   t.ok(circuit.opened, "circuit should be open after failures");
+});
+
+test("withResilience - coalesces concurrent same-key startProcessing", async (t) => {
+  let calls = 0;
+  let resolveWinner;
+  const deferredStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+      return new Promise((resolve) => {
+        resolveWinner = resolve;
+      });
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(deferredStore);
+
+  const winner = store.startProcessing("key", "fp", 60000);
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    IdempotencyKeyExistsError,
+    "concurrent same-key call should get key-exists error without hitting the store"
+  );
+  t.equal(calls, 1, "store startProcessing should be called exactly once");
+
+  resolveWinner();
+  await winner;
+  t.equal(calls, 1, "coalescing should not add store calls");
+});
+
+test("withResilience - concurrent different-key startProcessing does not coalesce", async (t) => {
+  let calls = 0;
+  const countingStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(countingStore);
+
+  await Promise.all([
+    store.startProcessing("key-1", "fp", 60000),
+    store.startProcessing("key-2", "fp", 60000)
+  ]);
+  t.equal(calls, 2, "different keys should each reach the store");
+});
+
+test("withResilience - in-flight entry clears after success", async (t) => {
+  let calls = 0;
+  const countingStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(countingStore);
+
+  await store.startProcessing("key", "fp", 60000);
+  await store.startProcessing("key", "fp", 60000);
+  t.equal(calls, 2, "sequential same-key calls should each reach the store");
+});
+
+test("withResilience - in-flight entry clears after failure", async (t) => {
+  let calls = 0;
+  const failingOnceStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+      if (calls === 1) {
+        throw new Error("Store failure");
+      }
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(failingOnceStore, { maxRetries: 1 });
+
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    "first call fails"
+  );
+  await store.startProcessing("key", "fp", 60000);
+  t.equal(calls, 2, "same key should reach the store again after failure");
+});
+
+test("withResilience - coalesced loser gets key-exists even when winner fails", async (t) => {
+  let calls = 0;
+  let rejectWinner;
+  const failingWinnerStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+      return new Promise((_resolve, reject) => {
+        rejectWinner = reject;
+      });
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(failingWinnerStore, { maxRetries: 1 });
+
+  const winner = wrappedCatch(store.startProcessing("key", "fp", 60000));
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    IdempotencyKeyExistsError,
+    "loser should get key-exists immediately, regardless of winner outcome"
+  );
+  t.equal(calls, 1, "store should be called once");
+
+  rejectWinner(new Error("Store failure"));
+  await t.rejects(
+    winner,
+    "Store failure",
+    "winner's store error should propagate"
+  );
+});
+
+test("withResilience - concurrent same-key different-fingerprint calls coalesce", async (t) => {
+  let calls = 0;
+  const countingStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(countingStore);
+
+  const winner = store.startProcessing("key", "fp-a", 60000);
+  await t.rejects(
+    store.startProcessing("key", "fp-b", 60000),
+    IdempotencyKeyExistsError,
+    "coalescing is keyed on the idempotency key, not the fingerprint"
+  );
+  await winner;
+  t.equal(calls, 1, "fingerprint difference should not bypass coalescing");
+});
+
+test("withResilience - coalescing guard fires before an open breaker", async (t) => {
+  let calls = 0;
+  let resolveWinner;
+  const mixedStore = {
+    lookup: async () => {
+      throw new Error("Failure");
+    },
+    startProcessing: async () => {
+      calls++;
+      return new Promise((resolve) => {
+        resolveWinner = resolve;
+      });
+    },
+    complete: async () => {}
+  };
+
+  const { store, circuit } = withResilience(mixedStore, {
+    maxRetries: 1,
+    errorThresholdPercentage: 1,
+    volumeThreshold: 1
+  });
+
+  const winner = store.startProcessing("key", "fp", 60000);
+
+  // Open the breaker while the winner's startProcessing is in flight.
+  await t.rejects(store.lookup("other", "fp"), "Failure");
+  t.ok(circuit.opened, "breaker should be open");
+
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    IdempotencyKeyExistsError,
+    "loser should see key-exists (guard before breaker), not breaker-open"
+  );
+  t.equal(calls, 1);
+
+  resolveWinner();
+  await winner;
 });
 
 test("withResilience - close calls underlying store close", async (t) => {
