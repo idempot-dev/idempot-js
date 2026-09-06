@@ -299,6 +299,91 @@ export function runAdapterTests(adapter) {
     await teardown();
   });
 
+  // Test: Coalesced loser through the full middleware stack
+  // Two concurrent same-key requests: only the winner's startProcessing
+  // reaches the store; the loser takes the lost-race path (409).
+  test(`${adapter.name} - coalesces concurrent same-key requests`, async (t) => {
+    let startCalls = 0;
+    let lookupCount = 0;
+    const lookupResolvers = [];
+    let resolveWinner;
+    const deferredStore = {
+      lookup: async () => {
+        lookupCount++;
+        // Defer the two initial request lookups so both requests are in
+        // flight before the winner claims the key; the loser's re-lookup
+        // (third call) returns a miss so it takes the 409 branch.
+        if (lookupCount <= 2) {
+          return new Promise((resolve) => {
+            lookupResolvers.push(resolve);
+          });
+        }
+        return { byKey: null, byFingerprint: null };
+      },
+      startProcessing: async () => {
+        startCalls++;
+        return new Promise((resolve) => {
+          resolveWinner = resolve;
+        });
+      },
+      complete: async () => {}
+    };
+
+    const { mount, request, teardown } = await adapter.setup();
+    const middleware = adapter.createMiddleware({ store: deferredStore });
+
+    mount("POST", "/test", middleware, async (req, res) => {
+      return res.send({ ok: true });
+    });
+
+    const requestPromise = () =>
+      request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "coalesce-key-12345678901" },
+        body: { foo: "bar" }
+      });
+
+    const response1 = requestPromise();
+    const response2 = requestPromise();
+
+    const waitFor = async (predicate) => {
+      for (let i = 0; i < 200; i++) {
+        if (predicate()) return;
+        await new Promise((r) => setTimeout(r, 5));
+      }
+      t.fail("timed out waiting for expected middleware state");
+    };
+
+    await waitFor(() => lookupResolvers.length === 2);
+    // Resolve in FIFO order so request 1 claims the key before request 2
+    // reaches startProcessing.
+    lookupResolvers[0]({ byKey: null, byFingerprint: null });
+    lookupResolvers[1]({ byKey: null, byFingerprint: null });
+
+    await waitFor(() => startCalls === 1);
+    resolveWinner();
+
+    const responses = [
+      normalizeResponse(await response1),
+      normalizeResponse(await response2)
+    ];
+    const statuses = responses.map((r) => r.status).sort((a, b) => a - b);
+    t.same(statuses, [200, 409], "exactly one winner (200), one loser (409)");
+    const loser = responses.find((r) => r.status === 409);
+    t.match(
+      loser.body?.error || JSON.stringify(loser.body),
+      /already being processed/i
+    );
+    t.equal(
+      startCalls,
+      1,
+      "store startProcessing should be called exactly once"
+    );
+
+    await teardown();
+  });
+
   // Test: Concurrent processing (explicit state, no timing)
   test(`${adapter.name} - detects concurrent processing with 409`, async (t) => {
     const store = adapter.createStore();
