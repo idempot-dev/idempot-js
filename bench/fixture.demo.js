@@ -1,6 +1,7 @@
 /**
- * Fixture benchmark proving the harness end-to-end before the real
- * micro (U2) and end-to-end (U3) modules land.
+ * Harness smoke fixture: exercises module loading, selection, METRIC
+ * emission, and results writing end-to-end without touching any store or
+ * middleware.
  */
 export default {
   name: "fixture",

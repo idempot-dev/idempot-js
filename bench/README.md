@@ -85,6 +85,11 @@ Add the filename to `MODULE_FILES` in `bench/lib/runner.js`. The module contract
 tinybench tasks and `derive` returns extra metric pairs computed from the module's
 own aggregated results.
 
+Timed functions must be real `async` arrow functions when they await anything:
+tinybench classifies a task as async by the `AsyncFunction` constructor, and a
+plain arrow returning a promise gets measured on the sync path (only up to the
+first await), producing meaningless numbers.
+
 ## Layout
 
 - `bench/run.js` — CLI (`--preset full|quick`, module names as positional args)

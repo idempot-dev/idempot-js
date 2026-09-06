@@ -1,5 +1,10 @@
 #!/usr/bin/env node
-import { loadModules, runSuite, validateSelection } from "./lib/runner.js";
+import {
+  PRESETS,
+  loadModules,
+  runSuite,
+  validateSelection
+} from "./lib/runner.js";
 
 const args = process.argv.slice(2);
 const names = [];
@@ -16,9 +21,9 @@ for (let index = 0; index < args.length; index++) {
   }
 }
 
-if (preset !== "full" && preset !== "quick") {
+if (!Object.hasOwn(PRESETS, preset)) {
   console.error(
-    `Unknown preset: ${preset}. Use --preset full or --preset quick.`
+    `Unknown preset: ${preset}. Use --preset ${Object.keys(PRESETS).join(" or --preset ")}.`
   );
   process.exit(1);
 }
