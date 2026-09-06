@@ -21,7 +21,12 @@ const validOptionsArbitrary = () =>
         fc.constant(undefined),
         fc.integer({ min: 1, max: ONE_YEAR_MS })
       ),
-      excludeFields: fc.oneof(fc.constant(undefined), fc.array(fc.string())),
+      excludeFields: fc.oneof(
+        fc.constant(undefined),
+        // validateExcludeFields rejects an entry of exactly "$." as an
+        // invalid JSONPath, so the valid-options model excludes it.
+        fc.array(fc.string().filter((s) => s !== "$."))
+      ),
       store: fc.oneof(fc.constant(undefined), fc.constant(createMockStore())),
       minKeyLength: fc.oneof(
         fc.constant(undefined),
