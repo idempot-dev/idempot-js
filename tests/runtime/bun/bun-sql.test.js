@@ -136,6 +136,37 @@ describe("BunSqlIdempotencyStore", () => {
     });
   });
 
+  describe("schema management", () => {
+    test("runs schema DDL once per store instance", async () => {
+      const store = new BunSqlIdempotencyStore(
+        "mysql://user:pass@localhost:3306/test"
+      );
+      const statements = [];
+      const db = (strings) => {
+        statements.push(strings.join("?"));
+        return Promise.resolve([]);
+      };
+      db.unsafe = (sql) => {
+        statements.push(sql);
+        if (sql.startsWith("UPDATE")) return Promise.resolve({ changes: 1 });
+        return Promise.resolve([[]]);
+      };
+      db.close = () => {};
+      store.db = db;
+
+      await store.lookup("key1", "fp1");
+      await store.startProcessing("key1", "fp1", 60000);
+      await store.complete("key1", { status: 200, headers: {}, body: "" });
+      await store.lookup("key2", "fp2");
+
+      const ddlCount = statements.filter((sql) =>
+        sql.includes("CREATE ")
+      ).length;
+      expect(ddlCount).toBe(3); // table + 2 indexes, once
+      store.close();
+    });
+  });
+
   describe("close", () => {
     test("closes database connection", () => {
       const tempStore = new BunSqlIdempotencyStore("sqlite://:memory:");
