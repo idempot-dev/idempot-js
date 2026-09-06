@@ -136,6 +136,91 @@ test("withResilience - key-exists error keeps the circuit closed", async (t) => 
   );
 });
 
+test("withResilience - writes are not retried on failure", async (t) => {
+  let startAttempts = 0;
+  let completeAttempts = 0;
+  const failingWriteStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      startAttempts++;
+      throw new Error("Temporary failure");
+    },
+    complete: async () => {
+      completeAttempts++;
+      throw new Error("Temporary failure");
+    }
+  };
+
+  const { store } = withResilience(failingWriteStore, { maxRetries: 3 });
+
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    "Temporary failure"
+  );
+  await t.rejects(
+    store.complete("key", { status: 200, headers: {}, body: "" }),
+    "Temporary failure"
+  );
+  t.equal(startAttempts, 1, "startProcessing should not be retried");
+  t.equal(completeAttempts, 1, "complete should not be retried");
+});
+
+test("withResilience - indeterminate write commit is not retried into a false duplicate", async (t) => {
+  // Simulates the indeterminate-commit ambiguity: first attempt commits on the
+  // store but the error hides it; a retry would hit the unique constraint and
+  // surface as a false 409 conflict.
+  let committed = false;
+  let storeCalls = 0;
+  const indeterminateStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      storeCalls++;
+      if (!committed) {
+        committed = true;
+        throw new Error("Connection reset");
+      }
+      throw new IdempotencyKeyExistsError("duplicate key");
+    },
+    complete: async () => {}
+  };
+
+  const { store } = withResilience(indeterminateStore, { maxRetries: 3 });
+
+  await t.rejects(
+    store.startProcessing("key", "fp", 60000),
+    "Connection reset",
+    "caller should see the transient error, not a duplicate-key 409"
+  );
+  t.equal(storeCalls, 1, "the committed write must never be re-issued");
+});
+
+test("withResilience - writes still trip the circuit breaker", async (t) => {
+  let calls = 0;
+  const failingWriteStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {
+      calls++;
+      throw new Error("Failure");
+    },
+    complete: async () => {}
+  };
+
+  const { store, circuit } = withResilience(failingWriteStore, {
+    maxRetries: 1,
+    errorThresholdPercentage: 1,
+    volumeThreshold: 1
+  });
+
+  try {
+    await store.startProcessing("key", "fp", 60000);
+  } catch {
+    // Expected
+  }
+
+  t.equal(calls, 1, "write should reach the store once");
+  t.ok(circuit.opened, "circuit should open after write failures");
+});
+
 test("withResilience - respects timeout", async (t) => {
   const slowStore = {
     lookup: async () => {
