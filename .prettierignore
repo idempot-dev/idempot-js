@@ -6,3 +6,4 @@ CLAUDE.md
 .claude
 docs/plans
 docs/.vitepress
+bench/results.md
