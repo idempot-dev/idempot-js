@@ -31,6 +31,18 @@ and write `bench/results.md`.
 Laptop numbers are comparative, not absolute; `bench/results.md` records the
 machine context for each run.
 
+### Variance validation (2026-09-06, Apple M1, Node v24.16.0)
+
+Two consecutive full-preset runs agreed within ±2% on every raw metric
+(±15% gate: pass). Delta metrics (`overhead_delta_ms`, `overhead_pct`) held
+within ±2% here too, but note: a delta of two timings amplifies relative
+variance when overhead is small versus the baseline, so treat delta swings
+more leniently than raw-timing swings.
+
+Sub-microsecond tasks (key validation rejects) quantize to tinybench's timer
+granularity, which shows as large `spread_pct` while the median stays stable —
+compare medians, not spread, on those rows.
+
 ## METRIC grammar
 
 Each line has the form:
