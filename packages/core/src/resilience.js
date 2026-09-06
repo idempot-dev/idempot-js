@@ -63,7 +63,11 @@ export function withResilience(store, options = {}) {
     throw lastError;
   };
 
-  const breaker = new CircuitBreaker(withRetry, breakerOptions);
+  const breaker = new CircuitBreaker(
+    async (operation, shouldRetry) =>
+      shouldRetry ? withRetry(operation) : operation(),
+    breakerOptions
+  );
 
   /**
    * In-flight single-flight registry: maps idempotency key to the in-progress
@@ -83,7 +87,8 @@ export function withResilience(store, options = {}) {
      * @returns {Promise<{byKey: import("./store/interface.js").IdempotencyRecord | null, byFingerprint: import("./store/interface.js").IdempotencyRecord | null}>}
      */
     async lookup(key, fingerprint) {
-      return breaker.fire(() => store.lookup(key, fingerprint));
+      // Reads are safe to retry.
+      return breaker.fire(() => store.lookup(key, fingerprint), true);
     },
 
     /**
@@ -98,8 +103,9 @@ export function withResilience(store, options = {}) {
           `startProcessing already in flight for this idempotency key`
         );
       }
-      const attempt = breaker.fire(() =>
-        store.startProcessing(key, fingerprint, ttlMs)
+      const attempt = breaker.fire(
+        () => store.startProcessing(key, fingerprint, ttlMs),
+        false
       );
       inFlight.set(key, attempt);
       try {
@@ -115,7 +121,10 @@ export function withResilience(store, options = {}) {
      * @returns {Promise<void>}
      */
     async complete(key, response) {
-      return breaker.fire(() => store.complete(key, response));
+      // Writes are never retried: if the first attempt commits but the caller
+      // never sees success, a retried write hits the unique constraint and
+      // turns the indeterminate commit into a false 409 conflict (issue #185).
+      return breaker.fire(() => store.complete(key, response), false);
     },
 
     async close() {
