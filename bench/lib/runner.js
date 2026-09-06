@@ -12,7 +12,13 @@ const RESULTS_PATH = path.join(BENCH_DIR, "results.md");
  * (micro.*, e2e.*) are added here; each exports a default object
  * `{ name, register(bench, preset), derive?(moduleResults) }`.
  */
-const MODULE_FILES = ["./fixture.demo.js"];
+const MODULE_FILES = [
+  "./fixture.demo.js",
+  "./micro.fingerprint.js",
+  "./micro.validation.js",
+  "./micro.resilience.js",
+  "./e2e.hono-sqlite.js"
+];
 
 export const PRESETS = {
   full: {
@@ -42,15 +48,36 @@ export async function loadModules() {
 
 export function validateSelection(modules, names) {
   const known = modules.map((module) => module.name);
-  const unknown = names.filter((name) => !known.includes(name));
-  if (unknown.length > 0) {
-    return {
-      ok: false,
-      error: `Unknown benchmark module(s): ${unknown.join(", ")}. Available: ${known.join(", ")}.`
-    };
+  // A selection name matches a module by exact name or by unique substring
+  // (so `fingerprint` selects `micro.fingerprint`, `e2e` selects
+  // `e2e.hono-sqlite`). Ambiguous substrings are rejected.
+  const resolve = (name) => {
+    if (known.includes(name)) {
+      return { name, matches: [name] };
+    }
+    return { name, matches: known.filter((k) => k.includes(name)) };
+  };
+  const resolved = names.map(resolve);
+  const errors = [];
+  for (const { name, matches } of resolved) {
+    if (matches.length === 0) {
+      errors.push(
+        `Unknown benchmark module(s): ${name}. Available: ${known.join(", ")}.`
+      );
+    } else if (matches.length > 1) {
+      errors.push(
+        `Ambiguous benchmark selection "${name}": matches ${matches.join(", ")}.`
+      );
+    }
   }
+  if (errors.length > 0) {
+    return { ok: false, error: errors.join("\n") };
+  }
+  const selectedNames = resolved.flatMap(({ matches }) => matches);
   const selected =
-    names.length > 0 ? modules.filter((m) => names.includes(m.name)) : modules;
+    names.length > 0
+      ? modules.filter((m) => selectedNames.includes(m.name))
+      : modules;
   return { ok: true, selected };
 }
 
