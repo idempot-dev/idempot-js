@@ -268,6 +268,33 @@ test("withResilience - circuit breaker opens after failures", async (t) => {
   t.ok(circuit.opened, "circuit should be open after failures");
 });
 
+test("withResilience - complete failures trip the circuit breaker", async (t) => {
+  let calls = 0;
+  const failingCompleteStore = {
+    lookup: async () => ({ byKey: null, byFingerprint: null }),
+    startProcessing: async () => {},
+    complete: async () => {
+      calls++;
+      throw new Error("Failure");
+    }
+  };
+
+  const { store, circuit } = withResilience(failingCompleteStore, {
+    maxRetries: 1,
+    errorThresholdPercentage: 1,
+    volumeThreshold: 1
+  });
+
+  try {
+    await store.complete("key", { status: 200, headers: {}, body: "" });
+  } catch {
+    // Expected
+  }
+
+  t.equal(calls, 1, "complete should reach the store once");
+  t.ok(circuit.opened, "circuit should open after complete failures");
+});
+
 test("withResilience - coalesces concurrent same-key startProcessing", async (t) => {
   let calls = 0;
   let resolveWinner;
