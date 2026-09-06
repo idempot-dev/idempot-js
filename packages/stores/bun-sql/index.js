@@ -37,6 +37,14 @@ export class BunSqlIdempotencyStore {
   isPostgres;
 
   /**
+   * Set after the first successful ensureSchema() so DDL runs once per store
+   * instead of on every operation.
+   *
+   * @type {boolean}
+   */
+  schemaReady;
+
+  /**
    * @param {string} connectionString - Database connection string or path
    * @param {BunSqlIdempotencyStoreOptions} [options]
    */
@@ -44,6 +52,7 @@ export class BunSqlIdempotencyStore {
     this.isSqlite = this.isSqliteConnection(connectionString);
     this.isMySQL = this.isMySqlConnection(connectionString);
     this.isPostgres = this.isPostgresConnection(connectionString);
+    this.schemaReady = false;
 
     if (this.isSqlite) {
       const sqlitePath = this.normalizeSqlitePath(connectionString);
@@ -169,11 +178,14 @@ export class BunSqlIdempotencyStore {
    * @returns {Promise<void>}
    */
   async ensureSchema() {
-    if (!this.isSqlite) {
-      const keyColumn = this.isMySQL ? "`key`" : '"key"';
+    if (this.isSqlite || this.schemaReady) {
+      return;
+    }
 
-      if (this.isMySQL) {
-        await this.db.unsafe(`
+    const keyColumn = this.isMySQL ? "`key`" : '"key"';
+
+    if (this.isMySQL) {
+      await this.db.unsafe(`
           CREATE TABLE IF NOT EXISTS idempotency_records (
             ${keyColumn} VARCHAR(255) PRIMARY KEY,
             fingerprint VARCHAR(255) NOT NULL,
@@ -184,8 +196,8 @@ export class BunSqlIdempotencyStore {
             expires_at BIGINT NOT NULL
           )
         `);
-      } else {
-        await this.db.unsafe(`
+    } else {
+      await this.db.unsafe(`
           CREATE TABLE IF NOT EXISTS idempotency_records (
             ${keyColumn} TEXT PRIMARY KEY,
             fingerprint TEXT NOT NULL,
@@ -196,22 +208,23 @@ export class BunSqlIdempotencyStore {
             expires_at BIGINT NOT NULL
           )
         `);
-      }
-
-      try {
-        await this
-          .db`CREATE INDEX idx_fingerprint ON idempotency_records(fingerprint)`;
-      } catch {
-        // Index already exists, ignore
-      }
-
-      try {
-        await this
-          .db`CREATE INDEX idx_expires_at ON idempotency_records(expires_at)`;
-      } catch {
-        // Index already exists, ignore
-      }
     }
+
+    try {
+      await this
+        .db`CREATE INDEX idx_fingerprint ON idempotency_records(fingerprint)`;
+    } catch {
+      // Index already exists, ignore
+    }
+
+    try {
+      await this
+        .db`CREATE INDEX idx_expires_at ON idempotency_records(expires_at)`;
+    } catch {
+      // Index already exists, ignore
+    }
+
+    this.schemaReady = true;
   }
 
   /**
