@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/index.js";
-import { SqliteIdempotencyStore } from "../packages/stores/sqlite/index.js";
+import { MysqlIdempotencyStore } from "../packages/stores/mysql/node-mysql.js";
 import { createKeyFactory } from "./lib/keys.js";
 
-const MODULE_NAME = "e2e.hono-sqlite";
+const MODULE_NAME = "e2e.hono-mysql";
 const FRESH_KEY_TASK = "middleware (fresh key)";
 const REPEAT_KEY_TASK = "middleware (repeat key)";
 const BASELINE_TASK = "baseline (no middleware)";
@@ -36,6 +36,41 @@ const BODY = JSON.stringify({
   items: [{ sku: "SKU-001", qty: 1 }]
 });
 
+let tableCounter = 0;
+
+/**
+ * Create a store backed by a fresh, uniquely named table so each phase
+ * (warmup and timed) starts with an empty table. Unlike the postgres
+ * store, the mysql store does not create its table, so the DDL runs here
+ * (same shape as tests/integration/shared/mysql-helpers.js initMysqlSchema).
+ */
+async function createStore() {
+  tableCounter += 1;
+  const tableName = `bench_mysql_${tableCounter}`;
+  const store = new MysqlIdempotencyStore({
+    host: "localhost",
+    port: 3306,
+    database: "test",
+    user: "idempot",
+    password: "idempot",
+    tableName
+  });
+  await store.pool.query(`
+    CREATE TABLE IF NOT EXISTS \`${tableName}\` (
+      \`key\` VARCHAR(255) PRIMARY KEY,
+      fingerprint VARCHAR(255) NOT NULL,
+      status VARCHAR(50) NOT NULL,
+      response_status INT,
+      response_headers TEXT,
+      response_body TEXT,
+      expires_at BIGINT NOT NULL,
+      INDEX idx_fingerprint (fingerprint),
+      INDEX idx_expires_at (expires_at)
+    )
+  `);
+  return store;
+}
+
 function createMiddlewareApp(store) {
   const app = new Hono();
   app.post("/pay", idempotency({ store }), (c) => c.json({ ok: true }));
@@ -60,9 +95,9 @@ function send(app, { key, body = BODY } = {}) {
   });
 }
 
-function ensureMiddlewareState(state) {
+async function ensureMiddlewareState(state) {
   if (!state.store) {
-    state.store = new SqliteIdempotencyStore({ path: ":memory:" });
+    state.store = await createStore();
     state.app = createMiddlewareApp(state.store);
   }
   return state.app;
@@ -70,6 +105,9 @@ function ensureMiddlewareState(state) {
 
 async function teardownMiddlewareState(state) {
   if (state.store) {
+    await state.store.pool.query(
+      `DROP TABLE IF EXISTS \`${state.store.tableName}\``
+    );
     await state.store.close();
     state.store = null;
     state.app = null;
@@ -77,8 +115,8 @@ async function teardownMiddlewareState(state) {
 }
 
 /**
- * End-to-end per-request overhead of the hono middleware backed by the
- * sqlite in-memory store. Three timed paths:
+ * End-to-end per-request overhead of the hono middleware backed by a live
+ * mysql store. Same three timed paths as e2e.hono-sqlite:
  *
  * - "middleware (fresh key)": unique key AND unique body per request —
  *   the full fingerprint -> lookup -> startProcessing -> handler ->
@@ -89,23 +127,26 @@ async function teardownMiddlewareState(state) {
  * - "baseline (no middleware)": the identical app and request without the
  *   middleware, so the derived overhead metrics are a like-for-like delta.
  *
+ * Requires a reachable mysql on localhost:3306 with database `test` and
+ * user `idempot`/`idempot` (same prerequisites as the integration tests).
+ *
  * Lifecycle: tinybench runs the warmup AND the timed phase for every task,
- * each with its own beforeAll/afterAll cycle — so apps and stores are
- * created lazily per phase (ensureMiddlewareState) and closed+cleared in
- * afterAll, keeping setup and teardown outside the timed regions.
+ * each with its own beforeAll/afterAll cycle — so stores are created
+ * lazily per phase in a unique table and dropped+closed in afterAll,
+ * keeping setup and teardown outside the timed regions.
  *
  * The derived overhead numbers (overhead_delta_ms, overhead_pct) are
  * computed from the paired medians by derive() — they are informational;
  * the ±15% variance gate applies to the raw timings (AE2 scoping).
  */
 export default {
-  name: "e2e.hono-sqlite",
+  name: "e2e.hono-mysql",
   register(bench) {
     const state = {};
     bench.add(
       FRESH_KEY_TASK,
       async () => {
-        const res = await send(ensureMiddlewareState(state), {
+        const res = await send(await ensureMiddlewareState(state), {
           key: nextKey("key"),
           body: nextFreshBody()
         });
@@ -120,7 +161,7 @@ export default {
           // Construct the store/app outside the timed region and verify the
           // middleware path actually answers 200 — a 409/400/503 fast-fail
           // would otherwise be timed and reported as a fast success.
-          const res = await send(ensureMiddlewareState(state), {
+          const res = await send(await ensureMiddlewareState(state), {
             key: nextKey("key"),
             body: nextFreshBody()
           });
@@ -139,7 +180,7 @@ export default {
     bench.add(
       REPEAT_KEY_TASK,
       async () => {
-        const res = await send(ensureMiddlewareState(repeatState), {
+        const res = await send(await ensureMiddlewareState(repeatState), {
           key: repeatKey
         });
         if (res.status !== 200) {
@@ -155,7 +196,7 @@ export default {
           // per phase (warmup and timed) against a fresh store, so the
           // priming request is always the first on the record. Also
           // verifies the replay path answers 200.
-          const res = await send(ensureMiddlewareState(repeatState), {
+          const res = await send(await ensureMiddlewareState(repeatState), {
             key: repeatKey
           });
           if (res.status !== 200) {

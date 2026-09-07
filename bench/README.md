@@ -44,6 +44,27 @@ Sub-microsecond tasks (key validation rejects) quantize to tinybench's timer
 granularity, which shows as large `spread_pct` while the median stays stable —
 compare medians, not spread, on those rows.
 
+## Prerequisites
+
+- `e2e.hono-sqlite` — no external services (sqlite runs in-memory).
+- `e2e.hono-postgres` — a live postgres on `localhost:5432` with database
+  `test` and user `idempot`/`idempot` (same prerequisites as the
+  integration tests). The module fails fast with a connection error when
+  the server is unreachable.
+- `e2e.hono-mysql` — a live mysql on `localhost:3306` with database
+  `test` and user `idempot`/`idempot` (same prerequisites as the
+  integration tests). The module fails fast with a connection error when
+  the server is unreachable.
+- `e2e.hono-redis` — a live redis on `127.0.0.1:6379` with no auth (same
+  prerequisites as the integration tests). The module fails fast with a
+  connection error when the server is unreachable.
+- `e2e.express-sqlite` — no external services (sqlite runs in-memory).
+- `e2e.express-postgres`, `e2e.express-mysql`, `e2e.express-redis` — the
+  same prerequisites as their hono counterparts. Express modules serve
+  real HTTP on an ephemeral localhost port (undici keep-alive), so their
+  numbers include a socket round trip that the hono modules (in-process
+  `app.request`) do not; compare within a framework, not across them.
+
 ## METRIC grammar
 
 Each line has the form:

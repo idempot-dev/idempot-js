@@ -1,9 +1,10 @@
 import { Hono } from "hono";
+import Redis from "ioredis";
 import { idempotency } from "../packages/frameworks/hono/index.js";
-import { SqliteIdempotencyStore } from "../packages/stores/sqlite/index.js";
+import { RedisIdempotencyStore } from "../packages/stores/redis/node-redis.js";
 import { createKeyFactory } from "./lib/keys.js";
 
-const MODULE_NAME = "e2e.hono-sqlite";
+const MODULE_NAME = "e2e.hono-redis";
 const FRESH_KEY_TASK = "middleware (fresh key)";
 const REPEAT_KEY_TASK = "middleware (repeat key)";
 const BASELINE_TASK = "baseline (no middleware)";
@@ -24,6 +25,8 @@ const nextFreshBody = () => {
   });
 };
 
+const REDIS_OPTIONS = { host: "127.0.0.1", port: 6379 };
+
 const BASE_HEADERS = {
   "Content-Type": "application/json",
   Accept: "application/json"
@@ -35,6 +38,22 @@ const BODY = JSON.stringify({
   currency: "usd",
   items: [{ sku: "SKU-001", qty: 1 }]
 });
+
+let clientCounter = 0;
+
+/**
+ * Create a store backed by a fresh ioredis client with a unique keyPrefix
+ * so each phase (warmup and timed) starts with an empty keyspace. The
+ * client-level keyPrefix (not the store prefix) is what namespaces the
+ * store's fingerprint keys, mirroring tests/integration/shared/redis.js.
+ */
+async function createStore() {
+  clientCounter += 1;
+  const prefix = `bench_r${clientCounter}`;
+  const client = new Redis({ ...REDIS_OPTIONS, keyPrefix: `${prefix}:` });
+  const store = new RedisIdempotencyStore({ client });
+  return { store, client, prefix };
+}
 
 function createMiddlewareApp(store) {
   const app = new Hono();
@@ -60,25 +79,38 @@ function send(app, { key, body = BODY } = {}) {
   });
 }
 
-function ensureMiddlewareState(state) {
-  if (!state.store) {
-    state.store = new SqliteIdempotencyStore({ path: ":memory:" });
-    state.app = createMiddlewareApp(state.store);
+async function ensureMiddlewareState(state) {
+  if (!state.redis) {
+    state.redis = await createStore();
+    state.store = state.redis.store;
+    state.app = createMiddlewareApp(state.redis.store);
   }
   return state.app;
 }
 
 async function teardownMiddlewareState(state) {
-  if (state.store) {
-    await state.store.close();
-    state.store = null;
-    state.app = null;
+  if (state.redis) {
+    // Delete through an unprefixed client: the traffic client's keyPrefix
+    // would double-prefix DEL arguments.
+    const cleaner = new Redis(REDIS_OPTIONS);
+    try {
+      const keys = await cleaner.keys(`${state.redis.prefix}:*`);
+      if (keys.length > 0) {
+        await cleaner.del(...keys);
+      }
+    } finally {
+      await cleaner.quit();
+      await state.redis.client.quit();
+      state.redis = null;
+      state.store = null;
+      state.app = null;
+    }
   }
 }
 
 /**
- * End-to-end per-request overhead of the hono middleware backed by the
- * sqlite in-memory store. Three timed paths:
+ * End-to-end per-request overhead of the hono middleware backed by a live
+ * redis store. Same three timed paths as e2e.hono-sqlite:
  *
  * - "middleware (fresh key)": unique key AND unique body per request —
  *   the full fingerprint -> lookup -> startProcessing -> handler ->
@@ -89,9 +121,12 @@ async function teardownMiddlewareState(state) {
  * - "baseline (no middleware)": the identical app and request without the
  *   middleware, so the derived overhead metrics are a like-for-like delta.
  *
+ * Requires a reachable redis on 127.0.0.1:6379 (no auth; same
+ * prerequisites as the integration tests).
+ *
  * Lifecycle: tinybench runs the warmup AND the timed phase for every task,
- * each with its own beforeAll/afterAll cycle — so apps and stores are
- * created lazily per phase (ensureMiddlewareState) and closed+cleared in
+ * each with its own beforeAll/afterAll cycle — so clients are created
+ * lazily per phase under a unique keyPrefix and cleaned+closed in
  * afterAll, keeping setup and teardown outside the timed regions.
  *
  * The derived overhead numbers (overhead_delta_ms, overhead_pct) are
@@ -99,13 +134,13 @@ async function teardownMiddlewareState(state) {
  * the ±15% variance gate applies to the raw timings (AE2 scoping).
  */
 export default {
-  name: "e2e.hono-sqlite",
+  name: "e2e.hono-redis",
   register(bench) {
     const state = {};
     bench.add(
       FRESH_KEY_TASK,
       async () => {
-        const res = await send(ensureMiddlewareState(state), {
+        const res = await send(await ensureMiddlewareState(state), {
           key: nextKey("key"),
           body: nextFreshBody()
         });
@@ -120,7 +155,7 @@ export default {
           // Construct the store/app outside the timed region and verify the
           // middleware path actually answers 200 — a 409/400/503 fast-fail
           // would otherwise be timed and reported as a fast success.
-          const res = await send(ensureMiddlewareState(state), {
+          const res = await send(await ensureMiddlewareState(state), {
             key: nextKey("key"),
             body: nextFreshBody()
           });
@@ -139,7 +174,7 @@ export default {
     bench.add(
       REPEAT_KEY_TASK,
       async () => {
-        const res = await send(ensureMiddlewareState(repeatState), {
+        const res = await send(await ensureMiddlewareState(repeatState), {
           key: repeatKey
         });
         if (res.status !== 200) {
@@ -155,7 +190,7 @@ export default {
           // per phase (warmup and timed) against a fresh store, so the
           // priming request is always the first on the record. Also
           // verifies the replay path answers 200.
-          const res = await send(ensureMiddlewareState(repeatState), {
+          const res = await send(await ensureMiddlewareState(repeatState), {
             key: repeatKey
           });
           if (res.status !== 200) {

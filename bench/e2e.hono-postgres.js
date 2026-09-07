@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/index.js";
-import { SqliteIdempotencyStore } from "../packages/stores/sqlite/index.js";
+import { PostgresIdempotencyStore } from "../packages/stores/postgres/index.js";
 import { createKeyFactory } from "./lib/keys.js";
 
-const MODULE_NAME = "e2e.hono-sqlite";
+const MODULE_NAME = "e2e.hono-postgres";
 const FRESH_KEY_TASK = "middleware (fresh key)";
 const REPEAT_KEY_TASK = "middleware (repeat key)";
 const BASELINE_TASK = "baseline (no middleware)";
@@ -36,6 +36,38 @@ const BODY = JSON.stringify({
   items: [{ sku: "SKU-001", qty: 1 }]
 });
 
+let schemaCounter = 0;
+
+/**
+ * Create a store in a fresh, uniquely named schema so each phase (warmup
+ * and timed) starts with an empty table. The store's constructor fires
+ * initSchema() without awaiting it, so poll until the table answers.
+ */
+async function createStore() {
+  schemaCounter += 1;
+  const store = new PostgresIdempotencyStore({
+    host: "localhost",
+    port: 5432,
+    database: "test",
+    user: "idempot",
+    password: "idempot",
+    schema: `bench_pg_${schemaCounter}`
+  });
+  for (let i = 0; i < 50; i++) {
+    try {
+      await store.pool.query(
+        `SELECT 1 FROM ${store.quotedSchemaIdentifier}.idempotency_records LIMIT 1`
+      );
+      return store;
+    } catch {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  }
+  throw new Error(
+    `idempotency_records table not ready for schema bench_pg_${schemaCounter} after 1s`
+  );
+}
+
 function createMiddlewareApp(store) {
   const app = new Hono();
   app.post("/pay", idempotency({ store }), (c) => c.json({ ok: true }));
@@ -60,9 +92,9 @@ function send(app, { key, body = BODY } = {}) {
   });
 }
 
-function ensureMiddlewareState(state) {
+async function ensureMiddlewareState(state) {
   if (!state.store) {
-    state.store = new SqliteIdempotencyStore({ path: ":memory:" });
+    state.store = await createStore();
     state.app = createMiddlewareApp(state.store);
   }
   return state.app;
@@ -70,6 +102,9 @@ function ensureMiddlewareState(state) {
 
 async function teardownMiddlewareState(state) {
   if (state.store) {
+    await state.store.pool.query(
+      `DROP SCHEMA IF EXISTS ${state.store.quotedSchemaIdentifier} CASCADE`
+    );
     await state.store.close();
     state.store = null;
     state.app = null;
@@ -77,8 +112,8 @@ async function teardownMiddlewareState(state) {
 }
 
 /**
- * End-to-end per-request overhead of the hono middleware backed by the
- * sqlite in-memory store. Three timed paths:
+ * End-to-end per-request overhead of the hono middleware backed by a live
+ * postgres store. Same three timed paths as e2e.hono-sqlite:
  *
  * - "middleware (fresh key)": unique key AND unique body per request —
  *   the full fingerprint -> lookup -> startProcessing -> handler ->
@@ -89,23 +124,29 @@ async function teardownMiddlewareState(state) {
  * - "baseline (no middleware)": the identical app and request without the
  *   middleware, so the derived overhead metrics are a like-for-like delta.
  *
+ * Requires a reachable postgres on localhost:5432 with database `test`
+ * and user `idempot`/`idempot` (same prerequisites as the integration
+ * tests). Unlike the sqlite module there is no in-memory store, so this
+ * module measures real network-free (unix/tcp localhost) round-trip
+ * overhead and includes the store's DDL-free steady-state cost.
+ *
  * Lifecycle: tinybench runs the warmup AND the timed phase for every task,
- * each with its own beforeAll/afterAll cycle — so apps and stores are
- * created lazily per phase (ensureMiddlewareState) and closed+cleared in
- * afterAll, keeping setup and teardown outside the timed regions.
+ * each with its own beforeAll/afterAll cycle — so stores are created
+ * lazily per phase in a unique schema and dropped+closed in afterAll,
+ * keeping setup and teardown outside the timed regions.
  *
  * The derived overhead numbers (overhead_delta_ms, overhead_pct) are
  * computed from the paired medians by derive() — they are informational;
  * the ±15% variance gate applies to the raw timings (AE2 scoping).
  */
 export default {
-  name: "e2e.hono-sqlite",
+  name: "e2e.hono-postgres",
   register(bench) {
     const state = {};
     bench.add(
       FRESH_KEY_TASK,
       async () => {
-        const res = await send(ensureMiddlewareState(state), {
+        const res = await send(await ensureMiddlewareState(state), {
           key: nextKey("key"),
           body: nextFreshBody()
         });
@@ -120,7 +161,7 @@ export default {
           // Construct the store/app outside the timed region and verify the
           // middleware path actually answers 200 — a 409/400/503 fast-fail
           // would otherwise be timed and reported as a fast success.
-          const res = await send(ensureMiddlewareState(state), {
+          const res = await send(await ensureMiddlewareState(state), {
             key: nextKey("key"),
             body: nextFreshBody()
           });
@@ -139,7 +180,7 @@ export default {
     bench.add(
       REPEAT_KEY_TASK,
       async () => {
-        const res = await send(ensureMiddlewareState(repeatState), {
+        const res = await send(await ensureMiddlewareState(repeatState), {
           key: repeatKey
         });
         if (res.status !== 200) {
@@ -155,7 +196,7 @@ export default {
           // per phase (warmup and timed) against a fresh store, so the
           // priming request is always the first on the record. Also
           // verifies the replay path answers 200.
-          const res = await send(ensureMiddlewareState(repeatState), {
+          const res = await send(await ensureMiddlewareState(repeatState), {
             key: repeatKey
           });
           if (res.status !== 200) {

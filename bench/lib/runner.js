@@ -17,7 +17,14 @@ const MODULE_FILES = [
   "./micro.fingerprint.js",
   "./micro.validation.js",
   "./micro.resilience.js",
-  "./e2e.hono-sqlite.js"
+  "./e2e.hono-sqlite.js",
+  "./e2e.hono-postgres.js",
+  "./e2e.hono-mysql.js",
+  "./e2e.hono-redis.js",
+  "./e2e.express-sqlite.js",
+  "./e2e.express-postgres.js",
+  "./e2e.express-mysql.js",
+  "./e2e.express-redis.js"
 ];
 
 export const PRESETS = {
@@ -280,9 +287,12 @@ export async function runSuite({ preset, modules }) {
   const { repeats, benchOptions } = PRESETS[preset];
   const repeatsResults = [];
   for (let index = 0; index < repeats; index++) {
-    const bench = new Bench({ ...benchOptions, name: "suite" });
-    const taskModule = new Map();
     for (const module of modules) {
+      // One Bench per module: tinybench requires unique task names per
+      // instance, and e2e modules reuse the "middleware (fresh key)" etc.
+      // task names across frameworks and stores.
+      const bench = new Bench({ ...benchOptions, name: "suite" });
+      const taskModule = new Map();
       const before = new Set(bench.tasks.map((task) => task.name));
       module.register(bench, preset);
       for (const task of bench.tasks) {
@@ -290,9 +300,9 @@ export async function runSuite({ preset, modules }) {
           taskModule.set(task.name, module.name);
         }
       }
+      await bench.run();
+      repeatsResults.push(collectRunResults(bench, taskModule));
     }
-    await bench.run();
-    repeatsResults.push(collectRunResults(bench, taskModule));
   }
   const results = aggregate(repeatsResults);
   const derived = [];
