@@ -55,7 +55,9 @@ METRIC <module>.<benchmark>.<metric>=<value>
 - `<module>` — benchmark module name (`fixture`, `micro.fingerprint`, `e2e.hono-sqlite`, ...)
 - `<benchmark>` — task name with spaces replaced by `_`
 - `<metric>` — one of:
-  - `median_hz` — median operations per second (primary)
+  - throughput — unit-explicit: `req_s` for e2e modules (requests per second);
+    `ops_s` or `ops_ms` for micro modules, with `ops_ms` chosen once the raw
+    rate reaches 1,000,000 ops/s (primary)
   - `median_ms` — median milliseconds per operation
   - `rme_pct` — tinybench relative margin of error, percent
   - `spread_pct` — (max − min) / median across full-preset repeats, percent; full preset only
@@ -93,7 +95,7 @@ path (only up to the first await), producing meaningless numbers.
 
 Sub-microsecond tasks quantize to the timer tick: the presets use the
 `hrtimeNow` timestamp provider for nanosecond resolution, but rows whose
-`median_hz` values are bit-identical across different operations are
+throughput values are bit-identical across different operations are
 timer-saturated — compare their medians with that in mind.
 
 ## Layout

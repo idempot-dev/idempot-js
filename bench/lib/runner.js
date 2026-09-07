@@ -127,20 +127,60 @@ function aggregate(repeats) {
     }
   }
   return [...perTask.values()].map(({ module, task, runs }) => {
-    const hzValues = runs.map((run) => run.throughput.p50);
-    const hzMedian = median(hzValues);
+    const opsValues = runs.map((run) => run.throughput.p50);
+    const opsMedian = median(opsValues);
     const result = {
       module,
       task,
-      median_hz: hzMedian,
+      median_ops_s: opsMedian,
       median_ms: median(runs.map((run) => run.latency.p50)),
       rme_pct: median(runs.map((run) => run.throughput.rme))
     };
     if (runs.length > 1) {
-      const spread = (Math.max(...hzValues) - Math.min(...hzValues)) / hzMedian;
+      const spread =
+        (Math.max(...opsValues) - Math.min(...opsValues)) / opsMedian;
       result.spread_pct = spread * 100;
     }
     return result;
+  });
+}
+
+/**
+ * Unit-explicit throughput display: e2e tasks handle requests, so they read
+ * as req/s; micro tasks read as ops/s, switching to ops/ms once the raw rate
+ * reaches 1,000,000 ops/s (values below that stay readable as ops/s).
+ */
+function throughputDisplay(row) {
+  if (row.module.startsWith("e2e.")) {
+    return { unit: "req/s", value: row.median_ops_s };
+  }
+  if (row.median_ops_s >= 1e6) {
+    return { unit: "ops/ms", value: row.median_ops_s / 1000 };
+  }
+  return { unit: "ops/s", value: row.median_ops_s };
+}
+
+const UNIT_METRIC_NAMES = {
+  "req/s": "req_s",
+  "ops/s": "ops_s",
+  "ops/ms": "ops_ms"
+};
+
+function displayRows(results) {
+  return results.map((row) => {
+    const { unit, value } = throughputDisplay(row);
+    const cells = {
+      module: row.module,
+      task: row.task,
+      throughput: value,
+      unit,
+      median_ms: row.median_ms,
+      rme_pct: row.rme_pct
+    };
+    if (row.spread_pct !== undefined) {
+      cells.spread_pct = row.spread_pct;
+    }
+    return cells;
   });
 }
 
@@ -151,11 +191,18 @@ function moduleResults(results, moduleName) {
 function metricLines(results, derived) {
   const lines = [];
   for (const row of results) {
-    for (const metric of Object.keys(row).filter(
-      (key) => key !== "module" && key !== "task"
-    )) {
+    const { unit, value } = throughputDisplay(row);
+    const metrics = {
+      [UNIT_METRIC_NAMES[unit]]: value,
+      median_ms: row.median_ms,
+      rme_pct: row.rme_pct
+    };
+    if (row.spread_pct !== undefined) {
+      metrics.spread_pct = row.spread_pct;
+    }
+    for (const metric of Object.keys(metrics)) {
       lines.push(
-        `METRIC ${slug(row.module)}.${slug(row.task)}.${metric}=${row[metric]}`
+        `METRIC ${slug(row.module)}.${slug(row.task)}.${metric}=${metrics[metric]}`
       );
     }
   }
@@ -169,7 +216,8 @@ function formatTable(results) {
   const columns = [
     "module",
     "task",
-    "median_hz",
+    "throughput",
+    "unit",
     "median_ms",
     "rme_pct",
     "spread_pct"
@@ -201,7 +249,7 @@ function formatTable(results) {
 
 function writeResultsFile({ preset, modules, results, lines }) {
   const date = new Date().toISOString();
-  const table = formatTable(results);
+  const table = formatTable(displayRows(results));
   const modulesNote =
     modules.length === MODULE_FILES.length
       ? "all modules"
@@ -258,7 +306,7 @@ export async function runSuite({ preset, modules }) {
     console.log(line);
   }
   console.log("");
-  console.log(formatTable(results));
+  console.log(formatTable(displayRows(results)));
   writeResultsFile({ preset, modules, results, lines });
   return { results, derived, lines };
 }
