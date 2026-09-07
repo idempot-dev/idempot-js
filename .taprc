@@ -9,6 +9,7 @@ files:
 
 exclude:
   - "node_modules/**"
+  - "**/node_modules/**"
   - "**/shared/*.js"
   - "tests/integration/shared/"
   - "tests/runtime/bun/bun-sql-integration.test.js"
