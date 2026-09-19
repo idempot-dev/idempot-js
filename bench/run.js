@@ -5,11 +5,20 @@ import {
   runSuite,
   validateSelection
 } from "./lib/runner.js";
+import {
+  compareRuns,
+  formatComparison,
+  guardComparison,
+  readBaseline
+} from "./lib/compare.js";
 
 const args = process.argv.slice(2);
 const names = [];
 let preset = "full";
 let resultsFile = true;
+let saveBaselinePath = null;
+let comparePath = null;
+let label = null;
 
 for (let index = 0; index < args.length; index++) {
   const arg = args[index];
@@ -19,6 +28,18 @@ for (let index = 0; index < args.length; index++) {
     preset = arg.slice("--preset=".length);
   } else if (arg === "--no-results-file") {
     resultsFile = false;
+  } else if (arg === "--save-baseline") {
+    saveBaselinePath = args[++index];
+  } else if (arg.startsWith("--save-baseline=")) {
+    saveBaselinePath = arg.slice("--save-baseline=".length);
+  } else if (arg === "--compare") {
+    comparePath = args[++index];
+  } else if (arg.startsWith("--compare=")) {
+    comparePath = arg.slice("--compare=".length);
+  } else if (arg === "--label") {
+    label = args[++index];
+  } else if (arg.startsWith("--label=")) {
+    label = arg.slice("--label=".length);
   } else {
     names.push(arg);
   }
@@ -50,4 +71,27 @@ if (!selection.ok) {
   process.exit(1);
 }
 
-await runSuite({ preset, modules: selection.selected, resultsFile });
+const { baseline } = await runSuite({
+  preset,
+  modules: selection.selected,
+  resultsFile,
+  label,
+  saveBaselinePath
+});
+
+if (comparePath) {
+  const reference = readBaseline(comparePath);
+  const problems = guardComparison(reference, baseline);
+  if (problems.length > 0) {
+    for (const problem of problems) {
+      console.error(`Cannot compare against ${comparePath}: ${problem}`);
+    }
+    process.exit(1);
+  }
+  console.log("");
+  console.log(
+    formatComparison(compareRuns(reference, baseline), {
+      baselinePath: comparePath
+    })
+  );
+}

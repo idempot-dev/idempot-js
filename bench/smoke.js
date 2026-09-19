@@ -10,6 +10,7 @@
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -194,7 +195,76 @@ if (bunCheck.status === 0) {
   console.log("ok: bun binary not available, skipping bun harness checks");
 }
 
-// 6. Baseline preservation.
+// 6. Baseline save + compare mode (fixture quick runs are cheap).
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "bench-smoke-"));
+const baselinePath = path.join(tmpDir, "baseline.json");
+const saved = runBench([
+  "--preset",
+  "quick",
+  "fixture",
+  "--save-baseline",
+  baselinePath
+]);
+check("save-baseline run exits 0", saved.status === 0, saved.stderr);
+const baselineObj = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
+check(
+  "baseline JSON shape",
+  baselineObj.version === 1 &&
+    baselineObj.preset === "quick" &&
+    typeof baselineObj.runtime?.cpu === "string" &&
+    Array.isArray(baselineObj.results) &&
+    baselineObj.results.some(
+      (row) =>
+        row.module === "fixture" && typeof row.metrics?.median_ms === "number"
+    )
+);
+const compared = runBench([
+  "--preset",
+  "quick",
+  "fixture",
+  "--compare",
+  baselinePath
+]);
+check("compare exits 0", compared.status === 0, compared.stderr);
+check(
+  "compare prints deltas",
+  /delta/.test(compared.stdout) && /fixture/.test(compared.stdout)
+);
+// Guards: refuse comparisons that would produce misleading deltas.
+const mismatched = structuredClone(baselineObj);
+mismatched.preset = "full";
+const mismatchPath = path.join(tmpDir, "mismatch.json");
+fs.writeFileSync(mismatchPath, JSON.stringify(mismatched));
+const refusedPreset = runBench([
+  "--preset",
+  "quick",
+  "fixture",
+  "--compare",
+  mismatchPath
+]);
+check(
+  "compare refuses preset mismatch",
+  refusedPreset.status === 1 && /preset mismatch/.test(refusedPreset.stderr)
+);
+const otherMachine = structuredClone(baselineObj);
+otherMachine.runtime = { ...otherMachine.runtime, cpu: "Other CPU" };
+const otherPath = path.join(tmpDir, "other.json");
+fs.writeFileSync(otherPath, JSON.stringify(otherMachine));
+const refusedMachine = runBench([
+  "--preset",
+  "quick",
+  "fixture",
+  "--compare",
+  otherPath
+]);
+check(
+  "compare refuses machine mismatch",
+  refusedMachine.status === 1 &&
+    /hardware\/runtime mismatch/.test(refusedMachine.stderr)
+);
+fs.rmSync(tmpDir, { recursive: true, force: true });
+
+// 7. Baseline preservation.
 const resultsAfter = fs.readFileSync(RESULTS_PATH, "utf8");
 check(
   "smoke leaves bench/results.md untouched",

@@ -49,6 +49,8 @@
     "bench:smoke": "node bench/smoke.js",
     "bench:bun": "bun bench/run.js --preset full",
     "bench:bun:quick": "bun bench/run.js --preset quick",
+    "bench:baseline": "node bench/run.js --preset quick --save-baseline bench/baseline.local.json",
+    "bench:compare": "node bench/run.js --preset quick --compare bench/baseline.local.json",
     "build": "pnpm -r build",
     "test": "tap --reporter dot",
     "test:coverage": "tap --show-full-coverage",
