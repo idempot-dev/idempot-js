@@ -118,6 +118,9 @@ importers:
       tap:
         specifier: ^21.7.5
         version: 21.7.5(@types/node@20.19.37)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@6.0.3)
+      tinybench:
+        specifier: ^6.1.6
+        version: 6.1.6
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -4421,6 +4424,10 @@ packages:
 
   tiny-case@1.0.3:
     resolution: {integrity: sha512-Eet/eeMhkO6TX8mnUteS9zgPbUMQa4I6Kkp5ORiBD5476/m+PIRiumP5tmh5ioJpH7k51Kehawy2UDfsnxxY8Q==}
+
+  tinybench@6.1.6:
+    resolution: {integrity: sha512-qEHpSqUC/KkD4rypubEZ/gSENbH6x4E8d8UM5aBndJhRjTW3sPW4jmS5C1/wHhMFMj040jgJl2XvQOYdZDgKkA==}
+    engines: {node: '>=20.0.0'}
 
   tinyexec@1.0.4:
     resolution: {integrity: sha512-u9r3uZC0bdpGOXtlxUIdwf9pkmvhqJdrVCH9fapQtgy/OeTTMZ1nqH7agtvEfmGui6e1XxjcdrlxvxJvc3sMqw==}
@@ -9330,6 +9337,8 @@ snapshots:
       convert-hrtime: 5.0.0
 
   tiny-case@1.0.3: {}
+
+  tinybench@6.1.6: {}
 
   tinyexec@1.0.4: {}
 
