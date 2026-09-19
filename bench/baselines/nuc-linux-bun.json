@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "runDate": "2026-09-19T11:33:50.955Z",
+  "preset": "full",
+  "label": "nuc",
+  "runtime": {
+    "kind": "bun",
+    "version": "1.4.2",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) i7-10710U CPU @ 1.10GHz"
+  },
+  "modules": [
+    "e2e.bun-bunsql-sqlite",
+    "e2e.bun-bunsql-postgres",
+    "e2e.bun-bunsql-mysql",
+    "e2e.bun-redis"
+  ],
+  "results": [
+    {
+      "module": "e2e.bun-bunsql-sqlite",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 0.1067355,
+        "rme_pct": 0.5708888011314175,
+        "req_s": 9368.954106883575,
+        "spread_pct": 10.958564821170713
+      }
+    },
+    {
+      "module": "e2e.bun-bunsql-sqlite",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.061103,
+        "rme_pct": 0.44368886597251384,
+        "req_s": 16365.80855277155,
+        "spread_pct": 8.382896773207705
+      }
+    },
+    {
+      "module": "e2e.bun-bunsql-sqlite",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.002398,
+        "rme_pct": 0.09361174504887566,
+        "req_s": 417014.1784820684,
+        "spread_pct": 4.375270641567345
+      }
+    },
+    {
+      "module": "e2e.bun-bunsql-postgres",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 2.4218,
+        "rme_pct": 2.021730377907331,
+        "req_s": 412.91601288297954,
+        "spread_pct": 12.155789720005155
+      }
+    },
+    {
+      "module": "e2e.bun-bunsql-postgres",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.16061,
+        "rme_pct": 0.575832406778871,
+        "req_s": 6226.2623768687945,
+        "spread_pct": 10.40812036324119
+      }
+    },
+    {
+      "module": "e2e.bun-bunsql-postgres",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.002421,
+        "rme_pct": 0.09207751069115418,
+        "req_s": 413052.4576621231,
+        "spread_pct": 4.782385690993459
+      }
+    },
+    {
+      "module": "e2e.bun-bunsql-mysql",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 13.010284,
+        "rme_pct": 4.118711110201618,
+        "req_s": 76.86239271285666,
+        "spread_pct": 3.6751669418379205
+      }
+    },
+    {
+      "module": "e2e.bun-bunsql-mysql",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.18757,
+        "rme_pct": 0.5323833293166881,
+        "req_s": 5331.342965292958,
+        "spread_pct": 11.057188549610785
+      }
+    },
+    {
+      "module": "e2e.bun-bunsql-mysql",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.002408,
+        "rme_pct": 0.09155151557639736,
+        "req_s": 415282.3920265781,
+        "spread_pct": 4.856326770038858
+      }
+    },
+    {
+      "module": "e2e.bun-redis",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 0.199493,
+        "rme_pct": 0.4978923568857754,
+        "req_s": 5012.7072127844085,
+        "spread_pct": 8.686795939192255
+      }
+    },
+    {
+      "module": "e2e.bun-redis",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.086324,
+        "rme_pct": 0.3378682536930108,
+        "req_s": 11584.263935869516,
+        "spread_pct": 7.853051820518858
+      }
+    },
+    {
+      "module": "e2e.bun-redis",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.002421,
+        "rme_pct": 0.09475365586013948,
+        "req_s": 413052.4576621231,
+        "spread_pct": 3.2306491322884816
+      }
+    }
+  ],
+  "derived": [
+    {
+      "name": "e2e.bun-bunsql-sqlite.overhead_delta_ms",
+      "value": 0.1043375
+    },
+    {
+      "name": "e2e.bun-bunsql-sqlite.overhead_pct",
+      "value": 4351.021684737281
+    },
+    {
+      "name": "e2e.bun-bunsql-postgres.overhead_delta_ms",
+      "value": 2.419379
+    },
+    {
+      "name": "e2e.bun-bunsql-postgres.overhead_pct",
+      "value": 99933.04419661297
+    },
+    {
+      "name": "e2e.bun-bunsql-mysql.overhead_delta_ms",
+      "value": 13.007876
+    },
+    {
+      "name": "e2e.bun-bunsql-mysql.overhead_pct",
+      "value": 540194.1860465116
+    },
+    {
+      "name": "e2e.bun-redis.overhead_delta_ms",
+      "value": 0.197072
+    },
+    {
+      "name": "e2e.bun-redis.overhead_pct",
+      "value": 8140.107393638992
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "runDate": "2026-09-06T12:29:26.113Z",
+  "preset": "full",
+  "label": "m1-air",
+  "runtime": {
+    "kind": "node",
+    "version": "24.16.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M1"
+  },
+  "modules": [
+    "fixture",
+    "micro.fingerprint",
+    "micro.validation",
+    "micro.resilience",
+    "e2e.hono-sqlite"
+  ],
+  "results": [
+    {
+      "module": "fixture",
+      "task": "noop",
+      "metrics": {
+        "median_ms": 0,
+        "rme_pct": 0.006,
+        "ops_s": 23809523.81,
+        "spread_pct": 2.439
+      }
+    },
+    {
+      "module": "micro.fingerprint",
+      "task": "parse+hash (steady state)",
+      "metrics": {
+        "median_ms": 0.009,
+        "rme_pct": 0.11,
+        "ops_s": 107619.458,
+        "spread_pct": 52.825
+      }
+    },
+    {
+      "module": "micro.fingerprint",
+      "task": "exclusion filtering",
+      "metrics": {
+        "median_ms": 0.015,
+        "rme_pct": 0.084,
+        "ops_s": 66853.857,
+        "spread_pct": 59.112
+      }
+    },
+    {
+      "module": "micro.fingerprint",
+      "task": "raw hash (non-JSON body)",
+      "metrics": {
+        "median_ms": 0.005,
+        "rme_pct": 0.078,
+        "ops_s": 192012.289,
+        "spread_pct": 58.36
+      }
+    },
+    {
+      "module": "micro.validation",
+      "task": "key validation accept",
+      "metrics": {
+        "median_ms": 0,
+        "rme_pct": 0.012,
+        "ops_s": 23809523.81,
+        "spread_pct": 0
+      }
+    },
+    {
+      "module": "micro.validation",
+      "task": "key validation reject (too short)",
+      "metrics": {
+        "median_ms": 0,
+        "rme_pct": 0.032,
+        "ops_s": 12048192.771,
+        "spread_pct": 97.619
+      }
+    },
+    {
+      "module": "micro.validation",
+      "task": "key validation reject (too long)",
+      "metrics": {
+        "median_ms": 0,
+        "rme_pct": 0.034,
+        "ops_s": 12048192.771,
+        "spread_pct": 98.81
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "lookup (bare)",
+      "metrics": {
+        "median_ms": 0.037,
+        "rme_pct": 0.428,
+        "ops_s": 27335.101,
+        "spread_pct": 62.248
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "lookup (resilient)",
+      "metrics": {
+        "median_ms": 0.034,
+        "rme_pct": 0.272,
+        "ops_s": 29020.837,
+        "spread_pct": 55.438
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "startProcessing (bare)",
+      "metrics": {
+        "median_ms": 0.012,
+        "rme_pct": 0.179,
+        "ops_s": 83619.032,
+        "spread_pct": 37.061
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "startProcessing (resilient)",
+      "metrics": {
+        "median_ms": 0.015,
+        "rme_pct": 0.173,
+        "ops_s": 67226.891,
+        "spread_pct": 51.671
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "complete (bare)",
+      "metrics": {
+        "median_ms": 0.01,
+        "rme_pct": 0.126,
+        "ops_s": 98765.432,
+        "spread_pct": 55.584
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "complete (resilient)",
+      "metrics": {
+        "median_ms": 0.012,
+        "rme_pct": 0.114,
+        "ops_s": 85106.383,
+        "spread_pct": 51.172
+      }
+    },
+    {
+      "module": "e2e.hono-sqlite",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 0.06,
+        "rme_pct": 0.231,
+        "req_s": 16759.964,
+        "spread_pct": 50.643
+      }
+    },
+    {
+      "module": "e2e.hono-sqlite",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.057,
+        "rme_pct": 0.233,
+        "req_s": 17492.609,
+        "spread_pct": 35.533
+      }
+    },
+    {
+      "module": "e2e.hono-sqlite",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.011,
+        "rme_pct": 0.092,
+        "req_s": 93755.86,
+        "spread_pct": 36.465
+      }
+    }
+  ],
+  "derived": []
+}
