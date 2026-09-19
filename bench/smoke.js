@@ -170,7 +170,24 @@ check(
 );
 roundTripMetrics("e2e", e2e.stdout);
 
-// 4. Baseline preservation.
+// 4. Express harness: the express modules serve real HTTP on an
+// ephemeral port; exercise the in-memory sqlite module so an
+// express-harness regression (server lifecycle, body drain, settle)
+// fails here instead of only on manual module runs.
+const express = runBench(["--preset", "quick", "e2e.express-sqlite"]);
+check(
+  "express run exits 0",
+  express.status === 0,
+  express.stderr ?? express.error?.message
+);
+check(
+  "express emits derived overhead metrics",
+  /^METRIC e2e\.express-sqlite\.overhead_delta_ms=/m.test(express.stdout) &&
+    /^METRIC e2e\.express-sqlite\.overhead_pct=/m.test(express.stdout)
+);
+roundTripMetrics("express", express.stdout);
+
+// 5. Baseline preservation.
 if (hasResultsBaseline) {
   const resultsAfter = fs.readFileSync(RESULTS_PATH, "utf8");
   check(
