@@ -29,31 +29,42 @@ async function createStore() {
     database: "test",
     user: "idempot",
     password: "idempot",
-    schema: `bench_pg_${schemaCounter}`
+    schema: `bench_pg_${process.pid}_${schemaCounter}`
   });
+  let lastError;
   for (let i = 0; i < 50; i++) {
     try {
       await store.pool.query(
         `SELECT 1 FROM ${store.quotedSchemaIdentifier}.idempotency_records LIMIT 1`
       );
       return store;
-    } catch {
+    } catch (e) {
+      // A down database will never become ready; fail with the real
+      // error instead of misattributing it to DDL timing.
+      if (e?.code === "ECONNREFUSED") {
+        throw e;
+      }
+      lastError = e;
       await new Promise((r) => setTimeout(r, 20));
     }
   }
   throw new Error(
-    `idempotency_records table not ready for schema bench_pg_${schemaCounter} after 1s`
+    `idempotency_records table not ready for schema bench_pg_${process.pid}_${schemaCounter} after 1s (last error: ${lastError?.message ?? "unknown"})`
   );
 }
 
 async function teardownStore(state) {
   if (state.store) {
-    await state.store.pool.query(
-      `DROP SCHEMA IF EXISTS ${state.store.quotedSchemaIdentifier} CASCADE`
-    );
-    await state.store.close();
-    state.store = null;
-    state.app = null;
+    try {
+      await state.store.pool.query(
+        `DROP SCHEMA IF EXISTS ${state.store.quotedSchemaIdentifier} CASCADE`
+      );
+    } finally {
+      // The pool is released even when the DROP fails (lost connection).
+      await state.store.close();
+      state.store = null;
+      state.app = null;
+    }
   }
 }
 

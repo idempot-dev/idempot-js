@@ -3,6 +3,7 @@ import Redis from "ioredis";
 import { idempotency } from "../packages/frameworks/hono/index.js";
 import { RedisIdempotencyStore } from "../packages/stores/redis/node-redis.js";
 import { createKeyFactory } from "./lib/keys.js";
+import { BASE_BODY, BASE_HEADERS, createBodyFactory } from "./lib/fixtures.js";
 
 const MODULE_NAME = "e2e.hono-redis";
 const FRESH_KEY_TASK = "middleware (fresh key)";
@@ -10,34 +11,11 @@ const REPEAT_KEY_TASK = "middleware (repeat key)";
 const BASELINE_TASK = "baseline (no middleware)";
 const nextKey = createKeyFactory(19);
 
-// Unique request-body factory for the fresh-key task: the middleware
-// rejects a fresh key whose payload fingerprint matches an earlier record
-// (checkLookupConflicts returns 409), so each timed iteration needs a
-// unique key AND a unique body to exercise the full claim chain.
-let freshBodyCounter = 0;
-const nextFreshBody = () => {
-  freshBodyCounter += 1;
-  return JSON.stringify({
-    orderId: `ord-2026-${String(freshBodyCounter).padStart(6, "0")}`,
-    amount: 4999,
-    currency: "usd",
-    items: [{ sku: "SKU-001", qty: 1 }]
-  });
-};
+const nextFreshBody = createBodyFactory();
 
 const REDIS_OPTIONS = { host: "127.0.0.1", port: 6379 };
 
-const BASE_HEADERS = {
-  "Content-Type": "application/json",
-  Accept: "application/json"
-};
-
-const BODY = JSON.stringify({
-  orderId: "ord-2026-000001",
-  amount: 4999,
-  currency: "usd",
-  items: [{ sku: "SKU-001", qty: 1 }]
-});
+const BODY = JSON.stringify(BASE_BODY);
 
 let clientCounter = 0;
 
@@ -49,7 +27,9 @@ let clientCounter = 0;
  */
 async function createStore() {
   clientCounter += 1;
-  const prefix = `bench_r${clientCounter}`;
+  // The pid namespaces the prefix so concurrent suite runs on one
+  // machine cannot delete each other's keys mid-phase.
+  const prefix = `bench_r${process.pid}_${clientCounter}`;
   const client = new Redis({ ...REDIS_OPTIONS, keyPrefix: `${prefix}:` });
   const store = new RedisIdempotencyStore({ client });
   return { store, client, prefix };
@@ -99,11 +79,15 @@ async function teardownMiddlewareState(state) {
         await cleaner.del(...keys);
       }
     } finally {
-      await cleaner.quit();
-      await state.redis.client.quit();
-      state.redis = null;
-      state.store = null;
-      state.app = null;
+      try {
+        await cleaner.quit();
+      } finally {
+        // Each client quits even when the other's quit rejects.
+        await state.redis.client.quit();
+        state.redis = null;
+        state.store = null;
+        state.app = null;
+      }
     }
   }
 }

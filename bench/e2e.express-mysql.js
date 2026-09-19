@@ -25,7 +25,9 @@ let tableCounter = 0;
  */
 async function createStore() {
   tableCounter += 1;
-  const tableName = `bench_mysql_${tableCounter}`;
+  // The pid namespaces the table so concurrent suite runs on one
+  // machine cannot drop each other's tables mid-phase.
+  const tableName = `bench_mysql_${process.pid}_${tableCounter}`;
   const store = new MysqlIdempotencyStore({
     host: "localhost",
     port: 3306,
@@ -51,8 +53,12 @@ async function createStore() {
 }
 
 async function teardownStore(store) {
-  await store.pool.query(`DROP TABLE IF EXISTS \`${store.tableName}\``);
-  await store.close();
+  try {
+    await store.pool.query(`DROP TABLE IF EXISTS \`${store.tableName}\``);
+  } finally {
+    // The pool is released even when the DROP fails (lost connection).
+    await store.close();
+  }
 }
 
 /**
@@ -98,9 +104,13 @@ export default {
           }
         },
         afterAll: async () => {
-          await stopServer(state.server);
-          await teardownStore(state.store);
-          state.store = null;
+          try {
+            await stopServer(state.server);
+          } finally {
+            // The store is released even when the server close fails.
+            await teardownStore(state.store);
+            state.store = null;
+          }
         }
       }
     );
@@ -134,9 +144,13 @@ export default {
           await settle();
         },
         afterAll: async () => {
-          await stopServer(repeatState.server);
-          await teardownStore(repeatState.store);
-          repeatState.store = null;
+          try {
+            await stopServer(repeatState.server);
+          } finally {
+            // The store is released even when the server close fails.
+            await teardownStore(repeatState.store);
+            repeatState.store = null;
+          }
         }
       }
     );

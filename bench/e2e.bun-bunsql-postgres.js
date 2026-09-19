@@ -36,18 +36,22 @@ async function createStore() {
 
 async function teardownStore(state) {
   if (state.store) {
-    await state.store.close();
-    const pool = new Pool({
-      host: "localhost",
-      port: 5432,
-      database: "test",
-      user: "idempot",
-      password: "idempot"
-    });
-    await pool.query(`DROP SCHEMA IF EXISTS ${state.schema} CASCADE`);
-    await pool.end();
-    state.store = null;
-    state.handler = null;
+    try {
+      await state.store.close();
+    } finally {
+      // The schema is dropped even when the store close fails.
+      const pool = new Pool({
+        host: "localhost",
+        port: 5432,
+        database: "test",
+        user: "idempot",
+        password: "idempot"
+      });
+      await pool.query(`DROP SCHEMA IF EXISTS ${state.schema} CASCADE`);
+      await pool.end();
+      state.store = null;
+      state.handler = null;
+    }
   }
 }
 

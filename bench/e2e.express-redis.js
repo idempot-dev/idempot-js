@@ -28,7 +28,9 @@ let clientCounter = 0;
  */
 async function createStore() {
   clientCounter += 1;
-  const prefix = `bench_r${clientCounter}`;
+  // The pid namespaces the prefix so concurrent suite runs on one
+  // machine cannot delete each other's keys mid-phase.
+  const prefix = `bench_r${process.pid}_${clientCounter}`;
   const client = new Redis({ ...REDIS_OPTIONS, keyPrefix: `${prefix}:` });
   const store = new RedisIdempotencyStore({ client });
   return { store, client, prefix };
@@ -44,8 +46,12 @@ async function teardownStore(redis) {
       await cleaner.del(...keys);
     }
   } finally {
-    await cleaner.quit();
-    await redis.client.quit();
+    try {
+      await cleaner.quit();
+    } finally {
+      // Each client quits even when the other's quit rejects.
+      await redis.client.quit();
+    }
   }
 }
 
@@ -92,9 +98,13 @@ export default {
           }
         },
         afterAll: async () => {
-          await stopServer(state.server);
-          await teardownStore(state.redis);
-          state.redis = null;
+          try {
+            await stopServer(state.server);
+          } finally {
+            // The redis clients are released even when the server close fails.
+            await teardownStore(state.redis);
+            state.redis = null;
+          }
         }
       }
     );
@@ -128,9 +138,13 @@ export default {
           await settle();
         },
         afterAll: async () => {
-          await stopServer(repeatState.server);
-          await teardownStore(repeatState.redis);
-          repeatState.redis = null;
+          try {
+            await stopServer(repeatState.server);
+          } finally {
+            // The redis clients are released even when the server close fails.
+            await teardownStore(repeatState.redis);
+            repeatState.redis = null;
+          }
         }
       }
     );

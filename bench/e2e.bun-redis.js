@@ -21,7 +21,9 @@ let clientCounter = 0;
  */
 async function createStore() {
   clientCounter += 1;
-  const prefix = `bench_r${clientCounter}`;
+  // The pid namespaces the prefix so concurrent suite runs on one
+  // machine cannot delete each other's keys mid-phase.
+  const prefix = `bench_r${process.pid}_${clientCounter}`;
   const client = new Redis({ ...REDIS_OPTIONS, keyPrefix: `${prefix}:` });
   const store = new RedisIdempotencyStore({ client });
   return { store, client, prefix };
@@ -38,11 +40,15 @@ async function teardownStore(state) {
         await cleaner.del(...keys);
       }
     } finally {
-      await cleaner.quit();
-      await state.redis.client.quit();
-      state.redis = null;
-      state.store = null;
-      state.handler = null;
+      try {
+        await cleaner.quit();
+      } finally {
+        // Each client quits even when the other's quit rejects.
+        await state.redis.client.quit();
+        state.redis = null;
+        state.store = null;
+        state.handler = null;
+      }
     }
   }
 }

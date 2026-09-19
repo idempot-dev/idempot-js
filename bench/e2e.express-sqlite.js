@@ -76,9 +76,13 @@ export default {
           }
         },
         afterAll: async () => {
-          await stopServer(state.server);
-          await state.store.close();
-          state.store = null;
+          try {
+            await stopServer(state.server);
+          } finally {
+            // The store is released even when the server close fails.
+            await state.store.close();
+            state.store = null;
+          }
         }
       }
     );
@@ -116,9 +120,13 @@ export default {
           await settle();
         },
         afterAll: async () => {
-          await stopServer(repeatState.server);
-          await repeatState.store.close();
-          repeatState.store = null;
+          try {
+            await stopServer(repeatState.server);
+          } finally {
+            // The store is released even when the server close fails.
+            await repeatState.store.close();
+            repeatState.store = null;
+          }
         }
       }
     );

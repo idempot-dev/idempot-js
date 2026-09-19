@@ -24,14 +24,16 @@ let tableCounter = 0;
  */
 async function createStore() {
   tableCounter += 1;
-  const tableName = `bench_mysql_${tableCounter}`;
+  // The pid namespaces the table so concurrent suite runs on one
+  // machine cannot drop each other's tables mid-phase.
+  const tableName = `bench_mysql_${process.pid}_${tableCounter}`;
   const store = new MysqlIdempotencyStore({
     host: "localhost",
     port: 3306,
     database: "test",
     user: "idempot",
     password: "idempot",
-    tableName
+    tableName: `bench_mysql_${process.pid}_${tableCounter}`
   });
   await store.pool.query(`
     CREATE TABLE IF NOT EXISTS \`${tableName}\` (
@@ -51,12 +53,16 @@ async function createStore() {
 
 async function teardownStore(state) {
   if (state.store) {
-    await state.store.pool.query(
-      `DROP TABLE IF EXISTS \`${state.store.tableName}\``
-    );
-    await state.store.close();
-    state.store = null;
-    state.app = null;
+    try {
+      await state.store.pool.query(
+        `DROP TABLE IF EXISTS \`${state.store.tableName}\``
+      );
+    } finally {
+      // The pool is released even when the DROP fails (lost connection).
+      await state.store.close();
+      state.store = null;
+      state.app = null;
+    }
   }
 }
 

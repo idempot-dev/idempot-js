@@ -37,18 +37,24 @@ async function createStore() {
 
 async function teardownStore(state) {
   if (state.store) {
-    await state.store.close();
-    const connection = await mysql.createConnection({
-      host: "localhost",
-      port: 3306,
-      user: "idempot",
-      password: "idempot",
-      database: "test"
-    });
-    await connection.query("DROP TABLE IF EXISTS idempotency_records");
-    await connection.end();
-    state.store = null;
-    state.handler = null;
+    try {
+      await state.store.close();
+    } finally {
+      // The table is dropped even when the store close fails. The table
+      // name is fixed by the bun-sql store, so concurrent bun-mysql runs
+      // on one machine share it (residual limitation, not fixable here).
+      const connection = await mysql.createConnection({
+        host: "localhost",
+        port: 3306,
+        user: "idempot",
+        password: "idempot",
+        database: "test"
+      });
+      await connection.query("DROP TABLE IF EXISTS idempotency_records");
+      await connection.end();
+      state.store = null;
+      state.handler = null;
+    }
   }
 }
 

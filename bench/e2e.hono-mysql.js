@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/index.js";
 import { MysqlIdempotencyStore } from "../packages/stores/mysql/node-mysql.js";
 import { createKeyFactory } from "./lib/keys.js";
+import { BASE_BODY, BASE_HEADERS, createBodyFactory } from "./lib/fixtures.js";
 
 const MODULE_NAME = "e2e.hono-mysql";
 const FRESH_KEY_TASK = "middleware (fresh key)";
@@ -9,32 +10,9 @@ const REPEAT_KEY_TASK = "middleware (repeat key)";
 const BASELINE_TASK = "baseline (no middleware)";
 const nextKey = createKeyFactory(19);
 
-// Unique request-body factory for the fresh-key task: the middleware
-// rejects a fresh key whose payload fingerprint matches an earlier record
-// (checkLookupConflicts returns 409), so each timed iteration needs a
-// unique key AND a unique body to exercise the full claim chain.
-let freshBodyCounter = 0;
-const nextFreshBody = () => {
-  freshBodyCounter += 1;
-  return JSON.stringify({
-    orderId: `ord-2026-${String(freshBodyCounter).padStart(6, "0")}`,
-    amount: 4999,
-    currency: "usd",
-    items: [{ sku: "SKU-001", qty: 1 }]
-  });
-};
+const nextFreshBody = createBodyFactory();
 
-const BASE_HEADERS = {
-  "Content-Type": "application/json",
-  Accept: "application/json"
-};
-
-const BODY = JSON.stringify({
-  orderId: "ord-2026-000001",
-  amount: 4999,
-  currency: "usd",
-  items: [{ sku: "SKU-001", qty: 1 }]
-});
+const BODY = JSON.stringify(BASE_BODY);
 
 let tableCounter = 0;
 
@@ -46,14 +24,16 @@ let tableCounter = 0;
  */
 async function createStore() {
   tableCounter += 1;
-  const tableName = `bench_mysql_${tableCounter}`;
+  // The pid namespaces the table so concurrent suite runs on one
+  // machine cannot drop each other's tables mid-phase.
+  const tableName = `bench_mysql_${process.pid}_${tableCounter}`;
   const store = new MysqlIdempotencyStore({
     host: "localhost",
     port: 3306,
     database: "test",
     user: "idempot",
     password: "idempot",
-    tableName
+    tableName: `bench_mysql_${process.pid}_${tableCounter}`
   });
   await store.pool.query(`
     CREATE TABLE IF NOT EXISTS \`${tableName}\` (
@@ -105,12 +85,16 @@ async function ensureMiddlewareState(state) {
 
 async function teardownMiddlewareState(state) {
   if (state.store) {
-    await state.store.pool.query(
-      `DROP TABLE IF EXISTS \`${state.store.tableName}\``
-    );
-    await state.store.close();
-    state.store = null;
-    state.app = null;
+    try {
+      await state.store.pool.query(
+        `DROP TABLE IF EXISTS \`${state.store.tableName}\``
+      );
+    } finally {
+      // The pool is released even when the DROP fails (lost connection).
+      await state.store.close();
+      state.store = null;
+      state.app = null;
+    }
   }
 }
 

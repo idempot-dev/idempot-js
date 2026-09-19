@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { idempotency } from "../packages/frameworks/hono/index.js";
 import { PostgresIdempotencyStore } from "../packages/stores/postgres/index.js";
 import { createKeyFactory } from "./lib/keys.js";
+import { BASE_BODY, BASE_HEADERS, createBodyFactory } from "./lib/fixtures.js";
 
 const MODULE_NAME = "e2e.hono-postgres";
 const FRESH_KEY_TASK = "middleware (fresh key)";
@@ -9,38 +10,17 @@ const REPEAT_KEY_TASK = "middleware (repeat key)";
 const BASELINE_TASK = "baseline (no middleware)";
 const nextKey = createKeyFactory(19);
 
-// Unique request-body factory for the fresh-key task: the middleware
-// rejects a fresh key whose payload fingerprint matches an earlier record
-// (checkLookupConflicts returns 409), so each timed iteration needs a
-// unique key AND a unique body to exercise the full claim chain.
-let freshBodyCounter = 0;
-const nextFreshBody = () => {
-  freshBodyCounter += 1;
-  return JSON.stringify({
-    orderId: `ord-2026-${String(freshBodyCounter).padStart(6, "0")}`,
-    amount: 4999,
-    currency: "usd",
-    items: [{ sku: "SKU-001", qty: 1 }]
-  });
-};
+const nextFreshBody = createBodyFactory();
 
-const BASE_HEADERS = {
-  "Content-Type": "application/json",
-  Accept: "application/json"
-};
-
-const BODY = JSON.stringify({
-  orderId: "ord-2026-000001",
-  amount: 4999,
-  currency: "usd",
-  items: [{ sku: "SKU-001", qty: 1 }]
-});
+const BODY = JSON.stringify(BASE_BODY);
 
 let schemaCounter = 0;
 
 /**
  * Create a store in a fresh, uniquely named schema so each phase (warmup
- * and timed) starts with an empty table. The store's constructor fires
+ * and timed) starts with an empty table. The schema name carries the
+ * process id so concurrent suite runs on one machine cannot collide on
+ * (and tear down each other's) namespaces. The store's constructor fires
  * initSchema() without awaiting it, so poll until the table answers.
  */
 async function createStore() {
@@ -51,20 +31,27 @@ async function createStore() {
     database: "test",
     user: "idempot",
     password: "idempot",
-    schema: `bench_pg_${schemaCounter}`
+    schema: `bench_pg_${process.pid}_${schemaCounter}`
   });
+  let lastError;
   for (let i = 0; i < 50; i++) {
     try {
       await store.pool.query(
         `SELECT 1 FROM ${store.quotedSchemaIdentifier}.idempotency_records LIMIT 1`
       );
       return store;
-    } catch {
+    } catch (e) {
+      // A down database will never become ready; fail with the real
+      // error instead of misattributing it to DDL timing.
+      if (e?.code === "ECONNREFUSED") {
+        throw e;
+      }
+      lastError = e;
       await new Promise((r) => setTimeout(r, 20));
     }
   }
   throw new Error(
-    `idempotency_records table not ready for schema bench_pg_${schemaCounter} after 1s`
+    `idempotency_records table not ready for schema bench_pg_${process.pid}_${schemaCounter} after 1s (last error: ${lastError?.message ?? "unknown"})`
   );
 }
 
@@ -102,12 +89,17 @@ async function ensureMiddlewareState(state) {
 
 async function teardownMiddlewareState(state) {
   if (state.store) {
-    await state.store.pool.query(
-      `DROP SCHEMA IF EXISTS ${state.store.quotedSchemaIdentifier} CASCADE`
-    );
-    await state.store.close();
-    state.store = null;
-    state.app = null;
+    try {
+      await state.store.pool.query(
+        `DROP SCHEMA IF EXISTS ${state.store.quotedSchemaIdentifier} CASCADE`
+      );
+    } finally {
+      // The pool is released even when the DROP fails (lost connection),
+      // so a flaky database cannot leak it.
+      await state.store.close();
+      state.store = null;
+      state.app = null;
+    }
   }
 }
 

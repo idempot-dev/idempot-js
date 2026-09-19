@@ -74,10 +74,14 @@ export default {
           }
         },
         afterAll: async () => {
-          await state.app.close();
-          await state.store.close();
-          state.store = null;
-          state.app = null;
+          try {
+            await state.app.close();
+          } finally {
+            // The store is released even when the app close fails.
+            await state.store.close();
+            state.store = null;
+            state.app = null;
+          }
         }
       }
     );
@@ -113,10 +117,14 @@ export default {
           await settle();
         },
         afterAll: async () => {
-          await repeatState.app.close();
-          await repeatState.store.close();
-          repeatState.store = null;
-          repeatState.app = null;
+          try {
+            await repeatState.app.close();
+          } finally {
+            // The store is released even when the app close fails.
+            await repeatState.store.close();
+            repeatState.store = null;
+            repeatState.app = null;
+          }
         }
       }
     );
