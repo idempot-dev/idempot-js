@@ -331,8 +331,6 @@ ${table}
 ${lines.join("\n")}
 \`\`\`
 `;
-  // A labeled run writes to bench/results/<label>.md (gitignored scratch);
-  // unlabeled runs update the committed bench/results.md record.
   fs.writeFileSync(RESULTS_PATH, content);
 }
 
