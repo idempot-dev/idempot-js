@@ -32,7 +32,8 @@ export function guardComparison(baseline, current) {
     base.cpu === curr.cpu &&
     base.platform === curr.platform &&
     base.arch === curr.arch &&
-    base.kind === curr.kind;
+    base.kind === curr.kind &&
+    base.version === curr.version;
   if (!sameMachine) {
     problems.push(
       `hardware/runtime mismatch: baseline ${base.kind} ${base.version} on ${base.platform}-${base.arch} (${base.cpu}) vs current ${curr.kind} ${curr.version} on ${curr.platform}-${curr.arch} (${curr.cpu}) — medians from different machines are not comparable.`
@@ -62,6 +63,22 @@ export function compareRuns(baseline, current) {
         module: cur.module,
         task: cur.task,
         status: "new"
+      });
+      continue;
+    }
+    // Baselines converted from historical results.md can carry quantized
+    // zero medians (display rounding); a percent delta against them is
+    // meaningless noise, same as the derived-metric case below.
+    if (Math.abs(prev.metrics.median_ms) < 1e-9) {
+      rows.push({
+        kind: "task",
+        module: cur.module,
+        task: cur.task,
+        baseline: prev.metrics.median_ms,
+        current: cur.metrics.median_ms,
+        delta_pct: null,
+        flagged: false,
+        status: "ok"
       });
       continue;
     }

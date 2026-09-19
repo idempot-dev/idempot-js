@@ -30,8 +30,12 @@ function check(name, ok, detail = "") {
 
 function runBench(args) {
   // Self-check runs must never rewrite the committed results baseline.
+  // A timeout keeps a wedged child from hanging the guard forever; the
+  // existing status checks treat a timed-out child (status null) as a
+  // failure, and result.error names the cause.
   return spawnSync(process.execPath, [RUN, ...args, "--no-results-file"], {
-    encoding: "utf8"
+    encoding: "utf8",
+    timeout: 180_000
   });
 }
 
@@ -173,17 +177,41 @@ check(
 );
 roundTripMetrics("fastify", fastify.stdout);
 
+// 4b. Express harness: the express modules serve real HTTP on an
+// ephemeral port; exercise the in-memory sqlite module so an
+// express-harness regression (server lifecycle, body drain, settle)
+// fails here instead of only on manual module runs.
+const express = runBench(["--preset", "quick", "e2e.express-sqlite"]);
+check(
+  "express run exits 0",
+  express.status === 0,
+  express.stderr ?? express.error?.message
+);
+check(
+  "express emits derived overhead metrics",
+  /^METRIC e2e\.express-sqlite\.overhead_delta_ms=/m.test(express.stdout) &&
+    /^METRIC e2e\.express-sqlite\.overhead_pct=/m.test(express.stdout)
+);
+roundTripMetrics("express", express.stdout);
+
 // 5. Bun harness (only when the bun binary is available): the bun-only
 // modules need the Bun runtime, so the suite runs under `bun` for these.
 // e2e.bun-bunsql-sqlite needs no external services.
-const bunCheck = spawnSync("bun", ["--version"], { encoding: "utf8" });
+const bunCheck = spawnSync("bun", ["--version"], {
+  encoding: "utf8",
+  timeout: 30_000
+});
 if (bunCheck.status === 0) {
   const bunSuite = spawnSync(
     "bun",
     [RUN, "--preset", "quick", "e2e.bun-bunsql-sqlite", "--no-results-file"],
-    { encoding: "utf8" }
+    { encoding: "utf8", timeout: 180_000 }
   );
-  check("bun run exits 0", bunSuite.status === 0, bunSuite.stderr);
+  check(
+    "bun run exits 0",
+    bunSuite.status === 0,
+    bunSuite.stderr ?? bunSuite.error?.message
+  );
   check(
     "bun emits derived overhead metrics",
     /^METRIC e2e\.bun-bunsql-sqlite\.overhead_delta_ms=/m.test(
@@ -205,11 +233,31 @@ const saved = runBench([
   "--save-baseline",
   baselinePath
 ]);
-check("save-baseline run exits 0", saved.status === 0, saved.stderr);
-const baselineObj = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
+check(
+  "save-baseline run exits 0",
+  saved.status === 0,
+  saved.stderr ?? saved.error?.message
+);
+// A guard that crashes on its first failure reports less than one that
+// continues: never let a missing or malformed artifact kill the run.
+let baselineObj = null;
+if (!fs.existsSync(baselinePath)) {
+  check(
+    "save-baseline wrote the baseline file",
+    false,
+    "baseline file missing"
+  );
+} else {
+  try {
+    baselineObj = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
+  } catch (e) {
+    check("save-baseline wrote valid JSON", false, String(e));
+  }
+}
 check(
   "baseline JSON shape",
-  baselineObj.version === 1 &&
+  baselineObj !== null &&
+    baselineObj.version === 1 &&
     baselineObj.preset === "quick" &&
     typeof baselineObj.runtime?.cpu === "string" &&
     Array.isArray(baselineObj.results) &&
@@ -230,39 +278,163 @@ check(
   "compare prints deltas",
   /delta/.test(compared.stdout) && /fixture/.test(compared.stdout)
 );
-// Guards: refuse comparisons that would produce misleading deltas.
-const mismatched = structuredClone(baselineObj);
-mismatched.preset = "full";
-const mismatchPath = path.join(tmpDir, "mismatch.json");
-fs.writeFileSync(mismatchPath, JSON.stringify(mismatched));
-const refusedPreset = runBench([
-  "--preset",
-  "quick",
-  "fixture",
-  "--compare",
-  mismatchPath
-]);
-check(
-  "compare refuses preset mismatch",
-  refusedPreset.status === 1 && /preset mismatch/.test(refusedPreset.stderr)
+// Guards: refuse comparisons that would produce misleading deltas, and
+// refuse valueless flag invocations instead of silently no-oping. The
+// valueless case must run with --compare genuinely last (spawnSync
+// directly, without runBench's appended --no-results-file).
+const noValue = spawnSync(
+  process.execPath,
+  [RUN, "--preset", "quick", "fixture", "--compare"],
+  {
+    encoding: "utf8"
+  }
 );
-const otherMachine = structuredClone(baselineObj);
-otherMachine.runtime = { ...otherMachine.runtime, cpu: "Other CPU" };
-const otherPath = path.join(tmpDir, "other.json");
-fs.writeFileSync(otherPath, JSON.stringify(otherMachine));
-const refusedMachine = runBench([
-  "--preset",
-  "quick",
-  "fixture",
-  "--compare",
-  otherPath
-]);
 check(
-  "compare refuses machine mismatch",
-  refusedMachine.status === 1 &&
-    /hardware\/runtime mismatch/.test(refusedMachine.stderr)
+  "valueless --compare exits 1",
+  noValue.status === 1 && /--compare requires/.test(noValue.stderr)
 );
+if (baselineObj !== null) {
+  const mismatched = structuredClone(baselineObj);
+  mismatched.preset = "full";
+  const mismatchPath = path.join(tmpDir, "mismatch.json");
+  fs.writeFileSync(mismatchPath, JSON.stringify(mismatched));
+  const refusedPreset = runBench([
+    "--preset",
+    "quick",
+    "fixture",
+    "--compare",
+    mismatchPath
+  ]);
+  check(
+    "compare refuses preset mismatch",
+    refusedPreset.status === 1 && /preset mismatch/.test(refusedPreset.stderr)
+  );
+  const otherMachine = structuredClone(baselineObj);
+  otherMachine.runtime = { ...otherMachine.runtime, cpu: "Other CPU" };
+  const otherPath = path.join(tmpDir, "other.json");
+  fs.writeFileSync(otherPath, JSON.stringify(otherMachine));
+  const refusedMachine = runBench([
+    "--preset",
+    "quick",
+    "fixture",
+    "--compare",
+    otherPath
+  ]);
+  check(
+    "compare refuses machine mismatch",
+    refusedMachine.status === 1 &&
+      /hardware\/runtime mismatch/.test(refusedMachine.stderr)
+  );
+}
 fs.rmSync(tmpDir, { recursive: true, force: true });
+
+// 6b. Compare flag gate: pin the +-15% flag math directly against
+// compare.js so a sign flip or threshold change cannot pass silently.
+const { compareRuns, formatComparison } = await import("./lib/compare.js");
+const flagBaseline = {
+  version: 1,
+  preset: "quick",
+  runtime: {
+    kind: "node",
+    version: "0",
+    platform: "test",
+    arch: "test",
+    cpu: "test"
+  },
+  results: [
+    {
+      module: "fixture",
+      task: "regressed",
+      metrics: { median_ms: 1.0, rme_pct: 0 }
+    },
+    {
+      module: "fixture",
+      task: "improved",
+      metrics: { median_ms: 1.0, rme_pct: 0 }
+    },
+    {
+      module: "fixture",
+      task: "within-gate",
+      metrics: { median_ms: 1.0, rme_pct: 0 }
+    }
+  ],
+  derived: []
+};
+const flagCurrent = {
+  version: 1,
+  preset: "quick",
+  runtime: {
+    kind: "node",
+    version: "0",
+    platform: "test",
+    arch: "test",
+    cpu: "test"
+  },
+  results: [
+    {
+      module: "fixture",
+      task: "regressed",
+      metrics: { median_ms: 1.2, rme_pct: 0 }
+    },
+    {
+      module: "fixture",
+      task: "improved",
+      metrics: { median_ms: 0.9, rme_pct: 0 }
+    },
+    {
+      module: "fixture",
+      task: "within-gate",
+      metrics: { median_ms: 1.1, rme_pct: 0 }
+    }
+  ],
+  derived: []
+};
+const flagRows = compareRuns(flagBaseline, flagCurrent);
+const byTask = Object.fromEntries(flagRows.map((row) => [row.task, row]));
+check(
+  "compare flags a beyond-gate regression",
+  byTask.regressed.flagged === true &&
+    Math.abs(byTask.regressed.delta_pct - 20) < 1e-6
+);
+check(
+  "compare leaves an improvement unflagged",
+  byTask.improved.flagged === false &&
+    Math.abs(byTask.improved.delta_pct + 10) < 1e-6
+);
+check(
+  "compare leaves a within-gate delta unflagged",
+  byTask["within-gate"].flagged === false &&
+    Math.abs(byTask["within-gate"].delta_pct - 10) < 1e-6
+);
+check(
+  "formatComparison renders the gate note",
+  formatComparison(flagRows).includes("beyond \u00b115% gate")
+);
+check(
+  "compare guards a zero-baseline row",
+  compareRuns(
+    {
+      ...flagBaseline,
+      results: [
+        {
+          module: "fixture",
+          task: "zero",
+          metrics: { median_ms: 0, rme_pct: 0 }
+        }
+      ]
+    },
+    {
+      ...flagCurrent,
+      results: [
+        {
+          module: "fixture",
+          task: "zero",
+          metrics: { median_ms: 0.5, rme_pct: 0 }
+        }
+      ]
+    }
+  )[0].delta_pct === null
+);
 
 // 7. Baseline preservation.
 const resultsAfter = fs.readFileSync(RESULTS_PATH, "utf8");

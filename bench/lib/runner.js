@@ -64,18 +64,23 @@ export const PRESETS = {
 
 export async function loadModules() {
   // Bun-only modules are skipped when the suite runs under Node; their
-  // stores need the Bun runtime, so importing them there would fail. All
-  // bun-only filenames contain "bun".
+  // stores need the Bun runtime, so importing them there would fail. The
+  // prefix convention (e2e.bun-*) is the contract, not a filename
+  // substring heuristic.
+  const BUN_ONLY_PREFIX = "./e2e.bun-";
   const runningUnderBun = Boolean(process.versions.bun);
-  return Promise.all(
-    MODULE_FILES.filter((file) => runningUnderBun || !file.includes("bun")).map(
-      async (file) => {
-        const modulePath = path.join(BENCH_DIR, path.basename(file));
-        const imported = await import(modulePath);
-        return imported.default;
-      }
-    )
+  const loadable = MODULE_FILES.filter(
+    (file) => runningUnderBun || !file.startsWith(BUN_ONLY_PREFIX)
   );
+  const hiddenBunCount = MODULE_FILES.length - loadable.length;
+  const modules = await Promise.all(
+    loadable.map(async (file) => {
+      const modulePath = path.join(BENCH_DIR, path.basename(file));
+      const imported = await import(modulePath);
+      return imported.default;
+    })
+  );
+  return { modules, hiddenBunCount };
 }
 
 export function validateSelection(modules, names) {
@@ -214,25 +219,52 @@ function moduleResults(results, moduleName) {
   return results.filter((row) => row.module === moduleName);
 }
 
+/**
+ * The externally consumed METRIC name charset, documented in
+ * bench/README.md and enforced by the consumer-side parser in
+ * bench/smoke.js. Validated at emission so a name outside the grammar
+ * fails the run here instead of failing the external parser mid-loop.
+ */
+const METRIC_NAME_GRAMMAR = /^[A-Za-z0-9_.+()-]+$/;
+
+function assertMetricName(name) {
+  if (!METRIC_NAME_GRAMMAR.test(name)) {
+    throw new Error(
+      `METRIC name "${name}" violates the documented grammar ${METRIC_NAME_GRAMMAR} (see bench/README.md); rename the module, task, or derived metric.`
+    );
+  }
+}
+
+/**
+ * The canonical per-row metric set: one place decides which metrics a
+ * row carries, so the METRIC lines, the results table, and the baseline
+ * JSON cannot drift apart.
+ */
+function rowMetrics(row) {
+  const { unit, value } = throughputDisplay(row);
+  const metrics = {
+    median_ms: row.median_ms,
+    rme_pct: row.rme_pct,
+    [UNIT_METRIC_NAMES[unit]]: value
+  };
+  if (row.spread_pct !== undefined) {
+    metrics.spread_pct = row.spread_pct;
+  }
+  return metrics;
+}
+
 function metricLines(results, derived) {
   const lines = [];
   for (const row of results) {
-    const { unit, value } = throughputDisplay(row);
-    const metrics = {
-      [UNIT_METRIC_NAMES[unit]]: value,
-      median_ms: row.median_ms,
-      rme_pct: row.rme_pct
-    };
-    if (row.spread_pct !== undefined) {
-      metrics.spread_pct = row.spread_pct;
-    }
+    const metrics = rowMetrics(row);
     for (const metric of Object.keys(metrics)) {
-      lines.push(
-        `METRIC ${slug(row.module)}.${slug(row.task)}.${metric}=${metrics[metric]}`
-      );
+      const name = `${slug(row.module)}.${slug(row.task)}.${metric}`;
+      assertMetricName(name);
+      lines.push(`METRIC ${name}=${metrics[metric]}`);
     }
   }
   for (const { name, value } of derived) {
+    assertMetricName(name);
     lines.push(`METRIC ${name}=${value}`);
   }
   return lines;
@@ -273,7 +305,7 @@ function formatTable(results) {
   ].join("\n");
 }
 
-function runtimeInfo() {
+export function runtimeInfo() {
   const kind = process.versions.bun ? "bun" : "node";
   return {
     kind,
@@ -298,18 +330,11 @@ export function buildBaseline({ preset, modules, results, derived, label }) {
     label: label ?? os.hostname(),
     runtime: runtimeInfo(),
     modules: modules.map((module) => module.name),
-    results: results.map((row) => {
-      const { unit, value } = throughputDisplay(row);
-      const metrics = {
-        median_ms: row.median_ms,
-        rme_pct: row.rme_pct,
-        [UNIT_METRIC_NAMES[unit]]: value
-      };
-      if (row.spread_pct !== undefined) {
-        metrics.spread_pct = row.spread_pct;
-      }
-      return { module: row.module, task: row.task, metrics };
-    }),
+    results: results.map((row) => ({
+      module: row.module,
+      task: row.task,
+      metrics: rowMetrics(row)
+    })),
     derived: derived.map(({ name, value }) => ({ name, value }))
   };
 }

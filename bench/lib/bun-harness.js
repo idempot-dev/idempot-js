@@ -1,11 +1,7 @@
 import { idempotency } from "../../packages/frameworks/bun/index.js";
+import { BASE_BODY, createBodyFactory } from "./fixtures.js";
 
-const BASE_BODY = {
-  orderId: "ord-2026-000001",
-  amount: 4999,
-  currency: "usd",
-  items: [{ sku: "SKU-001", qty: 1 }]
-};
+export { createBodyFactory };
 
 /**
  * Build the bun handler used by the e2e benchmarks, driven in-process by
@@ -47,22 +43,4 @@ export async function send(
   // Drain the body so the Response is fully consumed.
   await res.arrayBuffer();
   return res.status;
-}
-
-/**
- * Unique request-body factory for fresh-key tasks: the middleware
- * rejects a fresh key whose payload fingerprint matches an earlier
- * record (checkLookupConflicts returns 409), so each timed iteration
- * needs both a unique key AND a unique body to exercise the full
- * fingerprint -> lookup -> startProcessing -> handler -> complete chain.
- */
-export function createBodyFactory() {
-  let counter = 0;
-  return () => {
-    counter += 1;
-    return JSON.stringify({
-      ...BASE_BODY,
-      orderId: `ord-2026-${String(counter).padStart(6, "0")}`
-    });
-  };
 }

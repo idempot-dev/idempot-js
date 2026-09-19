@@ -1,12 +1,8 @@
 import Fastify from "fastify";
 import { idempotency } from "../../packages/frameworks/fastify/index.js";
+import { BASE_BODY, createBodyFactory, settle } from "./fixtures.js";
 
-const BASE_BODY = {
-  orderId: "ord-2026-000001",
-  amount: 4999,
-  currency: "usd",
-  items: [{ sku: "SKU-001", qty: 1 }]
-};
+export { createBodyFactory, settle };
 
 /**
  * Build the fastify app used by the e2e benchmarks, driven in-process via
@@ -43,33 +39,4 @@ export async function send(
     }
   });
   return res.statusCode;
-}
-
-/**
- * Unique request-body factory for fresh-key tasks: the middleware
- * rejects a fresh key whose payload fingerprint matches an earlier
- * record (checkLookupConflicts returns 409), so each timed iteration
- * needs both a unique key AND a unique body to exercise the full
- * fingerprint -> lookup -> startProcessing -> handler -> complete chain.
- */
-export function createBodyFactory() {
-  let counter = 0;
-  return () => {
-    counter += 1;
-    return JSON.stringify({
-      ...BASE_BODY,
-      orderId: `ord-2026-${String(counter).padStart(6, "0")}`
-    });
-  };
-}
-
-/**
- * Settle delay for fastify beforeAll hooks: the middleware completes the
- * idempotency record via reply.then() fire-and-forget, so the priming
- * request's store write can land just after inject() resolves. A short
- * sleep (outside the timed region) keeps the repeat-key task on the
- * cached-replay path from its first iteration.
- */
-export function settle(ms = 50) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

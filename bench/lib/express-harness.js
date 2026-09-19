@@ -1,17 +1,13 @@
 import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
+import {
+  BASE_BODY,
+  BASE_HEADERS,
+  createBodyFactory,
+  settle
+} from "./fixtures.js";
 
-const BASE_BODY = {
-  orderId: "ord-2026-000001",
-  amount: 4999,
-  currency: "usd",
-  items: [{ sku: "SKU-001", qty: 1 }]
-};
-
-const BASE_HEADERS = {
-  "Content-Type": "application/json",
-  Accept: "application/json"
-};
+export { createBodyFactory, settle };
 
 /**
  * Build the express app used by the e2e benchmarks. With a store the
@@ -38,7 +34,12 @@ export function createExpressApp(store) {
  */
 export async function startServer(app) {
   const server = app.listen(0);
-  await new Promise((resolve) => server.on("listening", resolve));
+  await new Promise((resolve, reject) => {
+    // A listen failure (EACCES, fd exhaustion) must fail the run, not
+    // hang the benchmark forever.
+    server.once("error", reject);
+    server.on("listening", resolve);
+  });
   const port = server.address().port;
   const send = async ({ key, body = JSON.stringify(BASE_BODY) } = {}) => {
     const headers = { ...BASE_HEADERS };
@@ -60,33 +61,4 @@ export async function startServer(app) {
 
 export async function stopServer(server) {
   await new Promise((resolve) => server.close(resolve));
-}
-
-/**
- * Unique request-body factory for fresh-key tasks: the middleware
- * rejects a fresh key whose payload fingerprint matches an earlier
- * record (checkLookupConflicts returns 409), so each timed iteration
- * needs both a unique key AND a unique body to exercise the full
- * fingerprint -> lookup -> startProcessing -> handler -> complete chain.
- */
-export function createBodyFactory() {
-  let counter = 0;
-  return () => {
-    counter += 1;
-    return JSON.stringify({
-      ...BASE_BODY,
-      orderId: `ord-2026-${String(counter).padStart(6, "0")}`
-    });
-  };
-}
-
-/**
- * Settle delay for express beforeAll hooks: the express middleware
- * completes the idempotency record via res.on("finish") fire-and-forget,
- * so the priming request's store write can land just after the response
- * arrives. A short sleep (outside the timed region) keeps the repeat-key
- * task on the cached-replay path from its first iteration.
- */
-export function settle(ms = 50) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
