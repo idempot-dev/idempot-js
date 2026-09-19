@@ -222,6 +222,11 @@ machine to extend it.
 - `e2e.hono-redis` — a live redis on `127.0.0.1:6379` with no auth (same
   prerequisites as the integration tests). The module fails fast with a
   connection error when the server is unreachable.
+- `e2e.fastify-sqlite` — no external services (sqlite runs in-memory).
+- `e2e.fastify-postgres`, `e2e.fastify-mysql`, `e2e.fastify-redis` — the
+  same prerequisites as their hono counterparts. Fastify modules are
+  driven in-process via `app.inject()` (light-my-request), the same
+  measurement class as the hono modules.
 - `e2e.express-sqlite` — no external services (sqlite runs in-memory).
 - `e2e.express-postgres`, `e2e.express-mysql`, `e2e.express-redis` — the
   same prerequisites as their hono counterparts. Express modules serve
