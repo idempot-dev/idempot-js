@@ -75,6 +75,9 @@ METRIC <module>.<benchmark>.<metric>=<value>
 
 - `<module>` — benchmark module name (`fixture`, `micro.fingerprint`, `e2e.hono-sqlite`, ...)
 - `<benchmark>` — task name with spaces replaced by `_`
+- Names are restricted to `[A-Za-z0-9_.+()-]` — lowercase, whitespace collapsed
+  to `_`; task names keep their plus signs and parentheses — so a consumer may
+  split each line on the first `=`.
 - `<metric>` — one of:
   - throughput — unit-explicit: `req_s` for e2e modules (requests per second);
     `ops_s` or `ops_ms` for micro modules, with `ops_ms` chosen once the raw
