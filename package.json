@@ -50,6 +50,7 @@
     "bench:bun": "bun bench/run.js --preset full",
     "bench:bun:quick": "bun bench/run.js --preset quick",
     "bench:baseline": "node bench/run.js --preset quick --save-baseline bench/baseline.local.json",
+    "bench:baseline:validated": "node bench/run.js --preset full --validate-baseline --save-baseline",
     "bench:compare": "node bench/run.js --preset quick --compare bench/baseline.local.json",
     "build": "pnpm -r build",
     "test": "tap --reporter dot",

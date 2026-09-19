@@ -325,6 +325,46 @@ if (baselineObj !== null) {
     refusedMachine.status === 1 &&
       /hardware\/runtime mismatch/.test(refusedMachine.stderr)
   );
+  // Capture-side validation: the flag requires a save path, and a passing
+  // double-run writes a usable baseline. (The refusal path is the same
+  // flagged-row logic the compare gate section pins; forcing real variance
+  // inside smoke would be flaky by construction.)
+  const missingTarget = runBench([
+    "--preset",
+    "quick",
+    "fixture",
+    "--validate-baseline"
+  ]);
+  check(
+    "validate-baseline requires a save path",
+    missingTarget.status === 1 &&
+      /--validate-baseline requires --save-baseline/.test(missingTarget.stderr)
+  );
+  const validatedPath = path.join(tmpDir, "validated.json");
+  const validated = runBench([
+    "--preset",
+    "quick",
+    "fixture",
+    "--validate-baseline",
+    "--save-baseline",
+    validatedPath
+  ]);
+  check(
+    "validate-baseline run exits 0",
+    validated.status === 0,
+    validated.stderr
+  );
+  check(
+    "validate-baseline writes the baseline",
+    fs.existsSync(validatedPath) &&
+      JSON.parse(fs.readFileSync(validatedPath, "utf8")).version === 1
+  );
+  check(
+    "validate-baseline reports both runs",
+    /run 1 of 2/.test(validated.stdout) &&
+      /run 2 of 2/.test(validated.stdout) &&
+      /validated and written/.test(validated.stdout)
+  );
 }
 fs.rmSync(tmpDir, { recursive: true, force: true });
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import fs from "node:fs";
 import {
   PRESETS,
   loadModules,
@@ -22,6 +23,7 @@ let comparePath = null;
 let label = null;
 let saveBaselineSeen = false;
 let compareSeen = false;
+let validateBaseline = false;
 
 for (let index = 0; index < args.length; index++) {
   const arg = args[index];
@@ -47,6 +49,8 @@ for (let index = 0; index < args.length; index++) {
     label = args[++index];
   } else if (arg.startsWith("--label=")) {
     label = arg.slice("--label=".length);
+  } else if (arg === "--validate-baseline") {
+    validateBaseline = true;
   } else {
     names.push(arg);
   }
@@ -61,6 +65,10 @@ if (saveBaselineSeen && !saveBaselinePath) {
 }
 if (compareSeen && !comparePath) {
   console.error("--compare requires a baseline file path.");
+  process.exit(1);
+}
+if (validateBaseline && !saveBaselinePath) {
+  console.error("--validate-baseline requires --save-baseline <path>.");
   process.exit(1);
 }
 
@@ -112,17 +120,59 @@ if (!selection.ok) {
   process.exit(1);
 }
 
-const { baseline } = await runSuite({
-  preset,
-  modules: selection.selected,
-  resultsFile,
-  label,
-  saveBaselinePath
-});
+let currentBaseline;
+if (validateBaseline) {
+  // Run-to-run capture validation: a baseline is only written when two
+  // consecutive full runs agree within ±15% on every task median, so a
+  // load-polluted run cannot become the reference other runs are compared
+  // against. Costs one extra full-suite run; the gate covers task medians
+  // only (derived overhead deltas are too noisy to gate on).
+  console.log("Baseline validation: run 1 of 2");
+  const first = await runSuite({
+    preset,
+    modules: selection.selected,
+    resultsFile: false,
+    label
+  });
+  console.log("Baseline validation: run 2 of 2");
+  const second = await runSuite({
+    preset,
+    modules: selection.selected,
+    resultsFile,
+    label
+  });
+  currentBaseline = second.baseline;
+
+  const taskRows = compareRuns(first.baseline, second.baseline).filter(
+    (row) => row.kind === "task"
+  );
+  const flagged = taskRows.filter((row) => row.flagged);
+  console.log("");
+  console.log(formatComparison(taskRows));
+  if (flagged.length > 0) {
+    console.error(
+      `\nBaseline refused: ${flagged.length} task median(s) moved beyond ±15% between the two validation runs. The machine was likely under load; re-run on a quiet machine.`
+    );
+    process.exit(1);
+  }
+  fs.writeFileSync(
+    saveBaselinePath,
+    `${JSON.stringify(second.baseline, null, 2)}\n`
+  );
+  console.log(`\nBaseline validated and written: ${saveBaselinePath}`);
+} else {
+  ({ baseline: currentBaseline } = await runSuite({
+    preset,
+    modules: selection.selected,
+    resultsFile,
+    label,
+    saveBaselinePath
+  }));
+}
 
 if (comparePath) {
   const reference = readBaseline(comparePath);
-  const problems = guardComparison(reference, baseline);
+  const problems = guardComparison(reference, currentBaseline);
   if (problems.length > 0) {
     for (const problem of problems) {
       console.error(`Cannot compare against ${comparePath}: ${problem}`);
@@ -131,7 +181,7 @@ if (comparePath) {
   }
   console.log("");
   console.log(
-    formatComparison(compareRuns(reference, baseline), {
+    formatComparison(compareRuns(reference, currentBaseline), {
       baselinePath: comparePath
     })
   );

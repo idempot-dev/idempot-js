@@ -78,6 +78,26 @@ baselines live in `bench/baselines/`; refresh them deliberately (full preset,
 one file per machine and runtime, `--label <name>` redirects the markdown
 results file to `bench/results/<label>.md`).
 
+## Baseline validation
+
+A baseline is a reference every future compare trusts, so capture can be
+guarded against a loaded machine: `--validate-baseline` runs the suite twice
+and only writes the baseline when the two runs' per-task medians agree within
+±15%. A run that fails the gate exits 1 and writes nothing — re-run on a quiet
+machine.
+
+```bash
+pnpm bench:baseline:validated bench/baselines/nuc-linux-node.json
+# -> full preset run 1 of 2, run 2 of 2, comparison table, then the write
+```
+
+The gate covers task medians only (derived overhead deltas are too noisy to
+gate on). It costs one extra full-suite run, so personal baselines default to
+the single-run `bench:baseline`; use the validated capture for baselines other
+runs will be compared against — especially the committed files in
+`bench/baselines/`. Bun-runtime baselines use the same flag under the bun entry
+point (`pnpm bench:bun --validate-baseline --save-baseline ...`).
+
 ## Reference numbers
 
 Full-preset reference baselines for two machines. Numbers are comparable only
@@ -281,7 +301,7 @@ timer-saturated — compare their medians with that in mind.
 
 ## Layout
 
-- `bench/run.js` — CLI (`--preset full|quick`, module names as positional args, `--save-baseline <path>`, `--compare <path>`, `--label <name>`, `--no-results-file`)
+- `bench/run.js` — CLI (`--preset full|quick`, module names as positional args, `--save-baseline <path>`, `--compare <path>`, `--validate-baseline`, `--label <name>`, `--no-results-file`)
 - `bench/lib/runner.js` — presets, selection, METRIC emission, results file, baseline JSON
 - `bench/lib/compare.js` — baseline comparison, ±15% flagging, preset/machine guards
 - `bench/baselines/` — committed full-preset reference baselines (one file per machine and runtime)
