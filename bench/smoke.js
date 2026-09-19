@@ -9,11 +9,13 @@
  * bench/ (verified by execution, not unit tests).
  */
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const BENCH_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUN = path.join(BENCH_DIR, "run.js");
+const RESULTS_PATH = path.join(BENCH_DIR, "results.md");
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -26,8 +28,15 @@ function check(name, ok, detail = "") {
 }
 
 function runBench(args) {
-  return spawnSync(process.execPath, [RUN, ...args], { encoding: "utf8" });
+  // Self-check runs must never rewrite the committed results baseline.
+  return spawnSync(process.execPath, [RUN, ...args, "--no-results-file"], {
+    encoding: "utf8"
+  });
 }
+
+// Smoke runs would silently rewrite the committed results baseline without
+// the --no-results-file flag; assert the baseline survives the whole run.
+const resultsBefore = fs.readFileSync(RESULTS_PATH, "utf8");
 
 /**
  * Consumer-side METRIC parser: the grammar an external consumer (e.g. a
@@ -151,6 +160,13 @@ check(
     /^METRIC e2e\.hono-sqlite\.overhead_pct=/m.test(e2e.stdout)
 );
 roundTripMetrics("e2e", e2e.stdout);
+
+// 4. Baseline preservation.
+const resultsAfter = fs.readFileSync(RESULTS_PATH, "utf8");
+check(
+  "smoke leaves bench/results.md untouched",
+  resultsAfter === resultsBefore
+);
 
 if (failures > 0) {
   console.error(`\n${failures} smoke check(s) failed.`);

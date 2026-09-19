@@ -9,6 +9,7 @@ import {
 const args = process.argv.slice(2);
 const names = [];
 let preset = "full";
+let resultsFile = true;
 
 for (let index = 0; index < args.length; index++) {
   const arg = args[index];
@@ -16,6 +17,8 @@ for (let index = 0; index < args.length; index++) {
     preset = args[++index];
   } else if (arg.startsWith("--preset=")) {
     preset = arg.slice("--preset=".length);
+  } else if (arg === "--no-results-file") {
+    resultsFile = false;
   } else {
     names.push(arg);
   }
@@ -35,4 +38,4 @@ if (!selection.ok) {
   process.exit(1);
 }
 
-await runSuite({ preset, modules: selection.selected });
+await runSuite({ preset, modules: selection.selected, resultsFile });

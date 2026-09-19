@@ -283,7 +283,7 @@ ${lines.join("\n")}
   fs.writeFileSync(RESULTS_PATH, content);
 }
 
-export async function runSuite({ preset, modules }) {
+export async function runSuite({ preset, modules, resultsFile = true }) {
   const { repeats, benchOptions } = PRESETS[preset];
   const repeatsResults = [];
   for (let index = 0; index < repeats; index++) {
@@ -317,6 +317,8 @@ export async function runSuite({ preset, modules }) {
   }
   console.log("");
   console.log(formatTable(displayRows(results)));
-  writeResultsFile({ preset, modules, results, lines });
+  if (resultsFile) {
+    writeResultsFile({ preset, modules, results, lines });
+  }
   return { results, derived, lines };
 }

@@ -15,7 +15,9 @@ pnpm bench:smoke      # self-check: METRIC output shape + selection/exit-code ma
 ```
 
 Both presets print a human-readable table and `METRIC name=value` lines to stdout,
-and write `bench/results.md`.
+and write `bench/results.md`. Pass `--no-results-file` to run without rewriting
+the committed baseline (the smoke self-check uses this and asserts the baseline
+survives the run).
 
 ## Presets and trust
 
