@@ -47,6 +47,8 @@
     "bench": "node bench/run.js --preset full",
     "bench:quick": "node bench/run.js --preset quick",
     "bench:smoke": "node bench/smoke.js",
+    "bench:bun": "bun bench/run.js --preset full",
+    "bench:bun:quick": "bun bench/run.js --preset quick",
     "build": "pnpm -r build",
     "test": "tap --reporter dot",
     "test:coverage": "tap --show-full-coverage",

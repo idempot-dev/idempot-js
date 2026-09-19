@@ -31,10 +31,15 @@ if (!Object.hasOwn(PRESETS, preset)) {
   process.exit(1);
 }
 
-const modules = await loadModules();
+const { modules, hiddenBunCount } = await loadModules();
 const selection = validateSelection(modules, names);
 if (!selection.ok) {
   console.error(selection.error);
+  if (hiddenBunCount > 0) {
+    console.error(
+      `Note: ${hiddenBunCount} bun-only benchmark modules are excluded under Node; run \`pnpm bench:bun\` to include them.`
+    );
+  }
   process.exit(1);
 }
 

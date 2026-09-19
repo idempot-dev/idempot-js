@@ -198,7 +198,36 @@ check(
 );
 roundTripMetrics("express", express.stdout);
 
-// 6. Baseline preservation.
+// 6. Bun harness (only when the bun binary is available): the bun-only
+// modules need the Bun runtime, so the suite runs under `bun` for these.
+// e2e.bun-bunsql-sqlite needs no external services.
+const bunCheck = spawnSync("bun", ["--version"], {
+  encoding: "utf8",
+  timeout: 30_000
+});
+if (bunCheck.status === 0) {
+  const bunSuite = spawnSync(
+    "bun",
+    [RUN, "--preset", "quick", "e2e.bun-bunsql-sqlite", "--no-results-file"],
+    { encoding: "utf8", timeout: 180_000 }
+  );
+  check(
+    "bun run exits 0",
+    bunSuite.status === 0,
+    bunSuite.stderr ?? bunSuite.error?.message
+  );
+  check(
+    "bun emits derived overhead metrics",
+    /^METRIC e2e\.bun-bunsql-sqlite\.overhead_delta_ms=/m.test(
+      bunSuite.stdout
+    ) && /^METRIC e2e\.bun-bunsql-sqlite\.overhead_pct=/m.test(bunSuite.stdout)
+  );
+  roundTripMetrics("bun", bunSuite.stdout);
+} else {
+  console.log("ok: bun binary not available, skipping bun harness checks");
+}
+
+// 7. Baseline preservation.
 if (hasResultsBaseline) {
   const resultsAfter = fs.readFileSync(RESULTS_PATH, "utf8");
   check(
