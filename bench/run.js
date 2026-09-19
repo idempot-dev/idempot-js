@@ -34,7 +34,19 @@ if (!Object.hasOwn(PRESETS, preset)) {
 const modules = await loadModules();
 const selection = validateSelection(modules, names);
 if (!selection.ok) {
+  // A bun-only module matches a requested name while running under Node;
+  // point at the bun entry point instead of just listing what is missing.
+  const wantsBunOnly = names.some(
+    (name) =>
+      !modules.some((module) => module.name.includes(name)) &&
+      (name.includes("bun") || name.includes("bunsql"))
+  );
   console.error(selection.error);
+  if (wantsBunOnly) {
+    console.error(
+      "The selected benchmark requires the Bun runtime. Run it with `pnpm bench:bun` (add --preset quick as needed)."
+    );
+  }
   process.exit(1);
 }
 

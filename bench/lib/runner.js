@@ -28,7 +28,16 @@ const MODULE_FILES = [
   "./e2e.fastify-sqlite.js",
   "./e2e.fastify-postgres.js",
   "./e2e.fastify-mysql.js",
-  "./e2e.fastify-redis.js"
+  "./e2e.fastify-redis.js",
+  // Bun-only modules: their stores need the Bun runtime (bun:sqlite /
+  // Bun.SQL), so they are skipped unless the suite itself runs under Bun
+  // (pnpm bench:bun). All bun-only filenames contain "bun". The bun
+  // framework cannot pair with the better-sqlite3 store — Bun refuses to
+  // load it — so the sqlite cell uses the bun-sql store instead.
+  "./e2e.bun-bunsql-sqlite.js",
+  "./e2e.bun-bunsql-postgres.js",
+  "./e2e.bun-bunsql-mysql.js",
+  "./e2e.bun-redis.js"
 ];
 
 export const PRESETS = {
@@ -54,12 +63,18 @@ export const PRESETS = {
 };
 
 export async function loadModules() {
+  // Bun-only modules are skipped when the suite runs under Node; their
+  // stores need the Bun runtime, so importing them there would fail. All
+  // bun-only filenames contain "bun".
+  const runningUnderBun = Boolean(process.versions.bun);
   return Promise.all(
-    MODULE_FILES.map(async (file) => {
-      const modulePath = path.join(BENCH_DIR, path.basename(file));
-      const imported = await import(modulePath);
-      return imported.default;
-    })
+    MODULE_FILES.filter((file) => runningUnderBun || !file.includes("bun")).map(
+      async (file) => {
+        const modulePath = path.join(BENCH_DIR, path.basename(file));
+        const imported = await import(modulePath);
+        return imported.default;
+      }
+    )
   );
 }
 

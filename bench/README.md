@@ -11,6 +11,8 @@ pnpm bench            # full preset: warmup, 7 repeats, median + spread (couple 
 pnpm bench:quick      # quick preset: single pass, few iterations (a few seconds)
 pnpm bench --preset quick   # explicit preset override
 pnpm bench:quick fixture    # run selected benchmark modules by name
+pnpm bench:bun        # full preset under the Bun runtime (adds the bun-only modules)
+pnpm bench:bun:quick  # quick preset under the Bun runtime
 pnpm bench:smoke      # self-check: METRIC output shape + selection/exit-code matrix
 ```
 
@@ -71,6 +73,14 @@ compare medians, not spread, on those rows.
   same prerequisites as their hono counterparts. Fastify modules are
   driven in-process via `app.inject()` (light-my-request), the same
   measurement class as the hono modules.
+- `e2e.bun-sqlite`, `e2e.bun-bunsql-sqlite` — no external services
+  (sqlite runs in-memory). Bun-only modules: they require the Bun runtime
+  and are skipped when the suite runs under Node; run the suite with
+  `pnpm bench:bun` (or `pnpm bench:bun:quick`) to include them. Both are
+  driven in-process by calling the wrapped `Request => Response` handler
+  directly, the same measurement class as the hono and fastify modules.
+- `e2e.bun-bunsql-postgres`, `e2e.bun-bunsql-mysql` — the same
+  prerequisites as their hono counterparts, plus the Bun runtime.
 
 ## METRIC grammar
 
