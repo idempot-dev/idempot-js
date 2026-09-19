@@ -179,5 +179,14 @@
       }
     }
   ],
-  "derived": []
+  "derived": [
+    {
+      "name": "e2e.hono-sqlite.overhead_delta_ms",
+      "value": 0.048999999999999995
+    },
+    {
+      "name": "e2e.hono-sqlite.overhead_pct",
+      "value": 459.40371273204573
+    }
+  ]
 }

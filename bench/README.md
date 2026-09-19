@@ -28,8 +28,14 @@ survives the run).
 - **full** — warmup discarded (`warmupTime`/`warmupIterations`), the suite repeats
   7 times in one process, per-benchmark median of medians is reported with the
   relative spread (`spread_pct`) and tinybench's relative margin of error
-  (`rme_pct`) as secondary metrics. Repeated identical runs are expected to agree
-  within ±15%.
+  (`rme_pct`) as secondary metrics. The ±15% variance gate is a
+  run-to-run discipline, not an in-run check: medians from two identical
+  full-preset runs on the same machine are expected to agree within ±15%
+  (validated at ±2%). The in-table `spread_pct` is a different, diagnostic
+  quantity — the spread across the 7 in-run repeats — and legitimate
+  values exceed 15% for fast paths; compare medians, not spread. Validate
+  a change against a baseline with `pnpm bench:compare`, which refuses
+  preset and machine/runtime mismatches and flags beyond-gate deltas.
 - **quick** — single pass, few iterations. Numbers are **noisier by design** so the
   preset runs in seconds for optimization loops (pi-autoresearch) that run the
   suite hundreds of times. Treat quick-preset swings as noise, not regressions;
@@ -207,11 +213,11 @@ machine to extend it.
   same prerequisites as their hono counterparts. Fastify modules are
   driven in-process via `app.inject()` (light-my-request), the same
   measurement class as the hono modules.
-- `e2e.bun-sqlite`, `e2e.bun-bunsql-sqlite` — no external services
-  (sqlite runs in-memory). Bun-only modules: they require the Bun runtime
-  and are skipped when the suite runs under Node; run the suite with
-  `pnpm bench:bun` (or `pnpm bench:bun:quick`) to include them. Both are
-  driven in-process by calling the wrapped `Request => Response` handler
+- `e2e.bun-bunsql-sqlite` — no external services (sqlite runs in-memory).
+  Bun-only modules: they require the Bun runtime and are skipped when the
+  suite runs under Node; run the suite with `pnpm bench:bun` (or
+  `pnpm bench:bun:quick`) to include them. All bun e2e modules are driven
+  in-process by calling the wrapped `Request => Response` handler
   directly, the same measurement class as the hono and fastify modules.
 - `e2e.bun-bunsql-postgres`, `e2e.bun-bunsql-mysql` — the same
   prerequisites as their hono counterparts, plus the Bun runtime.
