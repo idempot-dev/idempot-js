@@ -1,19 +1,10 @@
 import { MysqlIdempotencyStore } from "../packages/stores/mysql/node-mysql.js";
-import { createKeyFactory } from "./lib/keys.js";
 import {
-  createBodyFactory,
   createExpressApp,
-  settle,
   startServer,
   stopServer
 } from "./lib/express-harness.js";
-
-const MODULE_NAME = "e2e.express-mysql";
-const FRESH_KEY_TASK = "middleware (fresh key)";
-const REPEAT_KEY_TASK = "middleware (repeat key)";
-const BASELINE_TASK = "baseline (no middleware)";
-const nextKey = createKeyFactory(19);
-const nextBody = createBodyFactory();
+import { createE2EBenchmarkModule } from "./lib/e2e-module.js";
 
 let tableCounter = 0;
 
@@ -62,138 +53,35 @@ async function teardownStore(store) {
 }
 
 /**
- * End-to-end per-request overhead of the express middleware backed by a
- * live mysql store, measured over real HTTP (ephemeral port, undici
- * keep-alive). Same three timed paths as the other e2e modules; see
- * bench/lib/express-harness.js and e2e.express-sqlite.js for the
- * fresh-key body uniqueness rationale and lifecycle notes.
- *
- * Requires a reachable mysql on localhost:3306 with database `test` and
- * user `idempot`/`idempot` (same prerequisites as the integration tests).
+ * Three timed paths and the shared lifecycle are documented in
+ * createE2EBenchmarkModule (bench/lib/e2e-module.js).
  */
-export default {
-  name: "e2e.express-mysql",
-  register(bench) {
-    const state = {};
-    bench.add(
-      FRESH_KEY_TASK,
-      async () => {
-        const status = await state.send({
-          key: nextKey("key"),
-          body: nextBody()
-        });
-        if (status !== 200) {
-          throw new Error(
-            `middleware fresh-key request failed: HTTP ${status}`
-          );
-        }
-      },
-      {
-        beforeAll: async () => {
-          state.store = await createStore();
-          const { server, send } = await startServer(
-            createExpressApp(state.store)
-          );
-          state.server = server;
-          state.send = send;
-          const status = await send({ key: nextKey("key"), body: nextBody() });
-          if (status !== 200) {
-            throw new Error(
-              `middleware fresh-key request failed: HTTP ${status}`
-            );
-          }
-        },
-        afterAll: async () => {
-          try {
-            await stopServer(state.server);
-          } finally {
-            // The store is released even when the server close fails.
-            await teardownStore(state.store);
-            state.store = null;
-          }
-        }
+async function createRun() {
+  const store = await createStore();
+  const { server, send } = await startServer(createExpressApp(store));
+  return {
+    send,
+    close: async () => {
+      try {
+        await stopServer(server);
+      } finally {
+        await teardownStore(store);
       }
-    );
-
-    const repeatState = {};
-    const repeatKey = nextKey("key");
-    bench.add(
-      REPEAT_KEY_TASK,
-      async () => {
-        const status = await repeatState.send({ key: repeatKey });
-        if (status !== 200) {
-          throw new Error(
-            `middleware repeat-key request failed: HTTP ${status}`
-          );
-        }
-      },
-      {
-        beforeAll: async () => {
-          repeatState.store = await createStore();
-          const { server, send } = await startServer(
-            createExpressApp(repeatState.store)
-          );
-          repeatState.server = server;
-          repeatState.send = send;
-          const status = await send({ key: repeatKey });
-          if (status !== 200) {
-            throw new Error(
-              `middleware repeat-key request failed: HTTP ${status}`
-            );
-          }
-          await settle();
-        },
-        afterAll: async () => {
-          try {
-            await stopServer(repeatState.server);
-          } finally {
-            // The store is released even when the server close fails.
-            await teardownStore(repeatState.store);
-            repeatState.store = null;
-          }
-        }
-      }
-    );
-
-    bench.add(
-      BASELINE_TASK,
-      async () => {
-        const status = await state.baselineSend();
-        if (status !== 200) {
-          throw new Error(`baseline request failed: HTTP ${status}`);
-        }
-      },
-      {
-        beforeAll: async () => {
-          const { server, send } = await startServer(createExpressApp(null));
-          state.baselineServer = server;
-          state.baselineSend = send;
-        },
-        afterAll: async () => {
-          await stopServer(state.baselineServer);
-          state.baselineSend = null;
-        }
-      }
-    );
-  },
-
-  /**
-   * Derive the overhead metrics from this module's aggregated results.
-   * Receives rows of { module, task, median_ops_s, median_ms, rme_pct }.
-   */
-  derive(moduleResults) {
-    const fresh = moduleResults.find((row) => row.task === FRESH_KEY_TASK);
-    const baseline = moduleResults.find((row) => row.task === BASELINE_TASK);
-    if (!fresh || !baseline || !baseline.median_ms) {
-      return [];
     }
-    const deltaMs = fresh.median_ms - baseline.median_ms;
-    return [
-      { name: `${MODULE_NAME}.overhead_delta_ms`, value: deltaMs },
-      {
-        name: `${MODULE_NAME}.overhead_pct`,
-        value: (deltaMs / baseline.median_ms) * 100
-      }
-    ];
-  }
-};
+  };
+}
+
+async function createBaselineRun() {
+  const { server, send } = await startServer(createExpressApp(null));
+  return {
+    send,
+    close: () => stopServer(server)
+  };
+}
+
+export default createE2EBenchmarkModule({
+  name: "e2e.express-mysql",
+  createRun,
+  createBaselineRun,
+  settleMs: 50
+});
