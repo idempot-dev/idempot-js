@@ -24,7 +24,11 @@ const MODULE_FILES = [
   "./e2e.express-sqlite.js",
   "./e2e.express-postgres.js",
   "./e2e.express-mysql.js",
-  "./e2e.express-redis.js"
+  "./e2e.express-redis.js",
+  "./e2e.fastify-sqlite.js",
+  "./e2e.fastify-postgres.js",
+  "./e2e.fastify-mysql.js",
+  "./e2e.fastify-redis.js"
 ];
 
 export const PRESETS = {

@@ -161,7 +161,18 @@ check(
 );
 roundTripMetrics("e2e", e2e.stdout);
 
-// 4. Baseline preservation.
+// 4. Fastify harness: the fastify modules share the inject-based harness;
+// exercise one end-to-end (sqlite in-memory) so harness drift fails here.
+const fastify = runBench(["--preset", "quick", "e2e.fastify-sqlite"]);
+check("fastify run exits 0", fastify.status === 0, fastify.stderr);
+check(
+  "fastify emits derived overhead metrics",
+  /^METRIC e2e\.fastify-sqlite\.overhead_delta_ms=/m.test(fastify.stdout) &&
+    /^METRIC e2e\.fastify-sqlite\.overhead_pct=/m.test(fastify.stdout)
+);
+roundTripMetrics("fastify", fastify.stdout);
+
+// 5. Baseline preservation.
 const resultsAfter = fs.readFileSync(RESULTS_PATH, "utf8");
 check(
   "smoke leaves bench/results.md untouched",

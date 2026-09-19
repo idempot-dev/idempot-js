@@ -66,6 +66,11 @@ compare medians, not spread, on those rows.
   real HTTP on an ephemeral localhost port (undici keep-alive), so their
   numbers include a socket round trip that the hono modules (in-process
   `app.request`) do not; compare within a framework, not across them.
+- `e2e.fastify-sqlite` — no external services (sqlite runs in-memory).
+- `e2e.fastify-postgres`, `e2e.fastify-mysql`, `e2e.fastify-redis` — the
+  same prerequisites as their hono counterparts. Fastify modules are
+  driven in-process via `app.inject()` (light-my-request), the same
+  measurement class as the hono modules.
 
 ## METRIC grammar
 
