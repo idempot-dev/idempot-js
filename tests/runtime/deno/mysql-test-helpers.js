@@ -72,20 +72,18 @@ export function createFakeMysqlClient(sharedStore) {
       }
 
       if (normalized.startsWith("SELECT")) {
-        if (normalized.includes("WHERE `KEY` =")) {
-          const [key] = params;
-          const record = store.get(key);
-          return [record ? [record] : []];
-        }
-
-        if (normalized.includes("WHERE FINGERPRINT =")) {
-          const [fingerprint] = params;
+        if (
+          normalized.includes("WHERE `KEY` =") &&
+          normalized.includes("OR FINGERPRINT =")
+        ) {
+          const [key, fingerprint] = params;
+          const rows = [];
           for (const record of store.values()) {
-            if (record.fingerprint === fingerprint) {
-              return [[record]];
+            if (record.key === key || record.fingerprint === fingerprint) {
+              rows.push(record);
             }
           }
-          return [[]];
+          return [rows];
         }
       }
 
