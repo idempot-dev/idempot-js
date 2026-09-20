@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# Run under the Node version pinned by mise.toml. Shells with a different
+# Node first in PATH break native modules (e.g. better-sqlite3 ABI) and
+# produce benchmarks/coverage from the wrong runtime.
+MISE_NODE_BIN="$(mise where node 2>/dev/null)/bin"
+if [ -x "$MISE_NODE_BIN/node" ]; then
+    PATH="$MISE_NODE_BIN:$PATH"
+    export PATH
+fi
+
 # Always run lint-staged (formatting and linting)
 pnpm exec lint-staged -q
 

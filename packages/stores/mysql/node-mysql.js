@@ -9,6 +9,23 @@ import { IdempotencyKeyExistsError } from "@idempot/core";
 const require = createRequire(import.meta.url);
 
 /**
+ * Probe whether a user-supplied mysql2 pool was created with
+ * multipleStatements enabled. mysql2 exposes its connection options at
+ * pool.config.connectionConfig on the callback Pool and at
+ * pool.pool.config.connectionConfig on the promise wrapper. Anything else
+ * (other drivers, fakes, plain connections) is treated as not supporting
+ * multiple statements and keeps the two-query lookup.
+ *
+ * @private
+ * @param {any} pool
+ * @returns {boolean}
+ */
+function poolSupportsMultipleStatements(pool) {
+  const raw = pool?.pool ?? pool;
+  return raw?.config?.connectionConfig?.multipleStatements === true;
+}
+
+/**
  * @typedef {Object} MysqlIdempotencyStoreOptions
  * @property {string} [connectionString] - MySQL connection string
  * @property {string} [host] - MySQL host
@@ -36,6 +53,13 @@ export class MysqlIdempotencyStore {
   tableName;
 
   /**
+   * Whether the pool supports multiple statements in one query. Only
+   * guaranteed for pools created by this store.
+   * @type {boolean}
+   */
+  multipleStatements;
+
+  /**
    * @param {MysqlIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
@@ -43,9 +67,16 @@ export class MysqlIdempotencyStore {
     this.tableName = tableName;
     if (pool) {
       this.pool = pool;
+      this.multipleStatements = poolSupportsMultipleStatements(pool);
     } else /* c8 ignore start */ {
       const mysql = require("mysql2/promise");
-      this.pool = mysql.createPool(poolOptions);
+      this.pool = mysql.createPool({
+        ...poolOptions,
+        // The store owns this pool and all its queries bind values as
+        // placeholders, so batching the lookup into one round trip is safe.
+        multipleStatements: true
+      });
+      this.multipleStatements = true;
       /* c8 ignore stop */
     } /* c8 ignore next */
   }
@@ -89,26 +120,50 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
-    await this.pool.query(
-      `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ? LIMIT 10`,
-      [Date.now()]
-    );
-
     /** @type {any[]} */
-    const byKeyResult = await this.pool.query(
-      `SELECT * FROM \`${this.tableName}\` WHERE \`key\` = ?`,
-      [key]
-    );
-    /** @type {any[]} */
-    const byFingerprintResult = await this.pool.query(
-      `SELECT * FROM \`${this.tableName}\` WHERE fingerprint = ?`,
-      [fingerprint]
-    );
+    let rows;
+    if (this.multipleStatements) {
+      // Store-owned pool: cleanup and lookup in a single round trip.
+      const [results] = await this.pool.query(
+        `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ? LIMIT 10; SELECT * FROM \`${this.tableName}\` WHERE \`key\` = ? OR fingerprint = ?`,
+        [Date.now(), key, fingerprint]
+      );
+      rows = results[1];
+    } else {
+      await this.pool.query(
+        `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ? LIMIT 10`,
+        [Date.now()]
+      );
 
-    return {
-      byKey: this.parseRecord(byKeyResult[0]?.[0]),
-      byFingerprint: this.parseRecord(byFingerprintResult[0]?.[0])
-    };
+      // One round trip instead of two: match on key OR fingerprint, then
+      // disambiguate by value. `key` is the primary key so at most one row
+      // can match it; the fingerprint index is not unique (transient
+      // concurrent 'processing' rows can share a fingerprint), and any
+      // matching row leads to the same replay or conflict decision.
+      const result = await this.pool.query(
+        `SELECT * FROM \`${this.tableName}\` WHERE \`key\` = ? OR fingerprint = ?`,
+        [key, fingerprint]
+      );
+      rows = result[0];
+    }
+
+    /** @type {IdempotencyRecord | null} */
+    let byKey = null;
+    /** @type {IdempotencyRecord | null} */
+    let byFingerprint = null;
+    for (const row of /** @type {any[]} */ (rows)) {
+      // Rows matching both predicates (the common repeat-hit case) are
+      // parsed once and shared between byKey and byFingerprint.
+      if (!byKey && row.key === key) {
+        byKey = this.parseRecord(row);
+      }
+      if (!byFingerprint && row.fingerprint === fingerprint) {
+        byFingerprint =
+          row.key === key && byKey ? byKey : this.parseRecord(row);
+      }
+    }
+
+    return { byKey, byFingerprint };
   }
 
   /**
