@@ -42,5 +42,11 @@ dist/
 data/
 *.db
 docs/plans/
+
+# bench
+# personal baselines and labeled scratch results stay out of git;
+# committed reference baselines live in bench/baselines/
+bench/baseline.local.json
+bench/results/
 docs/.vitepress/cache/
 .worktrees/
