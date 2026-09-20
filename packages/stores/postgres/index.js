@@ -5,6 +5,7 @@
 
 import { createRequire } from "module";
 import { IdempotencyKeyExistsError } from "@idempot/core";
+import { PreparedLookupPool } from "./lookup-pool.js";
 
 const require = createRequire(import.meta.url);
 
@@ -14,6 +15,9 @@ const require = createRequire(import.meta.url);
  * @property {import("pg").PoolConfig} [connection] - Connection pool options (passed to pg.Pool)
  * @property {string} [schema="public"] - Database schema for the idempotency table
  * @property {number} [purgeIntervalMs=1000] - Minimum interval between TTL-purge sweeps
+ * @property {number} [lookupPoolSize=2] - Dedicated prepared-statement clients for lookups
+ *   (store-owned pools only; 0 falls back to pool.query). User-provided pools always use
+ *   pool.query.
  * @property {import("pg").Pool} [pool] - Optional pre-configured pool (for testing)
  */
 
@@ -45,17 +49,47 @@ export class PostgresIdempotencyStore {
   lastPurgeAt = 0;
 
   /**
+   * Dedicated prepared-statement clients for the lookup (null when the
+   * store does not own its pool). An owned pool always holds a
+   * PreparedLookupPool; lookupPoolSize 0 makes it empty, so every lookup
+   * falls back to the regular pool.
+   * @type {PreparedLookupPool | null}
+   */
+  lookupPool;
+
+  /**
+   * The lookup SELECT, built once: also the statement text prepared on
+   * the dedicated lookup clients.
+   * @type {string}
+   */
+  lookupSQL;
+
+  /**
    * @param {PostgresIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
     this.schema = options.schema ?? "public";
     this.purgeIntervalMs = options.purgeIntervalMs ?? 1000;
     this.quotedSchemaIdentifier = `"${this.schema.replace(/"/g, '""')}"`;
+    this.lookupSQL = `SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records
+       WHERE (key = $1 AND expires_at > $2)
+          OR (fingerprint = $3 AND expires_at > $2)`;
     if (options.pool) {
       this.pool = options.pool;
+      this.lookupPool = null;
     } else {
-      const { Pool } = require("pg");
+      const { Pool, Client } = require("pg");
       this.pool = new Pool(options);
+      // Named prepared statements are per server session, so the hot
+      // lookup runs on dedicated clients instead of the rotating pool.
+      // A lookupPoolSize of 0 creates an empty pool: every lookup then
+      // falls back to the regular pool until it is disabled entirely.
+      this.lookupPool = new PreparedLookupPool({
+        clientFactory: () => new Client(options),
+        statementName: "idempotency_lookup",
+        statementText: this.lookupSQL,
+        size: options.lookupPoolSize ?? 2
+      });
     }
     this.initSchema();
   }
@@ -94,6 +128,9 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<void>}
    */
   async close() {
+    if (this.lookupPool) {
+      await this.lookupPool.end();
+    }
     await this.pool.end();
   }
 
@@ -154,12 +191,17 @@ export class PostgresIdempotencyStore {
     // same replay or conflict decision. The expiry guard sits inside each
     // OR arm: a table-wide `AND expires_at > $2` would defeat the BitmapOr
     // over the primary key and fingerprint indexes.
-    const result = await this.pool.query(
-      `SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records
-       WHERE (key = $1 AND expires_at > $2)
-          OR (fingerprint = $3 AND expires_at > $2)`,
-      [key, now, fingerprint]
-    );
+    //
+    // Store-owned pools run this statement on dedicated clients with the
+    // statement prepared server-side (named statements are per session);
+    // until a dedicated client is ready, or when one failed, the regular
+    // pool serves the identical SQL.
+    const prepared = this.lookupPool
+      ? await this.lookupPool.query([key, now, fingerprint])
+      : null;
+    const result =
+      prepared ??
+      (await this.pool.query(this.lookupSQL, [key, now, fingerprint]));
 
     // Disambiguate OR-matched rows by value: `key` is the primary key so at
     // most one row can match it; the fingerprint index is not unique
