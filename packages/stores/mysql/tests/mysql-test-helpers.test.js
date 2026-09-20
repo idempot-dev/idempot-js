@@ -18,19 +18,39 @@ test("createFakeMysqlPool - INSERT creates record", async (t) => {
   t.end();
 });
 
-test("createFakeMysqlPool - SELECT by key returns inserted record", async (t) => {
+test("createFakeMysqlPool - SELECT with OR predicate returns rows matching key or fingerprint", async (t) => {
   const pool = createFakeMysqlPool();
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
     ["test-key", "test-fp", Date.now() + 60000]
   );
 
-  const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE `key` = ?",
-    ["test-key"]
+  // key matches
+  const byKey = await pool.query(
+    "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
+    ["test-key", "other-fp"]
   );
-  t.equal(result[0].length, 1, "should find one row");
-  t.equal(result[0][0].key, "test-key", "should have correct key");
+  t.equal(byKey[0].length, 1, "should find one row by key");
+  t.equal(byKey[0][0].key, "test-key", "should have correct key");
+
+  // fingerprint matches (different key)
+  const byFingerprint = await pool.query(
+    "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
+    ["other-key", "test-fp"]
+  );
+  t.equal(byFingerprint[0].length, 1, "should find one row by fingerprint");
+  t.equal(
+    byFingerprint[0][0].fingerprint,
+    "test-fp",
+    "should have correct fingerprint"
+  );
+
+  // same record can match both predicates
+  const byBoth = await pool.query(
+    "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
+    ["test-key", "test-fp"]
+  );
+  t.equal(byBoth[0].length, 1, "should not duplicate a row matching both");
   t.end();
 });
 
@@ -44,20 +64,29 @@ test("createFakeMysqlPool - SELECT by key returns empty for non-existent", async
   t.end();
 });
 
-test("createFakeMysqlPool - SELECT by fingerprint finds matching record", async (t) => {
+test("createFakeMysqlPool - SELECT with OR predicate returns every row sharing the fingerprint", async (t) => {
   const pool = createFakeMysqlPool();
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
     ["key-1", "shared-fp", Date.now() + 60000]
   );
+  await pool.query(
+    "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
+    ["key-2", "shared-fp", Date.now() + 60000]
+  );
 
   const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE fingerprint = ?",
-    ["shared-fp"]
+    "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
+    ["other-key", "shared-fp"]
   );
-  t.equal(result[0].length, 1, "should find one row");
+  t.equal(result[0].length, 2, "should find both rows sharing the fingerprint");
   t.equal(
     result[0][0].fingerprint,
+    "shared-fp",
+    "should have correct fingerprint"
+  );
+  t.equal(
+    result[0][1].fingerprint,
     "shared-fp",
     "should have correct fingerprint"
   );

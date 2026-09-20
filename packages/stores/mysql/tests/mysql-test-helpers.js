@@ -63,6 +63,17 @@ export function createFakeMysqlPool() {
             deleted++;
           }
         }
+        if (sql.toUpperCase().includes("SELECT")) {
+          // Batched lookup: DELETE + SELECT in one multipleStatements query.
+          const [key, fingerprint] = params.slice(1);
+          const rows = [];
+          for (const record of store.values()) {
+            if (record.key === key || record.fingerprint === fingerprint) {
+              rows.push(record);
+            }
+          }
+          return [[{ affectedRows: deleted }, rows], []];
+        }
         return [{ affectedRows: deleted }, []];
       }
 
@@ -109,20 +120,18 @@ export function createFakeMysqlPool() {
       if (parsed.operation === "SELECT") {
         const normalizedSql = sql.toUpperCase();
 
-        if (normalizedSql.includes("WHERE `KEY` =")) {
-          const [key] = params;
-          const record = store.get(key);
-          return [record ? [record] : [], []];
-        }
-
-        if (normalizedSql.includes("WHERE FINGERPRINT =")) {
-          const [fingerprint] = params;
+        if (
+          normalizedSql.includes("WHERE `KEY` =") &&
+          normalizedSql.includes("OR FINGERPRINT =")
+        ) {
+          const [key, fingerprint] = params;
+          const rows = [];
           for (const record of store.values()) {
-            if (record.fingerprint === fingerprint) {
-              return [[record], []];
+            if (record.key === key || record.fingerprint === fingerprint) {
+              rows.push(record);
             }
           }
-          return [[], []];
+          return [rows, []];
         }
       }
 

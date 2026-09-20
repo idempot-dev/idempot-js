@@ -98,6 +98,12 @@ Creates a new MySQL store for Node.js. Options are passed directly to `mysql2.cr
 
 See [mysql2 documentation](https://github.com/sidorares/node-mysql2#connection-options) for all available options.
 
+When the store creates its own pool it enables `multipleStatements` so the
+expired-record cleanup and the record lookup run in one round trip (all
+values are bound placeholders). Pools passed via the `pool` option keep
+mysql2's defaults; lookups then use a single `key = ? OR fingerprint = ?`
+SELECT instead.
+
 ### Deno: `new MysqlIdempotencyStore(options)`
 
 Creates a new MySQL store for Deno.
