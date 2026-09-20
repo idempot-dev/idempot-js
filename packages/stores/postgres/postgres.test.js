@@ -41,6 +41,32 @@ test("PostgresIdempotencyStore - parseRecord handles null response_headers", asy
   t.end();
 });
 
+test("PostgresIdempotencyStore - lookup does not return expired records", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  pool.__store.set("expired-key", {
+    key: "expired-key",
+    fingerprint: "expired-fp",
+    status: "complete",
+    response_status: 200,
+    response_headers: "{}",
+    response_body: "{}",
+    expires_at: Date.now() - 1000
+  });
+
+  const result = await store.lookup("expired-key", "expired-fp");
+  t.equal(result.byKey, null, "expired record should not be found by key");
+  t.equal(
+    result.byFingerprint,
+    null,
+    "expired record should not be found by fingerprint"
+  );
+
+  await store.close();
+  t.end();
+});
+
 test("PostgresIdempotencyStore - close calls pool.end", async (t) => {
   const pool = createFakePgPool();
   const store = new PostgresIdempotencyStore({ pool });
