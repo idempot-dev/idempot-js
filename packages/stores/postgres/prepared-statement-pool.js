@@ -1,19 +1,18 @@
 /**
- * A small pool of dedicated clients that keep the lookup statement
+ * A small pool of dedicated clients that keep the store's statements
  * prepared server-side.
  *
  * Named prepared statements live in a single server session, so a
  * connection pool's rotating clients cannot share one: `pool.query` with a
  * statement name fails whenever the next call lands on a client that never
- * prepared it. Owning a few dedicated clients lets the hot lookup path
- * skip both statement planning (~0.05-0.27ms per statement on this
- * workload) and pool client acquisition on every call.
+ * prepared it. Owning a few dedicated clients lets every store statement
+ * skip statement planning and pool client acquisition on every call.
  *
  * @template C client object with connect(), query(config), end(), on()
  */
 
 /**
- * @typedef {Object} PreparedLookupPoolOptions
+ * @typedef {Object} PreparedStatementPoolOptions
  * @property {() => C} clientFactory - creates one fresh client per slot
  * @property {string} statementName - server-side prepared statement name
  * @property {string} statementText - SQL text of the statement
@@ -21,7 +20,7 @@
  *   the pool empty; every query then reports fallback)
  */
 
-export class PreparedLookupPool {
+export class PreparedStatementPool {
   /**
    * @type {Array<{client: C, ready: boolean}>}
    */
@@ -34,21 +33,9 @@ export class PreparedLookupPool {
   #cursor = 0;
 
   /**
-   * @type {string}
+   * @param {PreparedStatementPoolOptions} options
    */
-  #statementName;
-
-  /**
-   * @type {string}
-   */
-  #statementText;
-
-  /**
-   * @param {PreparedLookupPoolOptions} options
-   */
-  constructor({ clientFactory, statementName, statementText, size }) {
-    this.#statementName = statementName;
-    this.#statementText = statementText;
+  constructor({ clientFactory, size }) {
     for (let slot = 0; slot < size; slot += 1) {
       this.#spawn(clientFactory);
     }
@@ -89,13 +76,15 @@ export class PreparedLookupPool {
   }
 
   /**
-   * Run the prepared statement on the next ready client.
+   * Run a named statement on the next ready client. pg prepares the
+   * statement lazily on its first use per client.
    *
-   * @param {any[]} values - statement parameters
-   * @returns {Promise<{rows: any[]} | null>} the query result, or null
-   *   when no client is ready (caller must fall back to its regular pool)
+   * @param {{name: string, text: string, values: any[]}} statement
+   * @returns {Promise<{rows: any[], rowCount?: number} | null>} the query
+   *   result, or null when no client is ready or the client failed (caller
+   *   must fall back to its regular pool)
    */
-  async query(values) {
+  async query(statement) {
     const entry = this.#nextReady();
     if (!entry) {
       return null;
@@ -103,11 +92,7 @@ export class PreparedLookupPool {
     entry.inFlight += 1;
     let result;
     try {
-      result = await entry.client.query({
-        name: this.#statementName,
-        text: this.#statementText,
-        values
-      });
+      result = await entry.client.query(statement);
     } catch {
       // Connection-level failures retire the client; the caller falls
       // back to its regular pool, which surfaces the real error.

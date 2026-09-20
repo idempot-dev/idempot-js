@@ -5,7 +5,7 @@
 
 import { createRequire } from "module";
 import { IdempotencyKeyExistsError } from "@idempot/core";
-import { PreparedLookupPool } from "./lookup-pool.js";
+import { PreparedStatementPool } from "./prepared-statement-pool.js";
 
 const require = createRequire(import.meta.url);
 
@@ -15,7 +15,7 @@ const require = createRequire(import.meta.url);
  * @property {import("pg").PoolConfig} [connection] - Connection pool options (passed to pg.Pool)
  * @property {string} [schema="public"] - Database schema for the idempotency table
  * @property {number} [purgeIntervalMs=1000] - Minimum interval between TTL-purge sweeps
- * @property {number} [lookupPoolSize=2] - Dedicated prepared-statement clients for lookups
+ * @property {number} [preparedPoolSize=2] - Dedicated prepared-statement clients for lookups
  *   (store-owned pools only; 0 falls back to pool.query). User-provided pools always use
  *   pool.query.
  * @property {import("pg").Pool} [pool] - Optional pre-configured pool (for testing)
@@ -51,11 +51,11 @@ export class PostgresIdempotencyStore {
   /**
    * Dedicated prepared-statement clients for the lookup (null when the
    * store does not own its pool). An owned pool always holds a
-   * PreparedLookupPool; lookupPoolSize 0 makes it empty, so every lookup
+   * PreparedLookupPool; preparedPoolSize 0 makes it empty, so every lookup
    * falls back to the regular pool.
-   * @type {PreparedLookupPool | null}
+   * @type {PreparedStatementPool | null}
    */
-  lookupPool;
+  preparedPool;
 
   /**
    * The lookup SELECT, built once: also the statement text prepared on
@@ -76,19 +76,17 @@ export class PostgresIdempotencyStore {
           OR (fingerprint = $3 AND expires_at > $2)`;
     if (options.pool) {
       this.pool = options.pool;
-      this.lookupPool = null;
+      this.preparedPool = null;
     } else {
       const { Pool, Client } = require("pg");
       this.pool = new Pool(options);
-      // Named prepared statements are per server session, so the hot
-      // lookup runs on dedicated clients instead of the rotating pool.
-      // A lookupPoolSize of 0 creates an empty pool: every lookup then
-      // falls back to the regular pool until it is disabled entirely.
-      this.lookupPool = new PreparedLookupPool({
+      // Named prepared statements are per server session, so the store's
+      // statements run on dedicated clients instead of the rotating pool.
+      // A preparedPoolSize of 0 creates an empty pool: every statement
+      // then falls back to the regular pool.
+      this.preparedPool = new PreparedStatementPool({
         clientFactory: () => new Client(options),
-        statementName: "idempotency_lookup",
-        statementText: this.lookupSQL,
-        size: options.lookupPoolSize ?? 2
+        size: options.preparedPoolSize ?? 2
       });
     }
     this.initSchema();
@@ -128,8 +126,8 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<void>}
    */
   async close() {
-    if (this.lookupPool) {
-      await this.lookupPool.end();
+    if (this.preparedPool) {
+      await this.preparedPool.end();
     }
     await this.pool.end();
   }
@@ -192,16 +190,15 @@ export class PostgresIdempotencyStore {
     // OR arm: a table-wide `AND expires_at > $2` would defeat the BitmapOr
     // over the primary key and fingerprint indexes.
     //
-    // Store-owned pools run this statement on dedicated clients with the
-    // statement prepared server-side (named statements are per session);
-    // until a dedicated client is ready, or when one failed, the regular
-    // pool serves the identical SQL.
-    const prepared = this.lookupPool
-      ? await this.lookupPool.query([key, now, fingerprint])
-      : null;
-    const result =
-      prepared ??
-      (await this.pool.query(this.lookupSQL, [key, now, fingerprint]));
+    // Store-owned pools run the store's statements on dedicated clients
+    // with the statements prepared server-side (named statements are per
+    // session); until a dedicated client is ready, or when one failed, the
+    // regular pool serves the identical SQL.
+    const result = await this.#dedicated({
+      name: "idempotency_lookup",
+      text: this.lookupSQL,
+      values: [key, now, fingerprint]
+    });
 
     // Disambiguate OR-matched rows by value: `key` is the primary key so at
     // most one row can match it; the fingerprint index is not unique
@@ -223,6 +220,25 @@ export class PostgresIdempotencyStore {
   }
 
   /**
+   * Run a named statement on a dedicated prepared client when one is
+   * ready; fall back to the regular pool otherwise. A null from the
+   * dedicated pool means "no client available or the client failed", in
+   * which case the regular pool serves the identical SQL and surfaces any
+   * real error (e.g. the INSERT's 23505).
+   *
+   * @param {{name: string, text: string, values: any[]}} statement
+   * @returns {Promise<{rows: any[], rowCount?: number}>}
+   */
+  async #dedicated(statement) {
+    const prepared = this.preparedPool
+      ? await this.preparedPool.query(statement)
+      : null;
+    return (
+      prepared ?? (await this.pool.query(statement.text, statement.values))
+    );
+  }
+
+  /**
    * Start processing a request
    * @param {string} key
    * @param {string} fingerprint
@@ -231,11 +247,12 @@ export class PostgresIdempotencyStore {
    */
   async startProcessing(key, fingerprint, ttlMs) {
     try {
-      await this.pool.query(
-        `INSERT INTO ${this.quotedSchemaIdentifier}.idempotency_records (key, fingerprint, status, expires_at)
+      await this.#dedicated({
+        name: "idempotency_insert",
+        text: `INSERT INTO ${this.quotedSchemaIdentifier}.idempotency_records (key, fingerprint, status, expires_at)
        VALUES ($1, $2, 'processing', $3)`,
-        [key, fingerprint, Date.now() + ttlMs]
-      );
+        values: [key, fingerprint, Date.now() + ttlMs]
+      });
     } catch (error) {
       if (error?.code === "23505") {
         throw new IdempotencyKeyExistsError(
@@ -254,15 +271,21 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<void>}
    */
   async complete(key, response) {
-    const result = await this.pool.query(
-      `UPDATE ${this.quotedSchemaIdentifier}.idempotency_records
+    const result = await this.#dedicated({
+      name: "idempotency_update",
+      text: `UPDATE ${this.quotedSchemaIdentifier}.idempotency_records
        SET status = 'complete',
            response_status = $1,
            response_headers = $2,
            response_body = $3
        WHERE key = $4`,
-      [response.status, JSON.stringify(response.headers), response.body, key]
-    );
+      values: [
+        response.status,
+        JSON.stringify(response.headers),
+        response.body,
+        key
+      ]
+    });
 
     if (result.rowCount === 0) {
       throw new Error(`No record found for key: ${key}`);
