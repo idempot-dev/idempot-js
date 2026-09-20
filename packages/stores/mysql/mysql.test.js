@@ -41,6 +41,56 @@ test("MysqlIdempotencyStore - parseRecord handles null response_headers", async 
   t.end();
 });
 
+test("MysqlIdempotencyStore - uses batched lookup when pool supports multiple statements", async (t) => {
+  const pool = createFakeMysqlPool();
+  pool.config = { connectionConfig: { multipleStatements: true } };
+  const store = new MysqlIdempotencyStore({ pool });
+
+  await store.startProcessing("batch-key", "batch-fp", 60000);
+  const result = await store.lookup("batch-key", "batch-fp");
+  t.equal(result.byKey.key, "batch-key", "batched lookup should find by key");
+  t.equal(
+    result.byFingerprint.key,
+    "batch-key",
+    "batched lookup should find by fingerprint"
+  );
+
+  // fingerprint matches but key does not
+  const byFingerprint = await store.lookup("other-key", "batch-fp");
+  t.equal(
+    byFingerprint.byFingerprint.key,
+    "batch-key",
+    "batched lookup should find by fingerprint only"
+  );
+
+  // neither matches
+  const empty = await store.lookup("no-key", "no-fp");
+  t.equal(empty.byKey, null, "batched lookup should miss by key");
+  t.equal(
+    empty.byFingerprint,
+    null,
+    "batched lookup should miss by fingerprint"
+  );
+
+  await store.close();
+  t.end();
+});
+
+test("MysqlIdempotencyStore - parseRecord returns null for a falsy row", async (t) => {
+  const pool = createFakeMysqlPool();
+  const store = new MysqlIdempotencyStore({ pool });
+
+  t.equal(store.parseRecord(null), null, "null row should map to null");
+  t.equal(
+    store.parseRecord(undefined),
+    null,
+    "undefined row should map to null"
+  );
+
+  await store.close();
+  t.end();
+});
+
 test("MysqlIdempotencyStore - close calls pool.end", async (t) => {
   const pool = createFakeMysqlPool();
   const store = new MysqlIdempotencyStore({ pool });
