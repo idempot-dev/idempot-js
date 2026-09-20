@@ -13,6 +13,7 @@ const require = createRequire(import.meta.url);
  * @property {string} [connectionString] - PostgreSQL connection string
  * @property {import("pg").PoolConfig} [connection] - Connection pool options (passed to pg.Pool)
  * @property {string} [schema="public"] - Database schema for the idempotency table
+ * @property {number} [purgeIntervalMs=1000] - Minimum interval between TTL-purge sweeps
  * @property {import("pg").Pool} [pool] - Optional pre-configured pool (for testing)
  */
 
@@ -32,10 +33,23 @@ export class PostgresIdempotencyStore {
   schema;
 
   /**
+   * Minimum interval in ms between TTL-purge sweeps.
+   * @type {number}
+   */
+  purgeIntervalMs;
+
+  /**
+   * Timestamp of the last TTL-purge sweep.
+   * @type {number}
+   */
+  lastPurgeAt = 0;
+
+  /**
    * @param {PostgresIdempotencyStoreOptions} [options]
    */
   constructor(options = {}) {
     this.schema = options.schema ?? "public";
+    this.purgeIntervalMs = options.purgeIntervalMs ?? 1000;
     this.quotedSchemaIdentifier = `"${this.schema.replace(/"/g, '""')}"`;
     if (options.pool) {
       this.pool = options.pool;
@@ -112,27 +126,39 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
-    // One round trip for the whole lookup: the TTL-purge DELETE runs as a
-    // data-modifying CTE ahead of the SELECT. ORDER BY expires_at keeps the
-    // purge on the expires_at index (a bare LIMIT 10 makes the planner pick
-    // a seq scan once the table grows). The expiry guard sits inside each
-    // OR arm: a table-wide `AND expires_at > $1` would defeat the BitmapOr
-    // over the primary key and fingerprint indexes.
     const now = Date.now();
-    const result = await this.pool.query(
-      `WITH cleanup AS (
-         DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records
+
+    // Periodic TTL purge: expired rows are excluded from results by the
+    // expiry guard in the SELECT below regardless, so deferred sweeping
+    // only delays space reclamation, never correctness. ORDER BY
+    // expires_at keeps the LIMIT-10 subquery on the expires_at index (a
+    // bare LIMIT makes the planner seq-scan once the table grows).
+    if (now - this.lastPurgeAt >= this.purgeIntervalMs) {
+      this.lastPurgeAt = now;
+      await this.pool.query(
+        `DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records
          WHERE key IN (
            SELECT key FROM ${this.quotedSchemaIdentifier}.idempotency_records
            WHERE expires_at <= $1
            ORDER BY expires_at
            LIMIT 10
-         )
-       )
-       SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records
-       WHERE (key = $2 AND expires_at > $1)
-          OR (fingerprint = $3 AND expires_at > $1)`,
-      [now, key, fingerprint]
+         )`,
+        [now]
+      );
+    }
+
+    // One round trip: match on key OR fingerprint, then disambiguate by
+    // value. `key` is the primary key so at most one row can match it; the
+    // fingerprint index is not unique (transient concurrent 'processing'
+    // rows can share a fingerprint), and any matching row leads to the
+    // same replay or conflict decision. The expiry guard sits inside each
+    // OR arm: a table-wide `AND expires_at > $2` would defeat the BitmapOr
+    // over the primary key and fingerprint indexes.
+    const result = await this.pool.query(
+      `SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records
+       WHERE (key = $1 AND expires_at > $2)
+          OR (fingerprint = $3 AND expires_at > $2)`,
+      [key, now, fingerprint]
     );
 
     // Disambiguate OR-matched rows by value: `key` is the primary key so at

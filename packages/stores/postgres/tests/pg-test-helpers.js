@@ -21,11 +21,10 @@ function parseSql(sql) {
   if (normalized.startsWith("UPDATE")) {
     return { operation: "UPDATE", table: "idempotency_records" };
   }
-  if (
-    normalized.startsWith("WITH") &&
-    normalized.includes("DELETE") &&
-    normalized.includes("SELECT")
-  ) {
+  if (normalized.startsWith("DELETE") && normalized.includes("EXPIRES_AT")) {
+    return { operation: "DELETE_EXPIRED", table: "idempotency_records" };
+  }
+  if (normalized.startsWith("SELECT")) {
     return { operation: "LOOKUP", table: "idempotency_records" };
   }
   if (normalized.startsWith("CREATE")) {
@@ -60,20 +59,10 @@ export function createFakePgPool() {
         }
 
         case "LOOKUP": {
-          const [now, key, fingerprint] = params;
-          // Emulate the real statement: purge up to 10 expired rows (oldest
-          // first), then select rows matching key OR fingerprint that are not
-          // expired (the expiry guard runs inside each OR arm).
-          const expired = [];
-          for (const [k, record] of store) {
-            if (record.expires_at <= now) {
-              expired.push([k, record]);
-            }
-          }
-          expired.sort((a, b) => a[1].expires_at - b[1].expires_at);
-          for (const [k] of expired.slice(0, 10)) {
-            store.delete(k);
-          }
+          // Emulate the real statement: select rows matching key OR
+          // fingerprint that are not expired (the expiry guard runs inside
+          // each OR arm).
+          const [key, now, fingerprint] = params;
           const rows = [];
           for (const record of store.values()) {
             if (
@@ -84,6 +73,23 @@ export function createFakePgPool() {
             }
           }
           return { rows, rowCount: rows.length };
+        }
+
+        case "DELETE_EXPIRED": {
+          // Emulate the real statement: purge up to 10 expired rows,
+          // oldest first.
+          const [now] = params;
+          const expired = [];
+          for (const [k, record] of store) {
+            if (record.expires_at <= now) {
+              expired.push([k, record]);
+            }
+          }
+          expired.sort((a, b) => a[1].expires_at - b[1].expires_at);
+          for (const [k] of expired.slice(0, 10)) {
+            store.delete(k);
+          }
+          return { rows: [], rowCount: Math.min(expired.length, 10) };
         }
 
         case "INSERT": {
