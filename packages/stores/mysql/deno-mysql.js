@@ -131,19 +131,30 @@ export class MysqlIdempotencyStore {
       [Date.now()]
     );
 
-    const [byKeyResult] = await this.client.query(
-      "SELECT * FROM idempotency_records WHERE `key` = ?",
-      [key]
-    );
-    const [byFingerprintResult] = await this.client.query(
-      "SELECT * FROM idempotency_records WHERE fingerprint = ?",
-      [fingerprint]
+    // One round trip instead of two: match on key OR fingerprint, then
+    // disambiguate by value. `key` is the primary key so at most one row
+    // can match it; the fingerprint index is not unique (transient
+    // concurrent 'processing' rows can share a fingerprint), and any
+    // matching row leads to the same replay or conflict decision.
+    const [rows] = await this.client.query(
+      "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
+      [key, fingerprint]
     );
 
-    return {
-      byKey: this.parseRecord(byKeyResult[0]),
-      byFingerprint: this.parseRecord(byFingerprintResult[0])
-    };
+    /** @type {IdempotencyRecord | null} */
+    let byKey = null;
+    /** @type {IdempotencyRecord | null} */
+    let byFingerprint = null;
+    for (const row of /** @type {any[]} */ (rows)) {
+      if (!byKey && row.key === key) {
+        byKey = this.parseRecord(row);
+      }
+      if (!byFingerprint && row.fingerprint === fingerprint) {
+        byFingerprint = this.parseRecord(row);
+      }
+    }
+
+    return { byKey, byFingerprint };
   }
 
   /**
