@@ -67,6 +67,85 @@ test("PostgresIdempotencyStore - lookup does not return expired records", async 
   t.end();
 });
 
+test("PostgresIdempotencyStore - TTL purge runs at most once per interval", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  const purgeCount = () =>
+    pool.query
+      .getCalls()
+      .filter((call) =>
+        String(call.args[0]).trim().toUpperCase().startsWith("DELETE")
+      ).length;
+
+  // First lookup purges (lastPurgeAt starts at 0).
+  await store.lookup("key-1", "fp-1");
+  t.equal(purgeCount(), 1, "first lookup should trigger the purge sweep");
+
+  // Second lookup within the interval skips the purge.
+  await store.lookup("key-1", "fp-1");
+  t.equal(purgeCount(), 1, "lookup within the interval must not purge again");
+
+  // After the interval elapses the next lookup purges again.
+  store.lastPurgeAt = Date.now() - store.purgeIntervalMs - 1;
+  await store.lookup("key-1", "fp-1");
+  t.equal(purgeCount(), 2, "lookup after the interval should purge again");
+
+  await store.close();
+  t.end();
+});
+
+test("PostgresIdempotencyStore - purgeIntervalMs 0 purges on every lookup", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool, purgeIntervalMs: 0 });
+
+  await store.lookup("key-1", "fp-1");
+  await store.lookup("key-1", "fp-1");
+  const purgeCount = pool.query
+    .getCalls()
+    .filter((call) =>
+      String(call.args[0]).trim().toUpperCase().startsWith("DELETE")
+    ).length;
+  t.equal(purgeCount, 2, "each lookup should trigger the purge sweep");
+
+  await store.close();
+  t.end();
+});
+
+test("PostgresIdempotencyStore - periodic purge reclaims expired records", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool, purgeIntervalMs: 0 });
+
+  pool.__store.set("expired-key", {
+    key: "expired-key",
+    fingerprint: "expired-fp",
+    status: "complete",
+    response_status: 200,
+    response_headers: "{}",
+    response_body: "{}",
+    expires_at: Date.now() - 1000
+  });
+
+  // The lookup itself must not return the expired record.
+  const result = await store.lookup("expired-key", "expired-fp");
+  t.equal(result.byKey, null, "expired record should not be found by key");
+  t.equal(
+    result.byFingerprint,
+    null,
+    "expired record should not be found by fingerprint"
+  );
+
+  // The purge sweep (triggered in the same lookup) removes it.
+  t.equal(
+    pool.__store.has("expired-key"),
+    false,
+    "expired record should be reclaimed by the purge sweep"
+  );
+
+  await store.close();
+  t.end();
+});
+
 test("PostgresIdempotencyStore - close calls pool.end", async (t) => {
   const pool = createFakePgPool();
   const store = new PostgresIdempotencyStore({ pool });

@@ -26,8 +26,8 @@ test("createFakePgPool - LOOKUP statement finds record by key and fingerprint", 
   );
 
   const result = await pool.query(
-    "WITH cleanup AS (DELETE FROM idempotency_records) SELECT * FROM idempotency_records WHERE (key = $2 AND expires_at > $1) OR (fingerprint = $3 AND expires_at > $1)",
-    [Date.now(), "test-key", "test-fp"]
+    "SELECT * FROM idempotency_records WHERE (key = $1 AND expires_at > $2) OR (fingerprint = $3 AND expires_at > $2)",
+    ["test-key", Date.now(), "test-fp"]
   );
   t.equal(result.rows.length, 1, "should find one row");
   t.equal(result.rows[0].key, "test-key", "should have correct key");
@@ -47,8 +47,8 @@ test("createFakePgPool - LOOKUP statement finds record by fingerprint only", asy
   );
 
   const result = await pool.query(
-    "WITH cleanup AS (DELETE FROM idempotency_records) SELECT * FROM idempotency_records WHERE (key = $2 AND expires_at > $1) OR (fingerprint = $3 AND expires_at > $1)",
-    [Date.now(), "other-key", "shared-fp"]
+    "SELECT * FROM idempotency_records WHERE (key = $1 AND expires_at > $2) OR (fingerprint = $3 AND expires_at > $2)",
+    ["other-key", Date.now(), "shared-fp"]
   );
   t.equal(result.rows.length, 1, "should find one row");
   t.equal(
@@ -60,7 +60,7 @@ test("createFakePgPool - LOOKUP statement finds record by fingerprint only", asy
   t.end();
 });
 
-test("createFakePgPool - LOOKUP statement purges expired records and hides them from results", async (t) => {
+test("createFakePgPool - LOOKUP statement hides expired records from results", async (t) => {
   const pool = createFakePgPool();
   pool.__store.set("expired-key", {
     key: "expired-key",
@@ -82,14 +82,14 @@ test("createFakePgPool - LOOKUP statement purges expired records and hides them 
   });
 
   const result = await pool.query(
-    "WITH cleanup AS (DELETE FROM idempotency_records) SELECT * FROM idempotency_records WHERE (key = $2 AND expires_at > $1) OR (fingerprint = $3 AND expires_at > $1)",
-    [Date.now(), "expired-key", "fp-expired"]
+    "SELECT * FROM idempotency_records WHERE (key = $1 AND expires_at > $2) OR (fingerprint = $3 AND expires_at > $2)",
+    ["expired-key", Date.now(), "fp-expired"]
   );
   t.equal(result.rows.length, 0, "expired record should not be returned");
   t.equal(
     pool.__store.has("expired-key"),
-    false,
-    "expired record should be purged"
+    true,
+    "purge is a separate statement; lookup itself must not delete"
   );
   t.equal(pool.__store.has("valid-key"), true, "valid record should remain");
   t.end();
