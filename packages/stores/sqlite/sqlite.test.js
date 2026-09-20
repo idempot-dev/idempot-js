@@ -6,6 +6,8 @@ import { test } from "tap";
 import { runStoreTests } from "../../core/tests/store-adapter-suite.js";
 import { SqliteIdempotencyStore } from "@idempot/sqlite-store";
 import fs from "fs";
+import os from "os";
+import path from "path";
 
 runStoreTests({
   name: "sqlite",
@@ -13,10 +15,26 @@ runStoreTests({
 });
 
 test("sqlite - creates store with default path when no options provided", (t) => {
-  const store = new SqliteIdempotencyStore();
-  t.ok(store, "store should be created with default path");
-  store.close();
-  fs.unlinkSync("./idempotency.db");
+  // This file is also discovered through workspace node_modules symlinks,
+  // so several copies can run concurrently and share the project cwd. Run
+  // in a private cwd: the store's default path is "./idempotency.db"
+  // relative to cwd, and a fixed filename in a shared cwd races between
+  // workers.
+  const workdir = fs.mkdtempSync(path.join(os.tmpdir(), "sqlite-default-"));
+  const originalCwd = process.cwd();
+  process.chdir(workdir);
+  try {
+    const store = new SqliteIdempotencyStore();
+    t.ok(store, "store should be created with default path");
+    store.close();
+    t.ok(
+      fs.existsSync(path.join(workdir, "idempotency.db")),
+      "default file should be created in the current working directory"
+    );
+  } finally {
+    process.chdir(originalCwd);
+    fs.rmSync(workdir, { recursive: true, force: true });
+  }
   t.end();
 });
 
