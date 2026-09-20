@@ -10,6 +10,7 @@
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,12 +41,7 @@ function runBench(args) {
 
 // Smoke runs would silently rewrite the committed results baseline without
 // the --no-results-file flag; assert the baseline survives the whole run.
-// bench/results.md is recorded deliberately at suite milestones; when it is
-// not committed yet, the preservation check is skipped rather than crashing.
-const hasResultsBaseline = fs.existsSync(RESULTS_PATH);
-const resultsBefore = hasResultsBaseline
-  ? fs.readFileSync(RESULTS_PATH, "utf8")
-  : null;
+const resultsBefore = fs.readFileSync(RESULTS_PATH, "utf8");
 
 /**
  * Consumer-side METRIC parser: the grammar an external consumer (e.g. a
@@ -181,7 +177,7 @@ check(
 );
 roundTripMetrics("fastify", fastify.stdout);
 
-// 5. Express harness: the express modules serve real HTTP on an
+// 4b. Express harness: the express modules serve real HTTP on an
 // ephemeral port; exercise the in-memory sqlite module so an
 // express-harness regression (server lifecycle, body drain, settle)
 // fails here instead of only on manual module runs.
@@ -198,7 +194,7 @@ check(
 );
 roundTripMetrics("express", express.stdout);
 
-// 6. Bun harness (only when the bun binary is available): the bun-only
+// 5. Bun harness (only when the bun binary is available): the bun-only
 // modules need the Bun runtime, so the suite runs under `bun` for these.
 // e2e.bun-bunsql-sqlite needs no external services.
 const bunCheck = spawnSync("bun", ["--version"], {
@@ -227,18 +223,265 @@ if (bunCheck.status === 0) {
   console.log("ok: bun binary not available, skipping bun harness checks");
 }
 
-// 7. Baseline preservation.
-if (hasResultsBaseline) {
-  const resultsAfter = fs.readFileSync(RESULTS_PATH, "utf8");
+// 6. Baseline save + compare mode (fixture quick runs are cheap).
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "bench-smoke-"));
+const baselinePath = path.join(tmpDir, "baseline.json");
+const saved = runBench([
+  "--preset",
+  "quick",
+  "fixture",
+  "--save-baseline",
+  baselinePath
+]);
+check(
+  "save-baseline run exits 0",
+  saved.status === 0,
+  saved.stderr ?? saved.error?.message
+);
+// A guard that crashes on its first failure reports less than one that
+// continues: never let a missing or malformed artifact kill the run.
+let baselineObj = null;
+if (!fs.existsSync(baselinePath)) {
   check(
-    "smoke leaves bench/results.md untouched",
-    resultsAfter === resultsBefore
+    "save-baseline wrote the baseline file",
+    false,
+    "baseline file missing"
   );
 } else {
-  console.log(
-    "ok: no bench/results.md committed yet; preservation check skipped"
+  try {
+    baselineObj = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
+  } catch (e) {
+    check("save-baseline wrote valid JSON", false, String(e));
+  }
+}
+check(
+  "baseline JSON shape",
+  baselineObj !== null &&
+    baselineObj.version === 1 &&
+    baselineObj.preset === "quick" &&
+    typeof baselineObj.runtime?.cpu === "string" &&
+    Array.isArray(baselineObj.results) &&
+    baselineObj.results.some(
+      (row) =>
+        row.module === "fixture" && typeof row.metrics?.median_ms === "number"
+    )
+);
+const compared = runBench([
+  "--preset",
+  "quick",
+  "fixture",
+  "--compare",
+  baselinePath
+]);
+check("compare exits 0", compared.status === 0, compared.stderr);
+check(
+  "compare prints deltas",
+  /delta/.test(compared.stdout) && /fixture/.test(compared.stdout)
+);
+// Guards: refuse comparisons that would produce misleading deltas, and
+// refuse valueless flag invocations instead of silently no-oping. The
+// valueless case must run with --compare genuinely last (spawnSync
+// directly, without runBench's appended --no-results-file).
+const noValue = spawnSync(
+  process.execPath,
+  [RUN, "--preset", "quick", "fixture", "--compare"],
+  {
+    encoding: "utf8"
+  }
+);
+check(
+  "valueless --compare exits 1",
+  noValue.status === 1 && /--compare requires/.test(noValue.stderr)
+);
+if (baselineObj !== null) {
+  const mismatched = structuredClone(baselineObj);
+  mismatched.preset = "full";
+  const mismatchPath = path.join(tmpDir, "mismatch.json");
+  fs.writeFileSync(mismatchPath, JSON.stringify(mismatched));
+  const refusedPreset = runBench([
+    "--preset",
+    "quick",
+    "fixture",
+    "--compare",
+    mismatchPath
+  ]);
+  check(
+    "compare refuses preset mismatch",
+    refusedPreset.status === 1 && /preset mismatch/.test(refusedPreset.stderr)
+  );
+  const otherMachine = structuredClone(baselineObj);
+  otherMachine.runtime = { ...otherMachine.runtime, cpu: "Other CPU" };
+  const otherPath = path.join(tmpDir, "other.json");
+  fs.writeFileSync(otherPath, JSON.stringify(otherMachine));
+  const refusedMachine = runBench([
+    "--preset",
+    "quick",
+    "fixture",
+    "--compare",
+    otherPath
+  ]);
+  check(
+    "compare refuses machine mismatch",
+    refusedMachine.status === 1 &&
+      /hardware\/runtime mismatch/.test(refusedMachine.stderr)
+  );
+  // Capture-side validation: the flag requires a save path, and a passing
+  // double-run writes a usable baseline. (The refusal path is the same
+  // flagged-row logic the compare gate section pins; forcing real variance
+  // inside smoke would be flaky by construction.)
+  const missingTarget = runBench([
+    "--preset",
+    "quick",
+    "fixture",
+    "--validate-baseline"
+  ]);
+  check(
+    "validate-baseline requires a save path",
+    missingTarget.status === 1 &&
+      /--validate-baseline requires --save-baseline/.test(missingTarget.stderr)
+  );
+  const validatedPath = path.join(tmpDir, "validated.json");
+  const validated = runBench([
+    "--preset",
+    "quick",
+    "fixture",
+    "--validate-baseline",
+    "--save-baseline",
+    validatedPath
+  ]);
+  check(
+    "validate-baseline run exits 0",
+    validated.status === 0,
+    validated.stderr
+  );
+  check(
+    "validate-baseline writes the baseline",
+    fs.existsSync(validatedPath) &&
+      JSON.parse(fs.readFileSync(validatedPath, "utf8")).version === 1
+  );
+  check(
+    "validate-baseline reports both runs",
+    /run 1 of 2/.test(validated.stdout) &&
+      /run 2 of 2/.test(validated.stdout) &&
+      /validated and written/.test(validated.stdout)
   );
 }
+fs.rmSync(tmpDir, { recursive: true, force: true });
+
+// 6b. Compare flag gate: pin the +-15% flag math directly against
+// compare.js so a sign flip or threshold change cannot pass silently.
+const { compareRuns, formatComparison } = await import("./lib/compare.js");
+const flagBaseline = {
+  version: 1,
+  preset: "quick",
+  runtime: {
+    kind: "node",
+    version: "0",
+    platform: "test",
+    arch: "test",
+    cpu: "test"
+  },
+  results: [
+    {
+      module: "fixture",
+      task: "regressed",
+      metrics: { median_ms: 1.0, rme_pct: 0 }
+    },
+    {
+      module: "fixture",
+      task: "improved",
+      metrics: { median_ms: 1.0, rme_pct: 0 }
+    },
+    {
+      module: "fixture",
+      task: "within-gate",
+      metrics: { median_ms: 1.0, rme_pct: 0 }
+    }
+  ],
+  derived: []
+};
+const flagCurrent = {
+  version: 1,
+  preset: "quick",
+  runtime: {
+    kind: "node",
+    version: "0",
+    platform: "test",
+    arch: "test",
+    cpu: "test"
+  },
+  results: [
+    {
+      module: "fixture",
+      task: "regressed",
+      metrics: { median_ms: 1.2, rme_pct: 0 }
+    },
+    {
+      module: "fixture",
+      task: "improved",
+      metrics: { median_ms: 0.9, rme_pct: 0 }
+    },
+    {
+      module: "fixture",
+      task: "within-gate",
+      metrics: { median_ms: 1.1, rme_pct: 0 }
+    }
+  ],
+  derived: []
+};
+const flagRows = compareRuns(flagBaseline, flagCurrent);
+const byTask = Object.fromEntries(flagRows.map((row) => [row.task, row]));
+check(
+  "compare flags a beyond-gate regression",
+  byTask.regressed.flagged === true &&
+    Math.abs(byTask.regressed.delta_pct - 20) < 1e-6
+);
+check(
+  "compare leaves an improvement unflagged",
+  byTask.improved.flagged === false &&
+    Math.abs(byTask.improved.delta_pct + 10) < 1e-6
+);
+check(
+  "compare leaves a within-gate delta unflagged",
+  byTask["within-gate"].flagged === false &&
+    Math.abs(byTask["within-gate"].delta_pct - 10) < 1e-6
+);
+check(
+  "formatComparison renders the gate note",
+  formatComparison(flagRows).includes("beyond \u00b115% gate")
+);
+check(
+  "compare guards a zero-baseline row",
+  compareRuns(
+    {
+      ...flagBaseline,
+      results: [
+        {
+          module: "fixture",
+          task: "zero",
+          metrics: { median_ms: 0, rme_pct: 0 }
+        }
+      ]
+    },
+    {
+      ...flagCurrent,
+      results: [
+        {
+          module: "fixture",
+          task: "zero",
+          metrics: { median_ms: 0.5, rme_pct: 0 }
+        }
+      ]
+    }
+  )[0].delta_pct === null
+);
+
+// 7. Baseline preservation.
+const resultsAfter = fs.readFileSync(RESULTS_PATH, "utf8");
+check(
+  "smoke leaves bench/results.md untouched",
+  resultsAfter === resultsBefore
+);
 
 if (failures > 0) {
   console.error(`\n${failures} smoke check(s) failed.`);

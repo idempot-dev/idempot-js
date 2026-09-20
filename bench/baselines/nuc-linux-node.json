@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "runDate": "2026-09-19T11:30:43.662Z",
+  "preset": "full",
+  "label": "nuc",
+  "runtime": {
+    "kind": "node",
+    "version": "24.20.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) i7-10710U CPU @ 1.10GHz"
+  },
+  "modules": [
+    "fixture",
+    "micro.fingerprint",
+    "micro.validation",
+    "micro.resilience",
+    "e2e.hono-sqlite",
+    "e2e.hono-postgres",
+    "e2e.hono-mysql",
+    "e2e.hono-redis",
+    "e2e.express-sqlite",
+    "e2e.express-postgres",
+    "e2e.express-mysql",
+    "e2e.express-redis",
+    "e2e.fastify-sqlite",
+    "e2e.fastify-postgres",
+    "e2e.fastify-mysql",
+    "e2e.fastify-redis"
+  ],
+  "results": [
+    {
+      "module": "fixture",
+      "task": "noop",
+      "metrics": {
+        "median_ms": 0.000027,
+        "rme_pct": 0.004764896775237644,
+        "ops_ms": 37037.03703703704,
+        "spread_pct": 3.5714285714285663
+      }
+    },
+    {
+      "module": "micro.fingerprint",
+      "task": "parse+hash (steady state)",
+      "metrics": {
+        "median_ms": 0.00924,
+        "rme_pct": 0.06657571120513525,
+        "ops_s": 108225.10822510823,
+        "spread_pct": 1.885732267186632
+      }
+    },
+    {
+      "module": "micro.fingerprint",
+      "task": "exclusion filtering",
+      "metrics": {
+        "median_ms": 0.017581,
+        "rme_pct": 0.08855113340175172,
+        "ops_s": 56879.58591661453,
+        "spread_pct": 5.310147000956693
+      }
+    },
+    {
+      "module": "micro.fingerprint",
+      "task": "raw hash (non-JSON body)",
+      "metrics": {
+        "median_ms": 0.007053,
+        "rme_pct": 0.06204577769709945,
+        "ops_s": 141783.6381681554,
+        "spread_pct": 16.73407968210067
+      }
+    },
+    {
+      "module": "micro.validation",
+      "task": "key validation accept",
+      "metrics": {
+        "median_ms": 0.000044,
+        "rme_pct": 0.0059123305717232785,
+        "ops_ms": 22727.272727272728,
+        "spread_pct": 20.137299771167044
+      }
+    },
+    {
+      "module": "micro.validation",
+      "task": "key validation reject (too short)",
+      "metrics": {
+        "median_ms": 0.000052,
+        "rme_pct": 0.010259975610458173,
+        "ops_ms": 19230.76923076923,
+        "spread_pct": 8.009241432422023
+      }
+    },
+    {
+      "module": "micro.validation",
+      "task": "key validation reject (too long)",
+      "metrics": {
+        "median_ms": 0.000052,
+        "rme_pct": 0.010714182890418774,
+        "ops_ms": 19230.76923076923,
+        "spread_pct": 10.220125786163512
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "lookup (bare)",
+      "metrics": {
+        "median_ms": 0.037689,
+        "rme_pct": 0.1875224527857314,
+        "ops_s": 26532.940645811774,
+        "spread_pct": 8.874549920156868
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "lookup (resilient)",
+      "metrics": {
+        "median_ms": 0.046541,
+        "rme_pct": 0.2692858489364191,
+        "ops_s": 21486.43131862229,
+        "spread_pct": 9.501499748528547
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "startProcessing (bare)",
+      "metrics": {
+        "median_ms": 0.014958,
+        "rme_pct": 0.17857733141799056,
+        "ops_s": 66853.85746757587,
+        "spread_pct": 6.370867634815339
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "startProcessing (resilient)",
+      "metrics": {
+        "median_ms": 0.020011,
+        "rme_pct": 0.18370701348785812,
+        "ops_s": 49972.51511668582,
+        "spread_pct": 4.662169075876458
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "complete (bare)",
+      "metrics": {
+        "median_ms": 0.01355,
+        "rme_pct": 0.10423432837540296,
+        "ops_s": 73800.73800738007,
+        "spread_pct": 4.635445341878485
+      }
+    },
+    {
+      "module": "micro.resilience",
+      "task": "complete (resilient)",
+      "metrics": {
+        "median_ms": 0.018624,
+        "rme_pct": 0.15136565995185697,
+        "ops_s": 53694.15807560137,
+        "spread_pct": 6.042528097222497
+      }
+    },
+    {
+      "module": "e2e.hono-sqlite",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 0.1853705,
+        "rme_pct": 0.2712586162561779,
+        "req_s": 5394.601623137909,
+        "spread_pct": 8.163921647254032
+      }
+    },
+    {
+      "module": "e2e.hono-sqlite",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.096023,
+        "rme_pct": 0.24095647456092278,
+        "req_s": 10414.171604719702,
+        "spread_pct": 7.162544576461642
+      }
+    },
+    {
+      "module": "e2e.hono-sqlite",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.015048,
+        "rme_pct": 0.09480696679840203,
+        "req_s": 66454.01382243488,
+        "spread_pct": 8.020387889757409
+      }
+    },
+    {
+      "module": "e2e.hono-postgres",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 3.0125435,
+        "rme_pct": 3.5316643160089844,
+        "req_s": 331.9454329570848,
+        "spread_pct": 24.5859292689076
+      }
+    },
+    {
+      "module": "e2e.hono-postgres",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.32701800000000003,
+        "rme_pct": 0.9355808954200567,
+        "req_s": 3057.9357696146744,
+        "spread_pct": 18.42405794018416
+      }
+    },
+    {
+      "module": "e2e.hono-postgres",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.015438,
+        "rme_pct": 0.1056120249633929,
+        "req_s": 64775.22995206633,
+        "spread_pct": 6.095135761101927
+      }
+    },
+    {
+      "module": "e2e.hono-mysql",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 13.9525185,
+        "rme_pct": 3.9970722141635386,
+        "req_s": 71.67165085059278,
+        "spread_pct": 6.033232673497285
+      }
+    },
+    {
+      "module": "e2e.hono-mysql",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.434368,
+        "rme_pct": 0.7442928524954332,
+        "req_s": 2302.1953735081775,
+        "spread_pct": 6.384494498045366
+      }
+    },
+    {
+      "module": "e2e.hono-mysql",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.015241,
+        "rme_pct": 0.11808199106641906,
+        "req_s": 65612.49261859458,
+        "spread_pct": 4.100826073549682
+      }
+    },
+    {
+      "module": "e2e.hono-redis",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 0.3252695,
+        "rme_pct": 0.5650266739010209,
+        "req_s": 3074.3737161856234,
+        "spread_pct": 6.296752248487461
+      }
+    },
+    {
+      "module": "e2e.hono-redis",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.14196,
+        "rme_pct": 0.40355656349799407,
+        "req_s": 7044.237813468582,
+        "spread_pct": 3.448886726601318
+      }
+    },
+    {
+      "module": "e2e.hono-redis",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.01514,
+        "rme_pct": 0.10449993385922024,
+        "req_s": 66050.19815059444,
+        "spread_pct": 4.523895416174543
+      }
+    },
+    {
+      "module": "e2e.express-sqlite",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 2.272743,
+        "rme_pct": 5.166763093051613,
+        "req_s": 439.9969552210698,
+        "spread_pct": 29.339763659066563
+      }
+    },
+    {
+      "module": "e2e.express-sqlite",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 2.161806,
+        "rme_pct": 5.918155811767402,
+        "req_s": 462.5761978641932,
+        "spread_pct": 35.38602241913519
+      }
+    },
+    {
+      "module": "e2e.express-sqlite",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 1.942228,
+        "rme_pct": 6.221192134838818,
+        "req_s": 514.872617006268,
+        "spread_pct": 13.548153528977586
+      }
+    },
+    {
+      "module": "e2e.express-postgres",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 4.0051295,
+        "rme_pct": 5.870272178329171,
+        "req_s": 249.6808376932912,
+        "spread_pct": 27.465612696311624
+      }
+    },
+    {
+      "module": "e2e.express-postgres",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 2.869441,
+        "rme_pct": 6.128109120529725,
+        "req_s": 348.507046901569,
+        "spread_pct": 17.16309547551451
+      }
+    },
+    {
+      "module": "e2e.express-postgres",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 2.022996,
+        "rme_pct": 6.02679802600387,
+        "req_s": 494.31645960976164,
+        "spread_pct": 10.306833151672716
+      }
+    },
+    {
+      "module": "e2e.express-mysql",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 12.3486735,
+        "rme_pct": 5.426186111081765,
+        "req_s": 80.98133910895045,
+        "spread_pct": 14.295679664565633
+      }
+    },
+    {
+      "module": "e2e.express-mysql",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 2.371094,
+        "rme_pct": 6.095135543220638,
+        "req_s": 421.7462487779903,
+        "spread_pct": 44.124652409245506
+      }
+    },
+    {
+      "module": "e2e.express-mysql",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 1.81873,
+        "rme_pct": 7.792695581421989,
+        "req_s": 549.8342249811682,
+        "spread_pct": 16.269142127909618
+      }
+    },
+    {
+      "module": "e2e.express-redis",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 1.756989,
+        "rme_pct": 7.576280679766454,
+        "req_s": 569.155526870117,
+        "spread_pct": 3.302458979452274
+      }
+    },
+    {
+      "module": "e2e.express-redis",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 2.2622530000000003,
+        "rme_pct": 5.941103625104683,
+        "req_s": 442.03747589229687,
+        "spread_pct": 35.24984883182231
+      }
+    },
+    {
+      "module": "e2e.express-redis",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 1.910461,
+        "rme_pct": 6.687707556193624,
+        "req_s": 523.434185624443,
+        "spread_pct": 12.714366107666809
+      }
+    },
+    {
+      "module": "e2e.fastify-sqlite",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 0.246186,
+        "rme_pct": 0.47503844805368134,
+        "req_s": 4061.9694052464397,
+        "spread_pct": 11.267428683697267
+      }
+    },
+    {
+      "module": "e2e.fastify-sqlite",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.164859,
+        "rme_pct": 0.67965794681483,
+        "req_s": 6065.789553720414,
+        "spread_pct": 13.254717917721184
+      }
+    },
+    {
+      "module": "e2e.fastify-sqlite",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.055251,
+        "rme_pct": 0.2720522033550385,
+        "req_s": 18099.21992362129,
+        "spread_pct": 18.391948442658624
+      }
+    },
+    {
+      "module": "e2e.fastify-postgres",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 2.3195235,
+        "rme_pct": 3.5263019385101533,
+        "req_s": 431.12303892572515,
+        "spread_pct": 20.561427211127583
+      }
+    },
+    {
+      "module": "e2e.fastify-postgres",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.398749,
+        "rme_pct": 1.6920346784776896,
+        "req_s": 2507.843279857755,
+        "spread_pct": 76.76263462822091
+      }
+    },
+    {
+      "module": "e2e.fastify-postgres",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.0530375,
+        "rme_pct": 0.3237195115546424,
+        "req_s": 18854.584022415722,
+        "spread_pct": 4.829198457355724
+      }
+    },
+    {
+      "module": "e2e.fastify-mysql",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 9.934589500000001,
+        "rme_pct": 3.7806340622897423,
+        "req_s": 100.65855442347339,
+        "spread_pct": 5.896347969474368
+      }
+    },
+    {
+      "module": "e2e.fastify-mysql",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.495694,
+        "rme_pct": 1.1574906591437324,
+        "req_s": 2017.3736216294728,
+        "spread_pct": 2.836691145894818
+      }
+    },
+    {
+      "module": "e2e.fastify-mysql",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.053912,
+        "rme_pct": 0.2482052681913195,
+        "req_s": 18548.74610476332,
+        "spread_pct": 4.324703907900548
+      }
+    },
+    {
+      "module": "e2e.fastify-redis",
+      "task": "middleware (fresh key)",
+      "metrics": {
+        "median_ms": 0.282695,
+        "rme_pct": 0.49059206060359656,
+        "req_s": 3537.3812766409033,
+        "spread_pct": 4.420030123273606
+      }
+    },
+    {
+      "module": "e2e.fastify-redis",
+      "task": "middleware (repeat key)",
+      "metrics": {
+        "median_ms": 0.195144,
+        "rme_pct": 0.6872940575490114,
+        "req_s": 5124.420940433731,
+        "spread_pct": 3.9891995015470814
+      }
+    },
+    {
+      "module": "e2e.fastify-redis",
+      "task": "baseline (no middleware)",
+      "metrics": {
+        "median_ms": 0.05196,
+        "rme_pct": 0.2554148557816134,
+        "req_s": 19245.573518090838,
+        "spread_pct": 5.5169421773658645
+      }
+    }
+  ],
+  "derived": [
+    {
+      "name": "e2e.hono-sqlite.overhead_delta_ms",
+      "value": 0.1703225
+    },
+    {
+      "name": "e2e.hono-sqlite.overhead_pct",
+      "value": 1131.8613769271662
+    },
+    {
+      "name": "e2e.hono-postgres.overhead_delta_ms",
+      "value": 2.9971055
+    },
+    {
+      "name": "e2e.hono-postgres.overhead_pct",
+      "value": 19413.81979531027
+    },
+    {
+      "name": "e2e.hono-mysql.overhead_delta_ms",
+      "value": 13.9372775
+    },
+    {
+      "name": "e2e.hono-mysql.overhead_pct",
+      "value": 91445.95170920544
+    },
+    {
+      "name": "e2e.hono-redis.overhead_delta_ms",
+      "value": 0.3101295
+    },
+    {
+      "name": "e2e.hono-redis.overhead_pct",
+      "value": 2048.411492734478
+    },
+    {
+      "name": "e2e.express-sqlite.overhead_delta_ms",
+      "value": 0.3305150000000001
+    },
+    {
+      "name": "e2e.express-sqlite.overhead_pct",
+      "value": 17.017312076646
+    },
+    {
+      "name": "e2e.express-postgres.overhead_delta_ms",
+      "value": 1.9821334999999998
+    },
+    {
+      "name": "e2e.express-postgres.overhead_pct",
+      "value": 97.98009981235751
+    },
+    {
+      "name": "e2e.express-mysql.overhead_delta_ms",
+      "value": 10.5299435
+    },
+    {
+      "name": "e2e.express-mysql.overhead_pct",
+      "value": 578.972332341799
+    },
+    {
+      "name": "e2e.express-redis.overhead_delta_ms",
+      "value": -0.15347200000000005
+    },
+    {
+      "name": "e2e.express-redis.overhead_pct",
+      "value": -8.03324433212717
+    },
+    {
+      "name": "e2e.fastify-sqlite.overhead_delta_ms",
+      "value": 0.190935
+    },
+    {
+      "name": "e2e.fastify-sqlite.overhead_pct",
+      "value": 345.57745561166314
+    },
+    {
+      "name": "e2e.fastify-postgres.overhead_delta_ms",
+      "value": 2.266486
+    },
+    {
+      "name": "e2e.fastify-postgres.overhead_pct",
+      "value": 4273.365071883101
+    },
+    {
+      "name": "e2e.fastify-mysql.overhead_delta_ms",
+      "value": 9.880677500000001
+    },
+    {
+      "name": "e2e.fastify-mysql.overhead_pct",
+      "value": 18327.417829054757
+    },
+    {
+      "name": "e2e.fastify-redis.overhead_delta_ms",
+      "value": 0.23073499999999997
+    },
+    {
+      "name": "e2e.fastify-redis.overhead_pct",
+      "value": 444.0627405696689
+    }
+  ]
+}

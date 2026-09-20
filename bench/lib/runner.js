@@ -305,19 +305,54 @@ function formatTable(results) {
   ].join("\n");
 }
 
-function writeResultsFile({ preset, modules, results, lines }) {
+export function runtimeInfo() {
+  const kind = process.versions.bun ? "bun" : "node";
+  return {
+    kind,
+    version: process.versions.bun ?? process.versions.node,
+    platform: os.platform(),
+    arch: os.arch(),
+    cpu: os.cpus()[0]?.model ?? "unknown CPU"
+  };
+}
+
+/**
+ * Machine-readable baseline: everything a future run can be compared
+ * against — aggregated per-task metrics plus enough runtime context
+ * (hardware, runtime, preset) for the compare mode to refuse comparisons
+ * that would produce misleading deltas. Shape is versioned.
+ */
+export function buildBaseline({ preset, modules, results, derived, label }) {
+  return {
+    version: 1,
+    runDate: new Date().toISOString(),
+    preset,
+    label: label ?? os.hostname(),
+    runtime: runtimeInfo(),
+    modules: modules.map((module) => module.name),
+    results: results.map((row) => ({
+      module: row.module,
+      task: row.task,
+      metrics: rowMetrics(row)
+    })),
+    derived: derived.map(({ name, value }) => ({ name, value }))
+  };
+}
+
+function writeResultsFile({ preset, modules, results, lines, label }) {
   const date = new Date().toISOString();
   const table = formatTable(displayRows(results));
   const modulesNote =
     modules.length === MODULE_FILES.length
       ? "all modules"
       : modules.map((module) => module.name).join(", ");
+  const runtime = runtimeInfo();
   const content = `# Benchmark results
 
 - Run date: ${date}
 - Preset: ${preset}
 - Modules: ${modulesNote}
-- Runtime: Node ${process.version} on ${os.platform()} ${os.release()} (${os.arch()}, ${os.cpus()[0]?.model ?? "unknown CPU"})
+- Runtime: ${runtime.kind} ${runtime.version} on ${runtime.platform} ${os.release()} (${runtime.arch}, ${runtime.cpu})
 
 Numbers from a laptop are comparative, not absolute. Quick-preset numbers are noisier
 by design (single pass, few iterations); treat quick-preset swings as noise, not
@@ -331,10 +366,24 @@ ${table}
 ${lines.join("\n")}
 \`\`\`
 `;
-  fs.writeFileSync(RESULTS_PATH, content);
+  // A labeled run writes to bench/results/<label>.md (gitignored scratch);
+  // unlabeled runs update the committed bench/results.md record.
+  const resultsPath = label
+    ? path.join(BENCH_DIR, "results", `${label}.md`)
+    : RESULTS_PATH;
+  if (label) {
+    fs.mkdirSync(path.dirname(resultsPath), { recursive: true });
+  }
+  fs.writeFileSync(resultsPath, content);
 }
 
-export async function runSuite({ preset, modules, resultsFile = true }) {
+export async function runSuite({
+  preset,
+  modules,
+  resultsFile = true,
+  label,
+  saveBaselinePath
+}) {
   const { repeats, benchOptions } = PRESETS[preset];
   const repeatsResults = [];
   for (let index = 0; index < repeats; index++) {
@@ -368,8 +417,16 @@ export async function runSuite({ preset, modules, resultsFile = true }) {
   }
   console.log("");
   console.log(formatTable(displayRows(results)));
-  if (resultsFile) {
-    writeResultsFile({ preset, modules, results, lines });
+  const baseline = buildBaseline({ preset, modules, results, derived, label });
+  if (saveBaselinePath) {
+    fs.writeFileSync(
+      saveBaselinePath,
+      `${JSON.stringify(baseline, null, 2)}\n`
+    );
+    console.log(`Baseline written: ${saveBaselinePath}`);
   }
-  return { results, derived, lines };
+  if (resultsFile) {
+    writeResultsFile({ preset, modules, results, lines, label });
+  }
+  return { results, derived, lines, baseline };
 }
