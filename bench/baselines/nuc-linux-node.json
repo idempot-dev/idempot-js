@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runDate": "2026-09-19T11:30:43.662Z",
+  "runDate": "2026-09-20T20:38:32.150Z",
   "preset": "full",
   "label": "nuc",
   "runtime": {
@@ -34,49 +34,49 @@
       "task": "noop",
       "metrics": {
         "median_ms": 0.000027,
-        "rme_pct": 0.004764896775237644,
+        "rme_pct": 0.005719494640718522,
         "ops_ms": 37037.03703703704,
-        "spread_pct": 3.5714285714285663
+        "spread_pct": 6.896551724137938
       }
     },
     {
       "module": "micro.fingerprint",
       "task": "parse+hash (steady state)",
       "metrics": {
-        "median_ms": 0.00924,
-        "rme_pct": 0.06657571120513525,
-        "ops_s": 108225.10822510823,
-        "spread_pct": 1.885732267186632
+        "median_ms": 0.009266,
+        "rme_pct": 0.05586576901182781,
+        "ops_s": 107921.43319663285,
+        "spread_pct": 1.6501192776920561
       }
     },
     {
       "module": "micro.fingerprint",
       "task": "exclusion filtering",
       "metrics": {
-        "median_ms": 0.017581,
-        "rme_pct": 0.08855113340175172,
-        "ops_s": 56879.58591661453,
-        "spread_pct": 5.310147000956693
+        "median_ms": 0.017231,
+        "rme_pct": 0.07988391645977722,
+        "ops_s": 58034.93703209332,
+        "spread_pct": 2.0430337077051406
       }
     },
     {
       "module": "micro.fingerprint",
       "task": "raw hash (non-JSON body)",
       "metrics": {
-        "median_ms": 0.007053,
-        "rme_pct": 0.06204577769709945,
-        "ops_s": 141783.6381681554,
-        "spread_pct": 16.73407968210067
+        "median_ms": 0.007204,
+        "rme_pct": 0.05475758094777385,
+        "ops_s": 138811.771238201,
+        "spread_pct": 2.039895805795715
       }
     },
     {
       "module": "micro.validation",
       "task": "key validation accept",
       "metrics": {
-        "median_ms": 0.000044,
-        "rme_pct": 0.0059123305717232785,
-        "ops_ms": 22727.272727272728,
-        "spread_pct": 20.137299771167044
+        "median_ms": 0.000045,
+        "rme_pct": 0.006454190823862738,
+        "ops_ms": 22222.22222222222,
+        "spread_pct": 8.522727272727277
       }
     },
     {
@@ -84,9 +84,9 @@
       "task": "key validation reject (too short)",
       "metrics": {
         "median_ms": 0.000052,
-        "rme_pct": 0.010259975610458173,
+        "rme_pct": 0.011277500163922007,
         "ops_ms": 19230.76923076923,
-        "spread_pct": 8.009241432422023
+        "spread_pct": 3.847576766555673
       }
     },
     {
@@ -94,528 +94,528 @@
       "task": "key validation reject (too long)",
       "metrics": {
         "median_ms": 0.000052,
-        "rme_pct": 0.010714182890418774,
+        "rme_pct": 0.011303724679441992,
         "ops_ms": 19230.76923076923,
-        "spread_pct": 10.220125786163512
+        "spread_pct": 1.8867924528301925
       }
     },
     {
       "module": "micro.resilience",
       "task": "lookup (bare)",
       "metrics": {
-        "median_ms": 0.037689,
-        "rme_pct": 0.1875224527857314,
-        "ops_s": 26532.940645811774,
-        "spread_pct": 8.874549920156868
+        "median_ms": 0.0380685,
+        "rme_pct": 0.19546360207608346,
+        "ops_s": 26268.437163862713,
+        "spread_pct": 3.9184948360603338
       }
     },
     {
       "module": "micro.resilience",
       "task": "lookup (resilient)",
       "metrics": {
-        "median_ms": 0.046541,
-        "rme_pct": 0.2692858489364191,
-        "ops_s": 21486.43131862229,
-        "spread_pct": 9.501499748528547
+        "median_ms": 0.045283,
+        "rme_pct": 0.25814196266200695,
+        "ops_s": 22083.342534726056,
+        "spread_pct": 8.262690465743798
       }
     },
     {
       "module": "micro.resilience",
       "task": "startProcessing (bare)",
       "metrics": {
-        "median_ms": 0.014958,
-        "rme_pct": 0.17857733141799056,
-        "ops_s": 66853.85746757587,
-        "spread_pct": 6.370867634815339
+        "median_ms": 0.015341,
+        "rme_pct": 0.1957508174090138,
+        "ops_s": 65184.798904895375,
+        "spread_pct": 10.181464647151385
       }
     },
     {
       "module": "micro.resilience",
       "task": "startProcessing (resilient)",
       "metrics": {
-        "median_ms": 0.020011,
-        "rme_pct": 0.18370701348785812,
-        "ops_s": 49972.51511668582,
-        "spread_pct": 4.662169075876458
+        "median_ms": 0.020442,
+        "rme_pct": 0.19269756717039818,
+        "ops_s": 48918.89247627434,
+        "spread_pct": 6.421326675218431
       }
     },
     {
       "module": "micro.resilience",
       "task": "complete (bare)",
       "metrics": {
-        "median_ms": 0.01355,
-        "rme_pct": 0.10423432837540296,
-        "ops_s": 73800.73800738007,
-        "spread_pct": 4.635445341878485
+        "median_ms": 0.013786,
+        "rme_pct": 0.10861736781902344,
+        "ops_s": 72537.35673872044,
+        "spread_pct": 3.6056427700327562
       }
     },
     {
       "module": "micro.resilience",
       "task": "complete (resilient)",
       "metrics": {
-        "median_ms": 0.018624,
-        "rme_pct": 0.15136565995185697,
-        "ops_s": 53694.15807560137,
-        "spread_pct": 6.042528097222497
+        "median_ms": 0.019124,
+        "rme_pct": 0.13908976565757736,
+        "ops_s": 52290.31583350764,
+        "spread_pct": 6.359940129572599
       }
     },
     {
       "module": "e2e.hono-sqlite",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 0.1853705,
-        "rme_pct": 0.2712586162561779,
-        "req_s": 5394.601623137909,
-        "spread_pct": 8.163921647254032
+        "median_ms": 0.1887995,
+        "rme_pct": 0.256918214165379,
+        "req_s": 5296.624196605466,
+        "spread_pct": 3.6800100978325756
       }
     },
     {
       "module": "e2e.hono-sqlite",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 0.096023,
-        "rme_pct": 0.24095647456092278,
-        "req_s": 10414.171604719702,
-        "spread_pct": 7.162544576461642
+        "median_ms": 0.0993655,
+        "rme_pct": 0.2740504939846145,
+        "req_s": 10063.855161251344,
+        "spread_pct": 4.494221649791784
       }
     },
     {
       "module": "e2e.hono-sqlite",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 0.015048,
-        "rme_pct": 0.09480696679840203,
-        "req_s": 66454.01382243488,
-        "spread_pct": 8.020387889757409
+        "median_ms": 0.015316,
+        "rme_pct": 0.10910461008449471,
+        "req_s": 65291.19874640898,
+        "spread_pct": 5.051074803032798
       }
     },
     {
       "module": "e2e.hono-postgres",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 3.0125435,
-        "rme_pct": 3.5316643160089844,
-        "req_s": 331.9454329570848,
-        "spread_pct": 24.5859292689076
+        "median_ms": 3.265206,
+        "rme_pct": 4.768187114886789,
+        "req_s": 306.25939067856666,
+        "spread_pct": 28.48821483792388
       }
     },
     {
       "module": "e2e.hono-postgres",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 0.32701800000000003,
-        "rme_pct": 0.9355808954200567,
-        "req_s": 3057.9357696146744,
-        "spread_pct": 18.42405794018416
+        "median_ms": 0.32505850000000003,
+        "rme_pct": 1.0130877857879474,
+        "req_s": 3076.3693692319334,
+        "spread_pct": 12.65739884639156
       }
     },
     {
       "module": "e2e.hono-postgres",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 0.015438,
-        "rme_pct": 0.1056120249633929,
-        "req_s": 64775.22995206633,
-        "spread_pct": 6.095135761101927
+        "median_ms": 0.015432,
+        "rme_pct": 0.10863801033111489,
+        "req_s": 64800.414722654226,
+        "spread_pct": 5.125158370285124
       }
     },
     {
       "module": "e2e.hono-mysql",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 13.9525185,
-        "rme_pct": 3.9970722141635386,
-        "req_s": 71.67165085059278,
-        "spread_pct": 6.033232673497285
+        "median_ms": 13.416184999999999,
+        "rme_pct": 3.3398250067410102,
+        "req_s": 74.53693727148547,
+        "spread_pct": 3.068746600248628
       }
     },
     {
       "module": "e2e.hono-mysql",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 0.434368,
-        "rme_pct": 0.7442928524954332,
-        "req_s": 2302.1953735081775,
-        "spread_pct": 6.384494498045366
+        "median_ms": 0.266262,
+        "rme_pct": 0.7747582330445816,
+        "req_s": 3755.6992736477605,
+        "spread_pct": 4.753220688855563
       }
     },
     {
       "module": "e2e.hono-mysql",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 0.015241,
-        "rme_pct": 0.11808199106641906,
-        "req_s": 65612.49261859458,
-        "spread_pct": 4.100826073549682
+        "median_ms": 0.015429,
+        "rme_pct": 0.12000639068755742,
+        "req_s": 64813.014453302225,
+        "spread_pct": 3.1181815983254335
       }
     },
     {
       "module": "e2e.hono-redis",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 0.3252695,
-        "rme_pct": 0.5650266739010209,
-        "req_s": 3074.3737161856234,
-        "spread_pct": 6.296752248487461
+        "median_ms": 0.320064,
+        "rme_pct": 0.5906244566409046,
+        "req_s": 3124.375124975005,
+        "spread_pct": 5.478988462316852
       }
     },
     {
       "module": "e2e.hono-redis",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 0.14196,
-        "rme_pct": 0.40355656349799407,
-        "req_s": 7044.237813468582,
-        "spread_pct": 3.448886726601318
+        "median_ms": 0.1404015,
+        "rme_pct": 0.4011420948000749,
+        "req_s": 7122.431030416743,
+        "spread_pct": 4.3367532485018225
       }
     },
     {
       "module": "e2e.hono-redis",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 0.01514,
-        "rme_pct": 0.10449993385922024,
-        "req_s": 66050.19815059444,
-        "spread_pct": 4.523895416174543
+        "median_ms": 0.015183,
+        "rme_pct": 0.1054017606976932,
+        "req_s": 65863.1364025555,
+        "spread_pct": 3.639201771018599
       }
     },
     {
       "module": "e2e.express-sqlite",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 2.272743,
-        "rme_pct": 5.166763093051613,
-        "req_s": 439.9969552210698,
-        "spread_pct": 29.339763659066563
+        "median_ms": 2.213541,
+        "rme_pct": 5.63488101152785,
+        "req_s": 451.7648419432935,
+        "spread_pct": 11.665465603328432
       }
     },
     {
       "module": "e2e.express-sqlite",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 2.161806,
-        "rme_pct": 5.918155811767402,
-        "req_s": 462.5761978641932,
-        "spread_pct": 35.38602241913519
+        "median_ms": 2.178246,
+        "rme_pct": 5.415952123000232,
+        "req_s": 459.08497020079454,
+        "spread_pct": 10.480731168947178
       }
     },
     {
       "module": "e2e.express-sqlite",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 1.942228,
-        "rme_pct": 6.221192134838818,
-        "req_s": 514.872617006268,
-        "spread_pct": 13.548153528977586
+        "median_ms": 1.946396,
+        "rme_pct": 6.725737801648359,
+        "req_s": 513.7700652898999,
+        "spread_pct": 5.35932107496345
       }
     },
     {
       "module": "e2e.express-postgres",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 4.0051295,
-        "rme_pct": 5.870272178329171,
-        "req_s": 249.6808376932912,
-        "spread_pct": 27.465612696311624
+        "median_ms": 3.6825155,
+        "rme_pct": 5.045303830248393,
+        "req_s": 271.5642195695224,
+        "spread_pct": 34.02267469186109
       }
     },
     {
       "module": "e2e.express-postgres",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 2.869441,
-        "rme_pct": 6.128109120529725,
-        "req_s": 348.507046901569,
-        "spread_pct": 17.16309547551451
+        "median_ms": 2.745176,
+        "rme_pct": 5.488394296919276,
+        "req_s": 364.27536886523853,
+        "spread_pct": 13.01406415281787
       }
     },
     {
       "module": "e2e.express-postgres",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 2.022996,
-        "rme_pct": 6.02679802600387,
-        "req_s": 494.31645960976164,
-        "spread_pct": 10.306833151672716
+        "median_ms": 1.917017,
+        "rme_pct": 6.714826049276986,
+        "req_s": 521.6437830233117,
+        "spread_pct": 10.740374375772255
       }
     },
     {
       "module": "e2e.express-mysql",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 12.3486735,
-        "rme_pct": 5.426186111081765,
-        "req_s": 80.98133910895045,
-        "spread_pct": 14.295679664565633
+        "median_ms": 11.8168375,
+        "rme_pct": 5.337572329149496,
+        "req_s": 84.62689241503111,
+        "spread_pct": 19.966186485843203
       }
     },
     {
       "module": "e2e.express-mysql",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 2.371094,
-        "rme_pct": 6.095135543220638,
-        "req_s": 421.7462487779903,
-        "spread_pct": 44.124652409245506
+        "median_ms": 2.3294259999999998,
+        "rme_pct": 6.547852260898421,
+        "req_s": 429.4264717867229,
+        "spread_pct": 33.20115475214763
       }
     },
     {
       "module": "e2e.express-mysql",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 1.81873,
-        "rme_pct": 7.792695581421989,
-        "req_s": 549.8342249811682,
-        "spread_pct": 16.269142127909618
+        "median_ms": 1.864717,
+        "rme_pct": 6.477824717803314,
+        "req_s": 536.2749672259852,
+        "spread_pct": 18.268846119770295
       }
     },
     {
       "module": "e2e.express-redis",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 1.756989,
-        "rme_pct": 7.576280679766454,
-        "req_s": 569.155526870117,
-        "spread_pct": 3.302458979452274
+        "median_ms": 1.781831,
+        "rme_pct": 7.75634828360518,
+        "req_s": 561.2204524447044,
+        "spread_pct": 20.34957868726672
       }
     },
     {
       "module": "e2e.express-redis",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 2.2622530000000003,
-        "rme_pct": 5.941103625104683,
-        "req_s": 442.03747589229687,
-        "spread_pct": 35.24984883182231
+        "median_ms": 2.192122,
+        "rme_pct": 5.568116412651618,
+        "req_s": 456.1789900379632,
+        "spread_pct": 13.853574643467207
       }
     },
     {
       "module": "e2e.express-redis",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 1.910461,
-        "rme_pct": 6.687707556193624,
-        "req_s": 523.434185624443,
-        "spread_pct": 12.714366107666809
+        "median_ms": 1.917215,
+        "rme_pct": 6.935493601460571,
+        "req_s": 521.5899103647739,
+        "spread_pct": 8.108531027524602
       }
     },
     {
       "module": "e2e.fastify-sqlite",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 0.246186,
-        "rme_pct": 0.47503844805368134,
-        "req_s": 4061.9694052464397,
-        "spread_pct": 11.267428683697267
+        "median_ms": 0.241158,
+        "rme_pct": 0.45034835804485485,
+        "req_s": 4146.659036814039,
+        "spread_pct": 5.697806806956837
       }
     },
     {
       "module": "e2e.fastify-sqlite",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 0.164859,
-        "rme_pct": 0.67965794681483,
-        "req_s": 6065.789553720414,
-        "spread_pct": 13.254717917721184
+        "median_ms": 0.16149550000000001,
+        "rme_pct": 0.6225799088803413,
+        "req_s": 6192.123005139049,
+        "spread_pct": 5.693609768888042
       }
     },
     {
       "module": "e2e.fastify-sqlite",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 0.055251,
-        "rme_pct": 0.2720522033550385,
-        "req_s": 18099.21992362129,
-        "spread_pct": 18.391948442658624
+        "median_ms": 0.054837,
+        "rme_pct": 0.30290732731223013,
+        "req_s": 18235.86264748254,
+        "spread_pct": 5.07042262343277
       }
     },
     {
       "module": "e2e.fastify-postgres",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 2.3195235,
-        "rme_pct": 3.5263019385101533,
-        "req_s": 431.12303892572515,
-        "spread_pct": 20.561427211127583
+        "median_ms": 2.364653,
+        "rme_pct": 2.7920107254565774,
+        "req_s": 422.8954119588618,
+        "spread_pct": 6.702388380526034
       }
     },
     {
       "module": "e2e.fastify-postgres",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 0.398749,
-        "rme_pct": 1.6920346784776896,
-        "req_s": 2507.843279857755,
-        "spread_pct": 76.76263462822091
+        "median_ms": 0.387819,
+        "rme_pct": 1.669246866881232,
+        "req_s": 2578.522581860004,
+        "spread_pct": 20.122395091412653
       }
     },
     {
       "module": "e2e.fastify-postgres",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 0.0530375,
-        "rme_pct": 0.3237195115546424,
-        "req_s": 18854.584022415722,
-        "spread_pct": 4.829198457355724
+        "median_ms": 0.053482,
+        "rme_pct": 0.2879221235910116,
+        "req_s": 18697.879660446506,
+        "spread_pct": 4.851567486182378
       }
     },
     {
       "module": "e2e.fastify-mysql",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 9.934589500000001,
-        "rme_pct": 3.7806340622897423,
-        "req_s": 100.65855442347339,
-        "spread_pct": 5.896347969474368
+        "median_ms": 9.851964500000001,
+        "rme_pct": 3.4246864264388535,
+        "req_s": 101.50266216779814,
+        "spread_pct": 8.075038985793105
       }
     },
     {
       "module": "e2e.fastify-mysql",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 0.495694,
-        "rme_pct": 1.1574906591437324,
-        "req_s": 2017.3736216294728,
-        "spread_pct": 2.836691145894818
+        "median_ms": 0.323998,
+        "rme_pct": 1.1964931544521862,
+        "req_s": 3086.4388059128532,
+        "spread_pct": 2.359274404171622
       }
     },
     {
       "module": "e2e.fastify-mysql",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 0.053912,
-        "rme_pct": 0.2482052681913195,
-        "req_s": 18548.74610476332,
-        "spread_pct": 4.324703907900548
+        "median_ms": 0.053982,
+        "rme_pct": 0.2603167034630509,
+        "req_s": 18524.69341632396,
+        "spread_pct": 4.710810637183363
       }
     },
     {
       "module": "e2e.fastify-redis",
       "task": "middleware (fresh key)",
       "metrics": {
-        "median_ms": 0.282695,
-        "rme_pct": 0.49059206060359656,
-        "req_s": 3537.3812766409033,
-        "spread_pct": 4.420030123273606
+        "median_ms": 0.27682799999999996,
+        "rme_pct": 0.6429282272241292,
+        "req_s": 3612.351358529729,
+        "spread_pct": 11.680654395695097
       }
     },
     {
       "module": "e2e.fastify-redis",
       "task": "middleware (repeat key)",
       "metrics": {
-        "median_ms": 0.195144,
-        "rme_pct": 0.6872940575490114,
-        "req_s": 5124.420940433731,
-        "spread_pct": 3.9891995015470814
+        "median_ms": 0.1974145,
+        "rme_pct": 0.6989143338422018,
+        "req_s": 5065.484065300365,
+        "spread_pct": 7.364010182043823
       }
     },
     {
       "module": "e2e.fastify-redis",
       "task": "baseline (no middleware)",
       "metrics": {
-        "median_ms": 0.05196,
-        "rme_pct": 0.2554148557816134,
-        "req_s": 19245.573518090838,
-        "spread_pct": 5.5169421773658645
+        "median_ms": 0.0535725,
+        "rme_pct": 0.2581782228367602,
+        "req_s": 18666.293342425826,
+        "spread_pct": 4.201238571669038
       }
     }
   ],
   "derived": [
     {
       "name": "e2e.hono-sqlite.overhead_delta_ms",
-      "value": 0.1703225
+      "value": 0.1734835
     },
     {
       "name": "e2e.hono-sqlite.overhead_pct",
-      "value": 1131.8613769271662
+      "value": 1132.6945677722645
     },
     {
       "name": "e2e.hono-postgres.overhead_delta_ms",
-      "value": 2.9971055
+      "value": 3.249774
     },
     {
       "name": "e2e.hono-postgres.overhead_pct",
-      "value": 19413.81979531027
+      "value": 21058.670295489894
     },
     {
       "name": "e2e.hono-mysql.overhead_delta_ms",
-      "value": 13.9372775
+      "value": 13.400756
     },
     {
       "name": "e2e.hono-mysql.overhead_pct",
-      "value": 91445.95170920544
+      "value": 86854.33923131764
     },
     {
       "name": "e2e.hono-redis.overhead_delta_ms",
-      "value": 0.3101295
+      "value": 0.304881
     },
     {
       "name": "e2e.hono-redis.overhead_pct",
-      "value": 2048.411492734478
+      "value": 2008.041888954752
     },
     {
       "name": "e2e.express-sqlite.overhead_delta_ms",
-      "value": 0.3305150000000001
+      "value": 0.2671450000000002
     },
     {
       "name": "e2e.express-sqlite.overhead_pct",
-      "value": 17.017312076646
+      "value": 13.72511040918704
     },
     {
       "name": "e2e.express-postgres.overhead_delta_ms",
-      "value": 1.9821334999999998
+      "value": 1.7654985
     },
     {
       "name": "e2e.express-postgres.overhead_pct",
-      "value": 97.98009981235751
+      "value": 92.09613164619824
     },
     {
       "name": "e2e.express-mysql.overhead_delta_ms",
-      "value": 10.5299435
+      "value": 9.9521205
     },
     {
       "name": "e2e.express-mysql.overhead_pct",
-      "value": 578.972332341799
+      "value": 533.7067501395654
     },
     {
       "name": "e2e.express-redis.overhead_delta_ms",
-      "value": -0.15347200000000005
+      "value": -0.13538399999999995
     },
     {
       "name": "e2e.express-redis.overhead_pct",
-      "value": -8.03324433212717
+      "value": -7.061492842482453
     },
     {
       "name": "e2e.fastify-sqlite.overhead_delta_ms",
-      "value": 0.190935
+      "value": 0.18632100000000001
     },
     {
       "name": "e2e.fastify-sqlite.overhead_pct",
-      "value": 345.57745561166314
+      "value": 339.7724164341595
     },
     {
       "name": "e2e.fastify-postgres.overhead_delta_ms",
-      "value": 2.266486
+      "value": 2.3111710000000003
     },
     {
       "name": "e2e.fastify-postgres.overhead_pct",
-      "value": 4273.365071883101
+      "value": 4321.399723271382
     },
     {
       "name": "e2e.fastify-mysql.overhead_delta_ms",
-      "value": 9.880677500000001
+      "value": 9.797982500000002
     },
     {
       "name": "e2e.fastify-mysql.overhead_pct",
-      "value": 18327.417829054757
+      "value": 18150.46219110074
     },
     {
       "name": "e2e.fastify-redis.overhead_delta_ms",
-      "value": 0.23073499999999997
+      "value": 0.22325549999999997
     },
     {
       "name": "e2e.fastify-redis.overhead_pct",
-      "value": 444.0627405696689
+      "value": 416.73526529469405
     }
   ]
 }
