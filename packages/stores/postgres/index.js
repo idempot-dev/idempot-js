@@ -87,11 +87,9 @@ export class PostgresIdempotencyStore {
    * Parse a database row into an IdempotencyRecord
    * @private
    * @param {any} row
-   * @returns {IdempotencyRecord | null}
+   * @returns {IdempotencyRecord}
    */
   parseRecord(row) {
-    if (!row) return null;
-
     return {
       key: row.key,
       fingerprint: row.fingerprint,
@@ -114,27 +112,46 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
-    // Use subquery with LIMIT since PostgreSQL doesn't support LIMIT in DELETE directly
-    await this.pool.query(
-      `DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE key IN (SELECT key FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE expires_at <= $1 LIMIT 10)`,
-      [Date.now()]
+    // One round trip for the whole lookup: the TTL-purge DELETE runs as a
+    // data-modifying CTE ahead of the SELECT. ORDER BY expires_at keeps the
+    // purge on the expires_at index (a bare LIMIT 10 makes the planner pick
+    // a seq scan once the table grows). The expiry guard sits inside each
+    // OR arm: a table-wide `AND expires_at > $1` would defeat the BitmapOr
+    // over the primary key and fingerprint indexes.
+    const now = Date.now();
+    const result = await this.pool.query(
+      `WITH cleanup AS (
+         DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records
+         WHERE key IN (
+           SELECT key FROM ${this.quotedSchemaIdentifier}.idempotency_records
+           WHERE expires_at <= $1
+           ORDER BY expires_at
+           LIMIT 10
+         )
+       )
+       SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records
+       WHERE (key = $2 AND expires_at > $1)
+          OR (fingerprint = $3 AND expires_at > $1)`,
+      [now, key, fingerprint]
     );
 
-    const [byKeyResult, byFingerprintResult] = await Promise.all([
-      this.pool.query(
-        `SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE key = $1`,
-        [key]
-      ),
-      this.pool.query(
-        `SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records WHERE fingerprint = $1`,
-        [fingerprint]
-      )
-    ]);
+    // Disambiguate OR-matched rows by value: `key` is the primary key so at
+    // most one row can match it; the fingerprint index is not unique
+    // (transient concurrent 'processing' rows can share a fingerprint), and
+    // any matching row leads to the same replay or conflict decision.
+    let byKey = null;
+    let byFingerprint = null;
+    for (const row of result.rows) {
+      if (!byKey && row.key === key) {
+        byKey = this.parseRecord(row);
+      }
+      if (!byFingerprint && row.fingerprint === fingerprint) {
+        byFingerprint =
+          row.key === key && byKey ? byKey : this.parseRecord(row);
+      }
+    }
 
-    return {
-      byKey: this.parseRecord(byKeyResult.rows[0]),
-      byFingerprint: this.parseRecord(byFingerprintResult.rows[0])
-    };
+    return { byKey, byFingerprint };
   }
 
   /**

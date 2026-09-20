@@ -18,7 +18,7 @@ test("createFakePgPool - INSERT creates record", async (t) => {
   t.end();
 });
 
-test("createFakePgPool - SELECT by key returns inserted record", async (t) => {
+test("createFakePgPool - LOOKUP statement finds record by key and fingerprint", async (t) => {
   const pool = createFakePgPool();
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES ($1, $2, $3)",
@@ -26,25 +26,20 @@ test("createFakePgPool - SELECT by key returns inserted record", async (t) => {
   );
 
   const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE key = $1",
-    ["test-key"]
+    "WITH cleanup AS (DELETE FROM idempotency_records) SELECT * FROM idempotency_records WHERE (key = $2 AND expires_at > $1) OR (fingerprint = $3 AND expires_at > $1)",
+    [Date.now(), "test-key", "test-fp"]
   );
   t.equal(result.rows.length, 1, "should find one row");
   t.equal(result.rows[0].key, "test-key", "should have correct key");
-  t.end();
-});
-
-test("createFakePgPool - SELECT by key returns empty for non-existent", async (t) => {
-  const pool = createFakePgPool();
-  const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE key = $1",
-    ["nonexistent"]
+  t.equal(
+    result.rows[0].fingerprint,
+    "test-fp",
+    "should have correct fingerprint"
   );
-  t.equal(result.rows.length, 0, "should find no rows");
   t.end();
 });
 
-test("createFakePgPool - SELECT by fingerprint finds matching record", async (t) => {
+test("createFakePgPool - LOOKUP statement finds record by fingerprint only", async (t) => {
   const pool = createFakePgPool();
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES ($1, $2, $3)",
@@ -52,8 +47,8 @@ test("createFakePgPool - SELECT by fingerprint finds matching record", async (t)
   );
 
   const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE fingerprint = $1",
-    ["shared-fp"]
+    "WITH cleanup AS (DELETE FROM idempotency_records) SELECT * FROM idempotency_records WHERE (key = $2 AND expires_at > $1) OR (fingerprint = $3 AND expires_at > $1)",
+    [Date.now(), "other-key", "shared-fp"]
   );
   t.equal(result.rows.length, 1, "should find one row");
   t.equal(
@@ -61,6 +56,42 @@ test("createFakePgPool - SELECT by fingerprint finds matching record", async (t)
     "shared-fp",
     "should have correct fingerprint"
   );
+  t.equal(result.rows[0].key, "key-1", "should have correct key");
+  t.end();
+});
+
+test("createFakePgPool - LOOKUP statement purges expired records and hides them from results", async (t) => {
+  const pool = createFakePgPool();
+  pool.__store.set("expired-key", {
+    key: "expired-key",
+    fingerprint: "fp-expired",
+    status: "processing",
+    expires_at: Date.now() - 1000,
+    response_status: null,
+    response_headers: null,
+    response_body: null
+  });
+  pool.__store.set("valid-key", {
+    key: "valid-key",
+    fingerprint: "fp-valid",
+    status: "processing",
+    expires_at: Date.now() + 60000,
+    response_status: null,
+    response_headers: null,
+    response_body: null
+  });
+
+  const result = await pool.query(
+    "WITH cleanup AS (DELETE FROM idempotency_records) SELECT * FROM idempotency_records WHERE (key = $2 AND expires_at > $1) OR (fingerprint = $3 AND expires_at > $1)",
+    [Date.now(), "expired-key", "fp-expired"]
+  );
+  t.equal(result.rows.length, 0, "expired record should not be returned");
+  t.equal(
+    pool.__store.has("expired-key"),
+    false,
+    "expired record should be purged"
+  );
+  t.equal(pool.__store.has("valid-key"), true, "valid record should remain");
   t.end();
 });
 
@@ -71,46 +102,6 @@ test("createFakePgPool - UPDATE returns rowCount 0 for non-existent key", async 
     ["nonexistent"]
   );
   t.equal(result.rowCount, 0, "should update 0 rows");
-  t.end();
-});
-
-test("createFakePgPool - DELETE removes expired records", async (t) => {
-  const pool = createFakePgPool();
-  const pastExpiry = Date.now() - 1000;
-  const futureExpiry = Date.now() + 60000;
-
-  // Manually insert with past expiry
-  pool.__store.set("expired-key", {
-    key: "expired-key",
-    fingerprint: "fp-expired",
-    status: "processing",
-    expires_at: pastExpiry,
-    response_status: null,
-    response_headers: null,
-    response_body: null
-  });
-
-  // Manually insert with future expiry
-  pool.__store.set("valid-key", {
-    key: "valid-key",
-    fingerprint: "fp-valid",
-    status: "processing",
-    expires_at: futureExpiry,
-    response_status: null,
-    response_headers: null,
-    response_body: null
-  });
-
-  await pool.query("DELETE FROM idempotency_records WHERE expires_at <= $1", [
-    Date.now()
-  ]);
-
-  t.equal(
-    pool.__store.has("expired-key"),
-    false,
-    "expired key should be deleted"
-  );
-  t.equal(pool.__store.has("valid-key"), true, "valid key should remain");
   t.end();
 });
 
@@ -145,35 +136,6 @@ test("createFakePgPool - SELECT without WHERE clause returns empty", async (t) =
     result,
     { rows: [], rowCount: 0 },
     "should return empty result for SELECT without WHERE"
-  );
-  t.end();
-});
-
-test("createFakePgPool - DELETE_EXPIRED without params uses Date.now()", async (t) => {
-  const pool = createFakePgPool();
-  const pastExpiry = Date.now() - 1000;
-  pool.__store.set("expired-key", {
-    key: "expired-key",
-    fingerprint: "fp",
-    status: "processing",
-    expires_at: pastExpiry,
-    response_status: null,
-    response_headers: null,
-    response_body: null
-  });
-
-  const result = await pool.query(
-    "DELETE FROM idempotency_records WHERE expires_at <= now()"
-  );
-  t.equal(
-    result.rowCount,
-    1,
-    "should delete expired record when no params passed"
-  );
-  t.equal(
-    pool.__store.has("expired-key"),
-    false,
-    "expired key should be deleted"
   );
   t.end();
 });
