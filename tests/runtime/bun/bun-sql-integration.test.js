@@ -262,10 +262,16 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
     const key1 = generateIdempotencyKey();
     const key2 = generateIdempotencyKey();
 
-    await makeRequest(port, {
+    const response1 = await makeRequest(port, {
       idempotencyKey: key1,
       body: { foo: "bar" }
     });
+    // The middleware awaits store.complete() before responding, so the
+    // conflict row is committed by the time response1 arrives. Asserting
+    // response1 here keeps a transient first-request failure (which would
+    // otherwise surface as a confusing "expected 409, got 200" below)
+    // diagnosable.
+    expect(response1.status).toBe(200);
 
     const response2 = await makeRequest(port, {
       idempotencyKey: key2,
@@ -357,10 +363,16 @@ describe("BunSqlIdempotencyStore with MySQL", () => {
     const key1 = generateIdempotencyKey();
     const key2 = generateIdempotencyKey();
 
-    await makeRequest(port, {
+    const response1 = await makeRequest(port, {
       idempotencyKey: key1,
       body: { foo: "bar" }
     });
+    // The middleware awaits store.complete() before responding, so the
+    // conflict row is committed by the time response1 arrives. Asserting
+    // response1 here keeps a transient first-request failure (which would
+    // otherwise surface as a confusing "expected 409, got 200" below)
+    // diagnosable.
+    expect(response1.status).toBe(200);
 
     const response2 = await makeRequest(port, {
       idempotencyKey: key2,
