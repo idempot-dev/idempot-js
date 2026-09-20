@@ -170,16 +170,17 @@ export class PostgresIdempotencyStore {
     // bare LIMIT makes the planner seq-scan once the table grows).
     if (now - this.lastPurgeAt >= this.purgeIntervalMs) {
       this.lastPurgeAt = now;
-      await this.pool.query(
-        `DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records
+      await this.#dedicated({
+        name: "idempotency_purge",
+        text: `DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records
          WHERE key IN (
            SELECT key FROM ${this.quotedSchemaIdentifier}.idempotency_records
            WHERE expires_at <= $1
            ORDER BY expires_at
            LIMIT 10
          )`,
-        [now]
-      );
+        values: [now]
+      });
     }
 
     // One round trip: match on key OR fingerprint, then disambiguate by
