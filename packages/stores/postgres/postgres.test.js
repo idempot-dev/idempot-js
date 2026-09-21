@@ -67,7 +67,7 @@ test("PostgresIdempotencyStore - lookup does not return expired records", async 
   t.end();
 });
 
-test("PostgresIdempotencyStore - TTL purge runs at most once per interval", async (t) => {
+test("PostgresIdempotencyStore - purge runs on every lookup", async (t) => {
   const pool = createFakePgPool();
   const store = new PostgresIdempotencyStore({ pool });
 
@@ -75,46 +75,24 @@ test("PostgresIdempotencyStore - TTL purge runs at most once per interval", asyn
     pool.query
       .getCalls()
       .filter((call) =>
-        String(call.args[0]).trim().toUpperCase().startsWith("DELETE")
+        String(call.args[0]).trim().toUpperCase().startsWith("WITH")
       ).length;
 
-  // First lookup purges (lastPurgeAt starts at 0).
   await store.lookup("key-1", "fp-1");
-  t.equal(purgeCount(), 1, "first lookup should trigger the purge sweep");
-
-  // Second lookup within the interval skips the purge.
   await store.lookup("key-1", "fp-1");
-  t.equal(purgeCount(), 1, "lookup within the interval must not purge again");
-
-  // After the interval elapses the next lookup purges again.
-  store.lastPurgeAt = Date.now() - store.purgeIntervalMs - 1;
-  await store.lookup("key-1", "fp-1");
-  t.equal(purgeCount(), 2, "lookup after the interval should purge again");
+  t.equal(
+    purgeCount(),
+    2,
+    "each lookup purges expired rows in the same statement"
+  );
 
   await store.close();
   t.end();
 });
 
-test("PostgresIdempotencyStore - purgeIntervalMs 0 purges on every lookup", async (t) => {
+test("PostgresIdempotencyStore - purge reclaims expired records", async (t) => {
   const pool = createFakePgPool();
-  const store = new PostgresIdempotencyStore({ pool, purgeIntervalMs: 0 });
-
-  await store.lookup("key-1", "fp-1");
-  await store.lookup("key-1", "fp-1");
-  const purgeCount = pool.query
-    .getCalls()
-    .filter((call) =>
-      String(call.args[0]).trim().toUpperCase().startsWith("DELETE")
-    ).length;
-  t.equal(purgeCount, 2, "each lookup should trigger the purge sweep");
-
-  await store.close();
-  t.end();
-});
-
-test("PostgresIdempotencyStore - periodic purge reclaims expired records", async (t) => {
-  const pool = createFakePgPool();
-  const store = new PostgresIdempotencyStore({ pool, purgeIntervalMs: 0 });
+  const store = new PostgresIdempotencyStore({ pool });
 
   pool.__store.set("expired-key", {
     key: "expired-key",

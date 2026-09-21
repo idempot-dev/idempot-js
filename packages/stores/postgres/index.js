@@ -14,7 +14,6 @@ const require = createRequire(import.meta.url);
  * @property {string} [connectionString] - PostgreSQL connection string
  * @property {import("pg").PoolConfig} [connection] - Connection pool options (passed to pg.Pool)
  * @property {string} [schema="public"] - Database schema for the idempotency table
- * @property {number} [purgeIntervalMs=1000] - Minimum interval between TTL-purge sweeps
  * @property {number} [preparedPoolSize=2] - Dedicated prepared-statement clients for lookups
  *   (store-owned pools only; 0 falls back to pool.query). User-provided pools always use
  *   pool.query.
@@ -37,18 +36,6 @@ export class PostgresIdempotencyStore {
   schema;
 
   /**
-   * Minimum interval in ms between TTL-purge sweeps.
-   * @type {number}
-   */
-  purgeIntervalMs;
-
-  /**
-   * Timestamp of the last TTL-purge sweep.
-   * @type {number}
-   */
-  lastPurgeAt = 0;
-
-  /**
    * Dedicated prepared-statement clients for the lookup (null when the
    * store does not own its pool). An owned pool always holds a
    * PreparedLookupPool; preparedPoolSize 0 makes it empty, so every lookup
@@ -58,8 +45,9 @@ export class PostgresIdempotencyStore {
   preparedPool;
 
   /**
-   * The lookup SELECT, built once: also the statement text prepared on
-   * the dedicated lookup clients.
+   * The lookup statement: a data-modifying CTE that purges up to 10
+   * expired rows before the guarded OR-SELECT. Built once: also the
+   * statement text prepared on the dedicated lookup clients.
    * @type {string}
    */
   lookupSQL;
@@ -69,11 +57,19 @@ export class PostgresIdempotencyStore {
    */
   constructor(options = {}) {
     this.schema = options.schema ?? "public";
-    this.purgeIntervalMs = options.purgeIntervalMs ?? 1000;
     this.quotedSchemaIdentifier = `"${this.schema.replace(/"/g, '""')}"`;
-    this.lookupSQL = `SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records
-       WHERE (key = $1 AND expires_at > $2)
-          OR (fingerprint = $3 AND expires_at > $2)`;
+    this.lookupSQL = `WITH cleanup AS (
+         DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records
+         WHERE key IN (
+           SELECT key FROM ${this.quotedSchemaIdentifier}.idempotency_records
+           WHERE expires_at <= $1
+           ORDER BY expires_at
+           LIMIT 10
+         )
+       )
+       SELECT * FROM ${this.quotedSchemaIdentifier}.idempotency_records
+       WHERE (key = $2 AND expires_at > $1)
+          OR (fingerprint = $3 AND expires_at > $1)`;
     if (options.pool) {
       this.pool = options.pool;
       this.preparedPool = null;
@@ -163,42 +159,24 @@ export class PostgresIdempotencyStore {
   async lookup(key, fingerprint) {
     const now = Date.now();
 
-    // Periodic TTL purge: expired rows are excluded from results by the
-    // expiry guard in the SELECT below regardless, so deferred sweeping
-    // only delays space reclamation, never correctness. ORDER BY
-    // expires_at keeps the LIMIT-10 subquery on the expires_at index (a
-    // bare LIMIT makes the planner seq-scan once the table grows).
-    if (now - this.lastPurgeAt >= this.purgeIntervalMs) {
-      this.lastPurgeAt = now;
-      await this.#dedicated({
-        name: "idempotency_purge",
-        text: `DELETE FROM ${this.quotedSchemaIdentifier}.idempotency_records
-         WHERE key IN (
-           SELECT key FROM ${this.quotedSchemaIdentifier}.idempotency_records
-           WHERE expires_at <= $1
-           ORDER BY expires_at
-           LIMIT 10
-         )`,
-        values: [now]
-      });
-    }
-
-    // One round trip: match on key OR fingerprint, then disambiguate by
-    // value. `key` is the primary key so at most one row can match it; the
-    // fingerprint index is not unique (transient concurrent 'processing'
-    // rows can share a fingerprint), and any matching row leads to the
-    // same replay or conflict decision. The expiry guard sits inside each
-    // OR arm: a table-wide `AND expires_at > $2` would defeat the BitmapOr
-    // over the primary key and fingerprint indexes.
+    // One round trip for the whole lookup: the TTL-purge DELETE runs as a
+    // data-modifying CTE ahead of the SELECT, matching the mysql and
+    // sqlite stores, where reclamation scales with traffic. The expiry
+    // guard sits inside each OR arm: a table-wide `AND expires_at > $1`
+    // would defeat the BitmapOr over the primary key and fingerprint
+    // indexes, and it keeps expired rows invisible even when more rows
+    // are expired than the purge batch of 10. ORDER BY expires_at keeps
+    // the LIMIT-10 subquery on the expires_at index (a bare LIMIT makes
+    // the planner seq-scan once the table grows).
     //
-    // Store-owned pools run the store's statements on dedicated clients
-    // with the statements prepared server-side (named statements are per
-    // session); until a dedicated client is ready, or when one failed, the
-    // regular pool serves the identical SQL.
+    // Store-owned pools run the statement on dedicated clients with the
+    // statement prepared server-side (named statements are per session);
+    // until a dedicated client is ready, or when one failed, the regular
+    // pool serves the identical SQL.
     const result = await this.#dedicated({
       name: "idempotency_lookup",
       text: this.lookupSQL,
-      values: [key, now, fingerprint]
+      values: [now, key, fingerprint]
     });
 
     // Disambiguate OR-matched rows by value: `key` is the primary key so at
