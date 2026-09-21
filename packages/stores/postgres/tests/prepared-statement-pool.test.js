@@ -139,6 +139,66 @@ test("PreparedStatementPool - failed query retires the client and falls back", a
   t.end();
 });
 
+test("PreparedStatementPool - server-class error is rethrown without retiring the client", async (t) => {
+  const duplicateKey = new Error(
+    'duplicate key value violates unique constraint "idempotency_records_pkey"'
+  );
+  duplicateKey.code = "23505";
+  const client = createFakeClient({ queryError: duplicateKey });
+  const pool = new PreparedStatementPool({
+    ...OPTIONS,
+    clientFactory: () => client,
+    size: 1
+  });
+  await flush();
+
+  let rethrown = null;
+  try {
+    await pool.query(STATEMENT);
+  } catch (error) {
+    rethrown = error;
+  }
+  t.equal(rethrown?.code, "23505", "the real error reaches the caller");
+  t.equal(
+    client.calls.end,
+    0,
+    "server-class errors must not retire the client"
+  );
+
+  // The client stays in rotation: the pool routes the next query to it.
+  let second = null;
+  try {
+    await pool.query(STATEMENT);
+  } catch (error) {
+    second = error;
+  }
+  t.equal(second?.code, "23505", "the same error surfaces again");
+  t.equal(client.calls.query, 2, "the same client served both queries");
+
+  await pool.end();
+  t.end();
+});
+
+test("PreparedStatementPool - errno-coded connection errors still retire the client", async (t) => {
+  const connLost = new Error("connect ECONNRESET");
+  connLost.code = "ECONNRESET";
+  const failing = createFakeClient({ queryError: connLost });
+  const healthy = createFakeClient();
+  const clients = [failing, healthy];
+  const pool = new PreparedStatementPool({
+    ...OPTIONS,
+    clientFactory: () => clients.shift()
+  });
+  await flush();
+
+  const result = await pool.query(STATEMENT);
+  t.equal(result, null, "connection failure must signal fallback");
+  t.equal(failing.calls.end, 1, "connection-failed client is closed");
+
+  await pool.end();
+  t.end();
+});
+
 test("PreparedStatementPool - client error event retires the client", async (t) => {
   const client = createFakeClient();
   const pool = new PreparedStatementPool({

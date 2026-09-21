@@ -83,6 +83,9 @@ export class PreparedStatementPool {
    * @returns {Promise<{rows: any[], rowCount?: number} | null>} the query
    *   result, or null when no client is ready or the client failed (caller
    *   must fall back to its regular pool)
+   * @throws {Error} rethrows server-class statement errors (pg rejections
+   *   carrying a five-character SQLSTATE in error.code) without retiring
+   *   the client, so the caller sees the real error
    */
   async query(statement) {
     const entry = this.#nextReady();
@@ -93,13 +96,26 @@ export class PreparedStatementPool {
     let result;
     try {
       result = await entry.client.query(statement);
-    } catch {
+    } catch (error) {
+      entry.inFlight -= 1;
+      // pg rejects server-class errors with a five-character SQLSTATE in
+      // error.code (e.g. the INSERT's 23505) and leaves the client
+      // healthy: rethrow without retiring, so duplicate-key contention
+      // never shrinks the pool and the caller never re-executes the
+      // statement on the fallback path.
+      if (
+        error &&
+        typeof error.code === "string" &&
+        /^[0-9A-Z]{5}$/.test(error.code)
+      ) {
+        throw error;
+      }
       // Connection-level failures retire the client; the caller falls
       // back to its regular pool, which surfaces the real error.
-      result = null;
       entry.ready = false;
       this.#retire(entry);
       entry.client.end().catch(() => {});
+      return null;
     }
     entry.inFlight -= 1;
     return result;
