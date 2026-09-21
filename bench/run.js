@@ -4,6 +4,7 @@ import {
   PRESETS,
   loadModules,
   runSuite,
+  runSuiteTwoPassInterleaved,
   runtimeInfo,
   validateSelection
 } from "./lib/runner.js";
@@ -127,15 +128,13 @@ if (validateBaseline) {
   // load-polluted run cannot become the reference other runs are compared
   // against. Costs one extra full-suite run; the gate covers task medians
   // only (derived overhead deltas are too noisy to gate on).
-  console.log("Baseline validation: run 1 of 2");
-  const first = await runSuite({
-    preset,
-    modules: selection.selected,
-    resultsFile: false,
-    label
-  });
-  console.log("Baseline validation: run 2 of 2");
-  const second = await runSuite({
+  //
+  // The two passes run interleaved: each module's pass-1 and pass-2
+  // samples are adjacent in time, so minute-scale machine drift (e.g.
+  // NVMe flush-latency regimes on fsync-bound medians) cancels per module
+  // instead of landing systematically between the passes.
+  console.log("Baseline validation: interleaved passes, run 1 of 2 per module");
+  const { first, second } = await runSuiteTwoPassInterleaved({
     preset,
     modules: selection.selected,
     resultsFile,

@@ -377,33 +377,24 @@ ${lines.join("\n")}
   fs.writeFileSync(resultsPath, content);
 }
 
-export async function runSuite({
-  preset,
-  modules,
-  resultsFile = true,
-  label,
-  saveBaselinePath
-}) {
-  const { repeats, benchOptions } = PRESETS[preset];
-  const repeatsResults = [];
-  for (let index = 0; index < repeats; index++) {
-    for (const module of modules) {
-      // One Bench per module: tinybench requires unique task names per
-      // instance, and e2e modules reuse the "middleware (fresh key)" etc.
-      // task names across frameworks and stores.
-      const bench = new Bench({ ...benchOptions, name: "suite" });
-      const taskModule = new Map();
-      const before = new Set(bench.tasks.map((task) => task.name));
-      module.register(bench, preset);
-      for (const task of bench.tasks) {
-        if (!before.has(task.name)) {
-          taskModule.set(task.name, module.name);
-        }
-      }
-      await bench.run();
-      repeatsResults.push(collectRunResults(bench, taskModule));
+async function runModuleRepeat(module, preset, benchOptions) {
+  // One Bench per module: tinybench requires unique task names per
+  // instance, and e2e modules reuse the "middleware (fresh key)" etc.
+  // task names across frameworks and stores.
+  const bench = new Bench({ ...benchOptions, name: "suite" });
+  const taskModule = new Map();
+  const before = new Set(bench.tasks.map((task) => task.name));
+  module.register(bench, preset);
+  for (const task of bench.tasks) {
+    if (!before.has(task.name)) {
+      taskModule.set(task.name, module.name);
     }
   }
+  await bench.run();
+  return collectRunResults(bench, taskModule);
+}
+
+function finalizePass({ preset, modules, repeatsResults, resultsFile, label }) {
   const results = aggregate(repeatsResults);
   const derived = [];
   for (const module of modules) {
@@ -418,15 +409,92 @@ export async function runSuite({
   console.log("");
   console.log(formatTable(displayRows(results)));
   const baseline = buildBaseline({ preset, modules, results, derived, label });
-  if (saveBaselinePath) {
-    fs.writeFileSync(
-      saveBaselinePath,
-      `${JSON.stringify(baseline, null, 2)}\n`
-    );
-    console.log(`Baseline written: ${saveBaselinePath}`);
-  }
   if (resultsFile) {
     writeResultsFile({ preset, modules, results, lines, label });
   }
   return { results, derived, lines, baseline };
+}
+
+export async function runSuite({
+  preset,
+  modules,
+  resultsFile = true,
+  label,
+  saveBaselinePath
+}) {
+  const { repeats, benchOptions } = PRESETS[preset];
+  const repeatsResults = [];
+  for (let index = 0; index < repeats; index++) {
+    for (const module of modules) {
+      repeatsResults.push(await runModuleRepeat(module, preset, benchOptions));
+    }
+  }
+  const pass = finalizePass({
+    preset,
+    modules,
+    repeatsResults,
+    resultsFile,
+    label
+  });
+  if (saveBaselinePath) {
+    fs.writeFileSync(
+      saveBaselinePath,
+      `${JSON.stringify(pass.baseline, null, 2)}\n`
+    );
+    console.log(`Baseline written: ${saveBaselinePath}`);
+  }
+  return pass;
+}
+
+/**
+ * Two full-suite passes with the two samples of each task adjacent in
+ * time: within each module and repeat, the pass-1 sample runs
+ * immediately before the pass-2 sample, so the two samples of every task
+ * are ~one Bench apart. Minute-scale machine drift (e.g. NVMe
+ * flush-latency regimes on fsync-bound medians) then affects both
+ * samples of a pair equally and cancels in the per-pass aggregates
+ * instead of landing systematically between the two passes.
+ *
+ * Used by --validate-baseline, which compares the two passes' task
+ * medians against each other.
+ *
+ * @param {object} params
+ * @param {string} params.preset
+ * @param {object[]} params.modules
+ * @param {boolean} [params.resultsFile]
+ * @param {string} [params.label]
+ * @returns {Promise<{first: object, second: object}>} one runSuite-shaped
+ *   result per pass
+ */
+export async function runSuiteTwoPassInterleaved({
+  preset,
+  modules,
+  resultsFile = true,
+  label
+}) {
+  const { repeats, benchOptions } = PRESETS[preset];
+  const firstRepeats = [];
+  const secondRepeats = [];
+  for (const module of modules) {
+    for (let index = 0; index < repeats; index++) {
+      for (const passRepeats of [firstRepeats, secondRepeats]) {
+        passRepeats.push(await runModuleRepeat(module, preset, benchOptions));
+      }
+    }
+  }
+  const first = finalizePass({
+    preset,
+    modules,
+    repeatsResults: firstRepeats,
+    resultsFile: false,
+    label
+  });
+  const second = finalizePass({
+    preset,
+    modules,
+    repeatsResults: secondRepeats,
+    resultsFile,
+    label
+  });
+  return { first, second };
 }
