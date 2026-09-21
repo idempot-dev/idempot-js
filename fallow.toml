@@ -32,8 +32,6 @@ ignoreDependencies = [
   "sqlite",     # Deno SQLite client
   # Bun runtime namespace
   "bun",
-  # Transitive dependency required by VitePress via rolldown-vite
-  "oxc-minify",
 ]
 
 # Patterns for files to exclude from analysis entirely
