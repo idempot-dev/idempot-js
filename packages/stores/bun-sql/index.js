@@ -271,21 +271,28 @@ export class BunSqlIdempotencyStore {
    */
   async lookup(key, fingerprint) {
     await this.ensureSchema();
+    const now = Date.now();
 
     if (this.isSqlite) {
       this.db
         .prepare(
           "DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10"
         )
-        .run(Date.now());
+        .run(now);
 
+      // The expiry guard on each SELECT keeps expired records invisible
+      // even when more rows are expired than the purge batch of 10.
       const byKeyRow = this.db
-        .prepare("SELECT * FROM idempotency_records WHERE key = ?")
-        .get(key);
+        .prepare(
+          "SELECT * FROM idempotency_records WHERE key = ? AND expires_at > ?"
+        )
+        .get(key, now);
 
       const byFingerprintRow = this.db
-        .prepare("SELECT * FROM idempotency_records WHERE fingerprint = ?")
-        .get(fingerprint);
+        .prepare(
+          "SELECT * FROM idempotency_records WHERE fingerprint = ? AND expires_at > ?"
+        )
+        .get(fingerprint, now);
 
       return {
         byKey: this.parseRecord(byKeyRow),
@@ -296,19 +303,22 @@ export class BunSqlIdempotencyStore {
       const deleteSql = this.isPostgres
         ? "DELETE FROM idempotency_records WHERE key IN (SELECT key FROM idempotency_records WHERE expires_at <= $1 LIMIT 10)"
         : "DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10";
-      const deleteParams = this.isPostgres ? [Date.now()] : [Date.now()];
+      const deleteParams = [now];
       await this.db.unsafe(deleteSql, deleteParams);
 
       const keyColumn = this.isMySQL ? "`key`" : '"key"';
       const paramPlaceholder = this.isMySQL ? "?" : "$1";
+      const expiresPlaceholder = this.isMySQL ? "?" : "$2";
 
+      // The expiry guard on each SELECT keeps expired records invisible
+      // even when more rows are expired than the purge batch of 10.
       const [byKeyResult, byFingerprintResult] = await Promise.all([
         this.db.unsafe(
-          `SELECT * FROM idempotency_records WHERE ${keyColumn} = ${paramPlaceholder}`,
-          [key]
+          `SELECT * FROM idempotency_records WHERE ${keyColumn} = ${paramPlaceholder} AND expires_at > ${expiresPlaceholder}`,
+          [key, now]
         ),
         this
-          .db`SELECT * FROM idempotency_records WHERE fingerprint = ${fingerprint}`
+          .db`SELECT * FROM idempotency_records WHERE fingerprint = ${fingerprint} AND expires_at > ${now}`
       ]);
 
       return {

@@ -72,14 +72,22 @@ export function createFakeMysqlClient(sharedStore) {
       }
 
       if (normalized.startsWith("SELECT")) {
+        // Guarded lookup: params are key, now, fingerprint, now. The
+        // classification anchors the expiry guard, so guard drift never
+        // reaches this branch and the deno store tests fail loudly
+        // instead of passing on drifted SQL.
         if (
-          normalized.includes("WHERE `KEY` =") &&
-          normalized.includes("OR FINGERPRINT =")
+          normalized.includes("`KEY` = ?") &&
+          normalized.includes("FINGERPRINT = ?") &&
+          normalized.includes("EXPIRES_AT > ?")
         ) {
-          const [key, fingerprint] = params;
+          const [key, now, fingerprint] = params;
           const rows = [];
           for (const record of store.values()) {
-            if (record.key === key || record.fingerprint === fingerprint) {
+            if (
+              record.expires_at > now &&
+              (record.key === key || record.fingerprint === fingerprint)
+            ) {
               rows.push(record);
             }
           }

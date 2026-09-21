@@ -14,6 +14,28 @@ runStoreTests({
   createStore: () => new SqliteIdempotencyStore({ path: ":memory:" })
 });
 
+test("sqlite - does not return expired records", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  // Negative TTL inserts an already-expired record; the purge may reclaim
+  // it and the expiry guard must hide it either way.
+  await store.startProcessing("expired-key", "expired-fp", -1000);
+
+  const byKey = await store.lookup("expired-key", "other-fp");
+  t.equal(byKey.byKey, null, "expired record should not be found by key");
+
+  await store.startProcessing("expired-key-2", "expired-fp-2", -1000);
+  const byFingerprint = await store.lookup("other-key", "expired-fp-2");
+  t.equal(
+    byFingerprint.byFingerprint,
+    null,
+    "expired record should not be found by fingerprint"
+  );
+
+  store.close();
+  t.end();
+});
+
 test("sqlite - creates store with default path when no options provided", (t) => {
   // This file is also discovered through workspace node_modules symlinks,
   // so several copies can run concurrently and share the project cwd. Run

@@ -76,6 +76,29 @@ test("MysqlIdempotencyStore - uses batched lookup when pool supports multiple st
   t.end();
 });
 
+test("MysqlIdempotencyStore - does not return expired records", async (t) => {
+  const pool = createFakeMysqlPool();
+  const store = new MysqlIdempotencyStore({ pool });
+
+  // Negative TTL inserts an already-expired record; the purge may reclaim
+  // it and the expiry guard must hide it either way.
+  await store.startProcessing("expired-key", "expired-fp", -1000);
+
+  const byKey = await store.lookup("expired-key", "other-fp");
+  t.equal(byKey.byKey, null, "expired record should not be found by key");
+
+  await store.startProcessing("expired-key-2", "expired-fp-2", -1000);
+  const byFingerprint = await store.lookup("other-key", "expired-fp-2");
+  t.equal(
+    byFingerprint.byFingerprint,
+    null,
+    "expired record should not be found by fingerprint"
+  );
+
+  await store.close();
+  t.end();
+});
+
 test("MysqlIdempotencyStore - parseRecord returns null for a falsy row", async (t) => {
   const pool = createFakeMysqlPool();
   const store = new MysqlIdempotencyStore({ pool });

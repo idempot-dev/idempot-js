@@ -18,26 +18,29 @@ test("createFakeMysqlPool - INSERT creates record", async (t) => {
   t.end();
 });
 
-test("createFakeMysqlPool - SELECT with OR predicate returns rows matching key or fingerprint", async (t) => {
+test("createFakeMysqlPool - guarded SELECT returns rows matching key or fingerprint", async (t) => {
   const pool = createFakeMysqlPool();
+  const now = Date.now();
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
-    ["test-key", "test-fp", Date.now() + 60000]
+    ["test-key", "test-fp", now + 60000]
   );
 
+  const LOOKUP =
+    "SELECT * FROM idempotency_records WHERE (`key` = ? AND expires_at > ?) OR (fingerprint = ? AND expires_at > ?)";
+
   // key matches
-  const byKey = await pool.query(
-    "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
-    ["test-key", "other-fp"]
-  );
+  const byKey = await pool.query(LOOKUP, ["test-key", now, "other-fp", now]);
   t.equal(byKey[0].length, 1, "should find one row by key");
   t.equal(byKey[0][0].key, "test-key", "should have correct key");
 
   // fingerprint matches (different key)
-  const byFingerprint = await pool.query(
-    "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
-    ["other-key", "test-fp"]
-  );
+  const byFingerprint = await pool.query(LOOKUP, [
+    "other-key",
+    now,
+    "test-fp",
+    now
+  ]);
   t.equal(byFingerprint[0].length, 1, "should find one row by fingerprint");
   t.equal(
     byFingerprint[0][0].fingerprint,
@@ -46,11 +49,61 @@ test("createFakeMysqlPool - SELECT with OR predicate returns rows matching key o
   );
 
   // same record can match both predicates
-  const byBoth = await pool.query(
+  const byBoth = await pool.query(LOOKUP, ["test-key", now, "test-fp", now]);
+  t.equal(byBoth[0].length, 1, "should not duplicate a row matching both");
+  t.end();
+});
+
+test("createFakeMysqlPool - guarded SELECT hides expired records", async (t) => {
+  const pool = createFakeMysqlPool();
+  const now = Date.now();
+  await pool.query(
+    "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
+    ["test-key", "test-fp", now - 1000]
+  );
+
+  const result = await pool.query(
+    "SELECT * FROM idempotency_records WHERE (`key` = ? AND expires_at > ?) OR (fingerprint = ? AND expires_at > ?)",
+    ["test-key", now, "test-fp", now]
+  );
+  t.equal(result[0].length, 0, "expired record should not be returned");
+  t.end();
+});
+
+test("createFakeMysqlPool - unguarded OR SELECT is not emulated (guard drift fails loudly)", async (t) => {
+  const pool = createFakeMysqlPool();
+  await pool.query(
+    "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
+    ["test-key", "test-fp", Date.now() + 60000]
+  );
+
+  // The store's lookup always carries the expiry guard; a statement
+  // without it must get no emulation so store tests fail loudly instead
+  // of passing on drifted SQL.
+  const result = await pool.query(
     "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
     ["test-key", "test-fp"]
   );
-  t.equal(byBoth[0].length, 1, "should not duplicate a row matching both");
+  t.same(result, [[], []], "drifted statement shape must get no emulation");
+  t.end();
+});
+
+test("createFakeMysqlPool - unguarded batched lookup is not emulated (guard drift fails loudly)", async (t) => {
+  const pool = createFakeMysqlPool();
+  pool.config = { connectionConfig: { multipleStatements: true } };
+  await pool.query(
+    "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
+    ["test-key", "test-fp", Date.now() + 60000]
+  );
+
+  // The store's batched lookup always carries the expiry guard; a batch
+  // whose SELECT drops it must get no row emulation so store tests fail
+  // loudly instead of passing on drifted SQL.
+  const result = await pool.query(
+    "DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10; SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
+    [Date.now(), "test-key", "test-fp"]
+  );
+  t.same(result[0][1], [], "drifted batched SELECT must get no rows");
   t.end();
 });
 
@@ -64,20 +117,21 @@ test("createFakeMysqlPool - SELECT by key returns empty for non-existent", async
   t.end();
 });
 
-test("createFakeMysqlPool - SELECT with OR predicate returns every row sharing the fingerprint", async (t) => {
+test("createFakeMysqlPool - guarded SELECT returns every row sharing the fingerprint", async (t) => {
   const pool = createFakeMysqlPool();
+  const now = Date.now();
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
-    ["key-1", "shared-fp", Date.now() + 60000]
+    ["key-1", "shared-fp", now + 60000]
   );
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
-    ["key-2", "shared-fp", Date.now() + 60000]
+    ["key-2", "shared-fp", now + 60000]
   );
 
   const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE `key` = ? OR fingerprint = ?",
-    ["other-key", "shared-fp"]
+    "SELECT * FROM idempotency_records WHERE (`key` = ? AND expires_at > ?) OR (fingerprint = ? AND expires_at > ?)",
+    ["other-key", now, "shared-fp", now]
   );
   t.equal(result[0].length, 2, "should find both rows sharing the fingerprint");
   t.equal(

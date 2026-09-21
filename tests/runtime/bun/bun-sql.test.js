@@ -61,6 +61,17 @@ describe("BunSqlIdempotencyStore", () => {
 
       expect(result.byKey).toBeNull();
     });
+
+    test("does not return expired records by fingerprint", async () => {
+      // Negative TTL inserts an already-expired record; the purge may
+      // reclaim it and the expiry guard must hide it either way.
+      await store.startProcessing("expired-key", "expired-fp", -1000);
+
+      const result = await store.lookup("other-key", "expired-fp");
+
+      expect(result.byKey).toBeNull();
+      expect(result.byFingerprint).toBeNull();
+    });
   });
 
   describe("startProcessing", () => {

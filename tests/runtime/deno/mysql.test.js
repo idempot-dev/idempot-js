@@ -145,6 +145,28 @@ Deno.test(
 );
 
 Deno.test(
+  "MysqlIdempotencyStore (Deno) does not return expired records",
+  async () => {
+    const client = createFakeMysqlClient();
+    const store = new MysqlIdempotencyStore({});
+    store.client = client;
+
+    // Negative TTL inserts an already-expired record; the purge may
+    // reclaim it and the expiry guard must hide it either way.
+    await store.startProcessing("expired-key", "expired-fp", -1000);
+
+    const byKey = await store.lookup("expired-key", "other-fp");
+    assertEquals(byKey.byKey, null);
+
+    await store.startProcessing("expired-key-2", "expired-fp-2", -1000);
+    const byFingerprint = await store.lookup("other-key", "expired-fp-2");
+    assertEquals(byFingerprint.byFingerprint, null);
+
+    await store.close();
+  }
+);
+
+Deno.test(
   "MysqlIdempotencyStore (Deno) lookup finds record by fingerprint",
   async () => {
     const client = createFakeMysqlClient();
