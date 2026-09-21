@@ -361,8 +361,7 @@ if (baselineObj !== null) {
   );
   check(
     "validate-baseline reports both runs",
-    /run 1 of 2/.test(validated.stdout) &&
-      /run 2 of 2/.test(validated.stdout) &&
+    /interleaved passes/.test(validated.stdout) &&
       /validated and written/.test(validated.stdout)
   );
 }
