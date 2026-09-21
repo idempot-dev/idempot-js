@@ -120,29 +120,33 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
+    const now = Date.now();
     /** @type {any[]} */
     let rows;
     if (this.multipleStatements) {
       // Store-owned pool: cleanup and lookup in a single round trip.
       const [results] = await this.pool.query(
-        `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ? LIMIT 10; SELECT * FROM \`${this.tableName}\` WHERE \`key\` = ? OR fingerprint = ?`,
-        [Date.now(), key, fingerprint]
+        `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ? LIMIT 10; SELECT * FROM \`${this.tableName}\` WHERE (\`key\` = ? AND expires_at > ?) OR (fingerprint = ? AND expires_at > ?)`,
+        [now, key, now, fingerprint, now]
       );
       rows = results[1];
     } else {
       await this.pool.query(
         `DELETE FROM \`${this.tableName}\` WHERE expires_at <= ? LIMIT 10`,
-        [Date.now()]
+        [now]
       );
 
       // One round trip instead of two: match on key OR fingerprint, then
       // disambiguate by value. `key` is the primary key so at most one row
       // can match it; the fingerprint index is not unique (transient
       // concurrent 'processing' rows can share a fingerprint), and any
-      // matching row leads to the same replay or conflict decision.
+      // matching row leads to the same replay or conflict decision. The
+      // expiry guard sits inside each OR arm: the purge above only
+      // reclaims up to 10 rows, so expired records must never surface
+      // from this SELECT.
       const result = await this.pool.query(
-        `SELECT * FROM \`${this.tableName}\` WHERE \`key\` = ? OR fingerprint = ?`,
-        [key, fingerprint]
+        `SELECT * FROM \`${this.tableName}\` WHERE (\`key\` = ? AND expires_at > ?) OR (fingerprint = ? AND expires_at > ?)`,
+        [key, now, fingerprint, now]
       );
       rows = result[0];
     }

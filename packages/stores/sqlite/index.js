@@ -88,20 +88,26 @@ export class SqliteIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
+    const now = Date.now();
+
     // Delete up to 10 expired records
     this.db
       .prepare("DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10")
-      .run(Date.now());
+      .run(now);
 
-    // Lookup by key
+    // The expiry guard on each SELECT keeps expired records invisible even
+    // when more rows are expired than the purge batch of 10.
     const byKeyRow = this.db
-      .prepare("SELECT * FROM idempotency_records WHERE key = ?")
-      .get(key);
+      .prepare(
+        "SELECT * FROM idempotency_records WHERE key = ? AND expires_at > ?"
+      )
+      .get(key, now);
 
-    // Lookup by fingerprint
     const byFingerprintRow = this.db
-      .prepare("SELECT * FROM idempotency_records WHERE fingerprint = ?")
-      .get(fingerprint);
+      .prepare(
+        "SELECT * FROM idempotency_records WHERE fingerprint = ? AND expires_at > ?"
+      )
+      .get(fingerprint, now);
 
     return {
       byKey: this.parseRecord(byKeyRow),

@@ -178,7 +178,7 @@
         "npm:tinybench@^6.1.6",
         "npm:typescript@^6.0.3",
         "npm:ulid@^3.0.2",
-        "npm:vitepress@2.0.0-alpha.19",
+        "npm:vitepress@2.0.0-alpha.20",
         "npm:xxhash-wasm@^1.1.0"
       ]
     },

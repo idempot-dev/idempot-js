@@ -92,17 +92,20 @@ export class DenoSqliteIdempotencyStore {
    * @returns {Promise<{byKey: IdempotencyRecord | null, byFingerprint: IdempotencyRecord | null}>}
    */
   async lookup(key, fingerprint) {
+    const now = Date.now();
     this.db.query("DELETE FROM idempotency_records WHERE expires_at <= ?", [
-      Date.now()
+      now
     ]);
 
+    // The expiry guard on each SELECT keeps expired records invisible even
+    // when more rows are expired than the purge batch of 10.
     const byKeyRows = this.db.queryEntries(
-      "SELECT * FROM idempotency_records WHERE key = ?",
-      [key]
+      "SELECT * FROM idempotency_records WHERE key = ? AND expires_at > ?",
+      [key, now]
     );
     const byFingerprintRows = this.db.queryEntries(
-      "SELECT * FROM idempotency_records WHERE fingerprint = ?",
-      [fingerprint]
+      "SELECT * FROM idempotency_records WHERE fingerprint = ? AND expires_at > ?",
+      [fingerprint, now]
     );
 
     const byKey = byKeyRows.length > 0 ? this.parseRecord(byKeyRows[0]) : null;
