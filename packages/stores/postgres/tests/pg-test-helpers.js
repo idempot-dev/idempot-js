@@ -9,7 +9,11 @@ function createInMemoryStore() {
 }
 
 /**
- * Parses SQL to extract the operation type
+ * Parses SQL to extract the operation type. The store's lookup statement
+ * is recognized by its exact shape (the guarded OR-SELECT inside a
+ * data-modifying CTE), so a future edit that drops the expiry guard or
+ * reshuffles parameter order fails the unit tests loudly instead of
+ * silently passing on drifted SQL.
  * @param {string} sql
  * @returns {{operation: string, table: string}|null}
  */
@@ -21,11 +25,15 @@ function parseSql(sql) {
   if (normalized.startsWith("UPDATE")) {
     return { operation: "UPDATE", table: "idempotency_records" };
   }
-  if (normalized.startsWith("DELETE") && normalized.includes("EXPIRES_AT")) {
-    return { operation: "DELETE_EXPIRED", table: "idempotency_records" };
-  }
-  if (normalized.startsWith("SELECT")) {
-    return { operation: "LOOKUP", table: "idempotency_records" };
+  if (
+    normalized.startsWith("WITH") &&
+    normalized.includes("EXPIRES_AT <= $1") &&
+    normalized.includes("ORDER BY EXPIRES_AT") &&
+    normalized.includes("LIMIT 10") &&
+    normalized.includes("KEY = $2 AND EXPIRES_AT > $1") &&
+    normalized.includes("FINGERPRINT = $3 AND EXPIRES_AT > $1")
+  ) {
+    return { operation: "PURGE_LOOKUP", table: "idempotency_records" };
   }
   if (normalized.startsWith("CREATE")) {
     return { operation: "CREATE", table: null };
@@ -58,27 +66,11 @@ export function createFakePgPool() {
           return { rows: [], rowCount: 0 };
         }
 
-        case "LOOKUP": {
-          // Emulate the real statement: select rows matching key OR
-          // fingerprint that are not expired (the expiry guard runs inside
-          // each OR arm).
-          const [key, now, fingerprint] = params;
-          const rows = [];
-          for (const record of store.values()) {
-            if (
-              record.expires_at > now &&
-              (record.key === key || record.fingerprint === fingerprint)
-            ) {
-              rows.push(record);
-            }
-          }
-          return { rows, rowCount: rows.length };
-        }
-
-        case "DELETE_EXPIRED": {
-          // Emulate the real statement: purge up to 10 expired rows,
-          // oldest first.
-          const [now] = params;
+        case "PURGE_LOOKUP": {
+          // Emulate the real statement: the data-modifying CTE purges up
+          // to 10 expired rows, oldest first, then the guarded OR-SELECT
+          // returns matching non-expired rows.
+          const [now, key, fingerprint] = params;
           const expired = [];
           for (const [k, record] of store) {
             if (record.expires_at <= now) {
@@ -89,7 +81,16 @@ export function createFakePgPool() {
           for (const [k] of expired.slice(0, 10)) {
             store.delete(k);
           }
-          return { rows: [], rowCount: Math.min(expired.length, 10) };
+          const rows = [];
+          for (const record of store.values()) {
+            if (
+              record.expires_at > now &&
+              (record.key === key || record.fingerprint === fingerprint)
+            ) {
+              rows.push(record);
+            }
+          }
+          return { rows, rowCount: rows.length };
         }
 
         case "INSERT": {

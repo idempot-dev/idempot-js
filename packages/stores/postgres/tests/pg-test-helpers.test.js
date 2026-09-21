@@ -1,6 +1,21 @@
 import { test } from "tap";
 import { createFakePgPool } from "./pg-test-helpers.js";
 
+// The store's lookup statement: a data-modifying CTE purges up to 10
+// expired rows, then a guarded OR-SELECT returns matching rows.
+const PURGE_LOOKUP_SQL = `WITH cleanup AS (
+  DELETE FROM idempotency_records
+  WHERE key IN (
+    SELECT key FROM idempotency_records
+    WHERE expires_at <= $1
+    ORDER BY expires_at
+    LIMIT 10
+  )
+)
+SELECT * FROM idempotency_records
+WHERE (key = $2 AND expires_at > $1)
+   OR (fingerprint = $3 AND expires_at > $1)`;
+
 test("createFakePgPool - query returns empty result for CREATE statements", async (t) => {
   const pool = createFakePgPool();
   const result = await pool.query("CREATE TABLE test (id INT)");
@@ -18,17 +33,18 @@ test("createFakePgPool - INSERT creates record", async (t) => {
   t.end();
 });
 
-test("createFakePgPool - LOOKUP statement finds record by key and fingerprint", async (t) => {
+test("createFakePgPool - PURGE_LOOKUP statement finds record by key and fingerprint", async (t) => {
   const pool = createFakePgPool();
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES ($1, $2, $3)",
     ["test-key", "test-fp", Date.now() + 60000]
   );
 
-  const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE (key = $1 AND expires_at > $2) OR (fingerprint = $3 AND expires_at > $2)",
-    ["test-key", Date.now(), "test-fp"]
-  );
+  const result = await pool.query(PURGE_LOOKUP_SQL, [
+    Date.now(),
+    "test-key",
+    "test-fp"
+  ]);
   t.equal(result.rows.length, 1, "should find one row");
   t.equal(result.rows[0].key, "test-key", "should have correct key");
   t.equal(
@@ -39,17 +55,18 @@ test("createFakePgPool - LOOKUP statement finds record by key and fingerprint", 
   t.end();
 });
 
-test("createFakePgPool - LOOKUP statement finds record by fingerprint only", async (t) => {
+test("createFakePgPool - PURGE_LOOKUP statement finds record by fingerprint only", async (t) => {
   const pool = createFakePgPool();
   await pool.query(
     "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES ($1, $2, $3)",
     ["key-1", "shared-fp", Date.now() + 60000]
   );
 
-  const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE (key = $1 AND expires_at > $2) OR (fingerprint = $3 AND expires_at > $2)",
-    ["other-key", Date.now(), "shared-fp"]
-  );
+  const result = await pool.query(PURGE_LOOKUP_SQL, [
+    Date.now(),
+    "other-key",
+    "shared-fp"
+  ]);
   t.equal(result.rows.length, 1, "should find one row");
   t.equal(
     result.rows[0].fingerprint,
@@ -60,7 +77,7 @@ test("createFakePgPool - LOOKUP statement finds record by fingerprint only", asy
   t.end();
 });
 
-test("createFakePgPool - LOOKUP statement hides expired records from results", async (t) => {
+test("createFakePgPool - PURGE_LOOKUP statement purges expired records and hides them from results", async (t) => {
   const pool = createFakePgPool();
   pool.__store.set("expired-key", {
     key: "expired-key",
@@ -81,17 +98,40 @@ test("createFakePgPool - LOOKUP statement hides expired records from results", a
     response_body: null
   });
 
-  const result = await pool.query(
-    "SELECT * FROM idempotency_records WHERE (key = $1 AND expires_at > $2) OR (fingerprint = $3 AND expires_at > $2)",
-    ["expired-key", Date.now(), "fp-expired"]
-  );
+  const result = await pool.query(PURGE_LOOKUP_SQL, [
+    Date.now(),
+    "expired-key",
+    "fp-expired"
+  ]);
   t.equal(result.rows.length, 0, "expired record should not be returned");
   t.equal(
     pool.__store.has("expired-key"),
-    true,
-    "purge is a separate statement; lookup itself must not delete"
+    false,
+    "the CTE's DELETE arm should reclaim the expired record"
   );
   t.equal(pool.__store.has("valid-key"), true, "valid record should remain");
+  t.end();
+});
+
+test("createFakePgPool - a drifted lookup statement is not emulated", async (t) => {
+  const pool = createFakePgPool();
+  await pool.query(
+    "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES ($1, $2, $3)",
+    ["test-key", "test-fp", Date.now() + 60000]
+  );
+
+  // Drop the expiry guard from the SELECT arm: the fake must refuse to
+  // emulate this shape so store tests fail loudly instead of passing on
+  // drifted SQL.
+  const result = await pool.query(
+    "WITH cleanup AS (DELETE FROM idempotency_records) SELECT * FROM idempotency_records WHERE key = $1",
+    ["test-key"]
+  );
+  t.same(
+    result,
+    { rows: [], rowCount: 0 },
+    "drifted statement shape must get no emulation"
+  );
   t.end();
 });
 
