@@ -193,6 +193,7 @@ export class PostgresIdempotencyStore {
         byFingerprint =
           row.key === key && byKey ? byKey : this.parseRecord(row);
       }
+      if (byKey && byFingerprint) break;
     }
 
     return { byKey, byFingerprint };

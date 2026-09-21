@@ -124,6 +124,27 @@ test("PostgresIdempotencyStore - purge reclaims expired records", async (t) => {
   t.end();
 });
 
+test("PostgresIdempotencyStore - lookup with concurrent rows sharing a fingerprint", async (t) => {
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  // Transient concurrent 'processing' rows can share a fingerprint; the
+  // disambiguation loop must stop scanning once both matches are found.
+  await store.startProcessing("key-1", "shared-fp", 60000);
+  await store.startProcessing("key-2", "shared-fp", 60000);
+
+  const result = await store.lookup("key-1", "shared-fp");
+  t.equal(result.byKey?.key, "key-1", "key match disambiguated by value");
+  t.equal(
+    result.byFingerprint?.key,
+    "key-1",
+    "first fingerprint match is returned"
+  );
+
+  await store.close();
+  t.end();
+});
+
 test("PostgresIdempotencyStore - close calls pool.end", async (t) => {
   const pool = createFakePgPool();
   const store = new PostgresIdempotencyStore({ pool });
