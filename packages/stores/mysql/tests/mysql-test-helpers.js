@@ -64,11 +64,21 @@ export function createFakeMysqlPool() {
           }
         }
         if (sql.toUpperCase().includes("SELECT")) {
-          // Batched lookup: DELETE + SELECT in one multipleStatements query.
-          const [key, fingerprint] = params.slice(1);
+          // Batched lookup: DELETE + guarded SELECT in one
+          // multipleStatements query. SELECT params: key, now,
+          // fingerprint, now.
+          if (!sql.toUpperCase().includes("EXPIRES_AT > ?")) {
+            // Guard drift: the fake refuses to emulate a lookup without
+            // the expiry guard so store tests fail loudly.
+            return [[{ affectedRows: deleted }, []], []];
+          }
+          const [, key, selectNow, fingerprint] = params;
           const rows = [];
           for (const record of store.values()) {
-            if (record.key === key || record.fingerprint === fingerprint) {
+            if (
+              record.expires_at > selectNow &&
+              (record.key === key || record.fingerprint === fingerprint)
+            ) {
               rows.push(record);
             }
           }
@@ -121,13 +131,21 @@ export function createFakeMysqlPool() {
         const normalizedSql = sql.toUpperCase();
 
         if (
-          normalizedSql.includes("WHERE `KEY` =") &&
-          normalizedSql.includes("OR FINGERPRINT =")
+          normalizedSql.includes("`KEY` = ?") &&
+          normalizedSql.includes("FINGERPRINT = ?") &&
+          normalizedSql.includes("EXPIRES_AT > ?")
         ) {
-          const [key, fingerprint] = params;
+          // Guarded lookup: params are key, now, fingerprint, now. The
+          // classification above anchors the expiry guard, so guard drift
+          // never reaches this branch and store tests fail loudly instead
+          // of passing on drifted SQL.
+          const [key, now, fingerprint] = params;
           const rows = [];
           for (const record of store.values()) {
-            if (record.key === key || record.fingerprint === fingerprint) {
+            if (
+              record.expires_at > now &&
+              (record.key === key || record.fingerprint === fingerprint)
+            ) {
               rows.push(record);
             }
           }
