@@ -497,6 +497,106 @@ export function runAdapterTests(adapter) {
     await teardown();
   });
 
+  // Test: Torn lookup (byKey miss, byFingerprint hit for the same key) with a
+  // processing record must 409, not execute the handler uncached.
+  test(`${adapter.name} - torn lookup with processing fingerprint record returns 409`, async (t) => {
+    let startProcessingCalls = 0;
+    const store = {
+      lookup: async (key, fingerprint) => {
+        return {
+          byKey: null,
+          byFingerprint: {
+            key: key,
+            fingerprint: fingerprint,
+            status: "processing",
+            expiresAt: Date.now() + 60000
+          }
+        };
+      },
+      startProcessing: async () => {
+        startProcessingCalls++;
+      },
+      complete: async () => {}
+    };
+
+    const { mount, request, teardown } = await adapter.setup();
+    const middleware = adapter.createMiddleware({ store });
+
+    let callCount = 0;
+    mount("POST", "/test", middleware, async (req, res) => {
+      callCount++;
+      return res.send({ message: "created" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "torn-key-123456789012" },
+        body: { data: "test" }
+      })
+    );
+
+    t.equal(response.status, 409, "should return 409 for in-flight request");
+    t.equal(callCount, 0, "handler must not run for an in-flight key");
+    t.equal(startProcessingCalls, 0, "must not attempt to claim a claimed key");
+
+    await teardown();
+  });
+
+  // Test: Torn lookup where the fingerprint record is complete must replay the
+  // cached response instead of falling through to the handler.
+  test(`${adapter.name} - torn lookup with complete fingerprint record replays`, async (t) => {
+    const store = {
+      lookup: async (key, fingerprint) => {
+        return {
+          byKey: null,
+          byFingerprint: {
+            key: key,
+            fingerprint: fingerprint,
+            status: "complete",
+            response: {
+              status: 201,
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ message: "created" })
+            },
+            expiresAt: Date.now() + 60000
+          }
+        };
+      },
+      startProcessing: async () => {},
+      complete: async () => {}
+    };
+
+    const { mount, request, teardown } = await adapter.setup();
+    const middleware = adapter.createMiddleware({ store });
+
+    let callCount = 0;
+    mount("POST", "/test", middleware, async (req, res) => {
+      callCount++;
+      return res.send({ message: "executed" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "torn-key-223456789012" },
+        body: { data: "test" }
+      })
+    );
+
+    t.equal(response.status, 201, "should replay the cached response");
+    t.equal(callCount, 0, "handler must not run for a completed key");
+    t.equal(
+      response.body?.message,
+      "created",
+      "replayed body, not handler body"
+    );
+
+    await teardown();
+  });
+
   // Test: Non-standard lookup status passes through to handler
   test(`${adapter.name} - handles byKey with non-standard status passes through`, async (t) => {
     const store = {

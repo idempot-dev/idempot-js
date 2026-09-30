@@ -286,6 +286,29 @@ export function validateIdempotencyOptions(options = {}) {
 }
 
 /**
+ * Reconcile a torn lookup result. Stores that read the key record and the
+ * fingerprint index in separate reads (e.g. DynamoDB GetItem + GSI query, or
+ * two SQL/Redis reads) can observe a window between them: the key read misses
+ * a record that the fingerprint read then finds. When both refer to the same
+ * key, the fingerprint record *is* the key's record, so promote it. This lets
+ * the normal conflict and cached-response logic see a record that a torn read
+ * would otherwise hide, preventing an uncached duplicate execution.
+ * @param {{byKey: any, byFingerprint: any}} lookup
+ * @param {string} key - The request key
+ * @returns {{byKey: any, byFingerprint: any}}
+ */
+export function reconcileLookup(lookup, key) {
+  if (
+    !lookup.byKey &&
+    lookup.byFingerprint &&
+    lookup.byFingerprint.key === key
+  ) {
+    return { ...lookup, byKey: lookup.byFingerprint };
+  }
+  return lookup;
+}
+
+/**
  * @param {string} key
  * @param {Object} options
  * @param {number} [options.minKeyLength=21] - Minimum allowed key length (default: 21 for nanoid)
