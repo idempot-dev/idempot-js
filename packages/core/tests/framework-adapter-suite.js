@@ -1,5 +1,6 @@
 import { test } from "tap";
 import { generateFingerprint } from "../src/fingerprint.js";
+import { IdempotencyKeyExistsError } from "../src/errors.js";
 
 /**
  * Validates adapter interface
@@ -593,6 +594,134 @@ export function runAdapterTests(adapter) {
       "created",
       "replayed body, not handler body"
     );
+
+    await teardown();
+  });
+
+  // Test: Torn lookup at the exists-error recheck site with a processing
+  // record must 409. Exercises the reconcileLookup wiring at the
+  // IdempotencyKeyExistsError recheck: the initial lookup misses,
+  // startProcessing loses the race, and the recheck observes the torn shape
+  // {byKey: null, byFingerprint: <same-key record>}.
+  test(`${adapter.name} - torn recheck with processing fingerprint record returns 409`, async (t) => {
+    let lookupCalls = 0;
+    let startProcessingCalls = 0;
+    const store = {
+      lookup: async (key, fingerprint) => {
+        lookupCalls++;
+        if (lookupCalls === 1) {
+          return { byKey: null, byFingerprint: null };
+        }
+        return {
+          byKey: null,
+          byFingerprint: {
+            key: key,
+            fingerprint: fingerprint,
+            status: "processing",
+            expiresAt: Date.now() + 60000
+          }
+        };
+      },
+      startProcessing: async () => {
+        startProcessingCalls++;
+        throw new IdempotencyKeyExistsError("key exists");
+      },
+      complete: async () => {}
+    };
+
+    const { mount, request, teardown } = await adapter.setup();
+    const middleware = adapter.createMiddleware({ store });
+
+    let callCount = 0;
+    mount("POST", "/test", middleware, async (req, res) => {
+      callCount++;
+      return res.send({ message: "executed" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "torn-recheck-12345678901" },
+        body: { data: "test" }
+      })
+    );
+
+    t.equal(response.status, 409, "should return 409 for in-flight request");
+    t.equal(callCount, 0, "handler must not run for an in-flight key");
+    t.equal(startProcessingCalls, 1, "startProcessing should be called once");
+    t.equal(lookupCalls, 2, "recheck lookup should be issued once");
+
+    await teardown();
+  });
+
+  // Test: Torn lookup at the exists-error recheck site with a complete record
+  // must replay the cached response instead of falling through to the 409
+  // fallback (getCachedResponse reads byKey, so the recheck promotion is what
+  // makes the completed winner's response visible to the loser).
+  test(`${adapter.name} - torn recheck with complete fingerprint record replays`, async (t) => {
+    let lookupCalls = 0;
+    let startProcessingCalls = 0;
+    const store = {
+      lookup: async (key, fingerprint) => {
+        lookupCalls++;
+        if (lookupCalls === 1) {
+          return { byKey: null, byFingerprint: null };
+        }
+        return {
+          byKey: null,
+          byFingerprint: {
+            key: key,
+            fingerprint: fingerprint,
+            status: "complete",
+            response: {
+              status: 201,
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ message: "created" })
+            },
+            expiresAt: Date.now() + 60000
+          }
+        };
+      },
+      startProcessing: async () => {
+        startProcessingCalls++;
+        throw new IdempotencyKeyExistsError("key exists");
+      },
+      complete: async () => {}
+    };
+
+    const { mount, request, teardown } = await adapter.setup();
+    const middleware = adapter.createMiddleware({ store });
+
+    let callCount = 0;
+    mount("POST", "/test", middleware, async (req, res) => {
+      callCount++;
+      return res.send({ message: "executed" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/test",
+        headers: { "idempotency-key": "torn-recheck-22345678901" },
+        body: { data: "test" }
+      })
+    );
+
+    t.equal(response.status, 201, "should replay the cached response");
+    t.equal(callCount, 0, "handler must not run for a completed key");
+    t.equal(
+      response.body?.message,
+      "created",
+      "replayed body, not handler body"
+    );
+    t.equal(startProcessingCalls, 1, "startProcessing should be called once");
+    t.equal(lookupCalls, 2, "recheck lookup should be issued once");
+
+    const replayHeader =
+      response.headers["x-idempotent-replayed"] ||
+      response.headers["X-Idempotent-Replayed"];
+    t.equal(replayHeader, "true", "should have replay header");
 
     await teardown();
   });
