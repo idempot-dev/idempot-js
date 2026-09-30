@@ -12,6 +12,7 @@ import {
   validateIdempotencyKey,
   validateIdempotencyOptions,
   checkLookupConflicts,
+  reconcileLookup,
   shouldProcessRequest,
   getCachedResponse,
   prepareCachedResponse,
@@ -145,7 +146,10 @@ export function idempotency(options = {}) {
 
     let lookup;
     try {
-      lookup = await resilientStore.lookup(key, fingerprint);
+      lookup = reconcileLookup(
+        await resilientStore.lookup(key, fingerprint),
+        key
+      );
     } catch {
       const problem = storeUnavailableResponse({
         status: 503,
@@ -187,7 +191,10 @@ export function idempotency(options = {}) {
         if (error instanceof IdempotencyKeyExistsError) {
           let recheck;
           try {
-            recheck = await resilientStore.lookup(key, fingerprint);
+            recheck = reconcileLookup(
+              await resilientStore.lookup(key, fingerprint),
+              key
+            );
           } catch {
             const problem = storeUnavailableResponse({
               status: 503,

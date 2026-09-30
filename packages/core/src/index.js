@@ -11,6 +11,7 @@ export {
   validateIdempotencyKey,
   validateIdempotencyOptions,
   checkLookupConflicts,
+  reconcileLookup,
   shouldProcessRequest,
   getCachedResponse,
   prepareCachedResponse,

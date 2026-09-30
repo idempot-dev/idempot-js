@@ -4,6 +4,7 @@ import {
   validateIdempotencyKey,
   validateIdempotencyOptions,
   checkLookupConflicts,
+  reconcileLookup,
   shouldProcessRequest,
   getCachedResponse,
   prepareCachedResponse
@@ -203,6 +204,60 @@ test("checkLookupConflicts - no conflict for matching key and fingerprint", (t) 
   };
   const result = checkLookupConflicts(lookup, "key", "fp");
   t.equal(result.conflict, false);
+  t.end();
+});
+
+// reconcileLookup tests
+test("reconcileLookup - promotes matching byFingerprint to byKey when byKey is missing", (t) => {
+  const byFingerprint = {
+    key: "key-1",
+    fingerprint: "fp-1",
+    status: "processing",
+    expiresAt: Date.now() + 1000
+  };
+  const lookup = { byKey: null, byFingerprint };
+  const result = reconcileLookup(lookup, "key-1");
+  t.equal(
+    result.byKey,
+    byFingerprint,
+    "byKey should be the fingerprint record"
+  );
+  t.equal(result.byFingerprint, byFingerprint, "byFingerprint unchanged");
+  t.end();
+});
+
+test("reconcileLookup - leaves lookup unchanged when byKey is present", (t) => {
+  const byKey = { key: "key-1", fingerprint: "fp-1", status: "complete" };
+  const byFingerprint = {
+    key: "key-1",
+    fingerprint: "fp-1",
+    status: "complete"
+  };
+  const lookup = { byKey, byFingerprint };
+  const result = reconcileLookup(lookup, "key-1");
+  t.equal(result.byKey, byKey, "byKey unchanged");
+  t.equal(result.byFingerprint, byFingerprint, "byFingerprint unchanged");
+  t.end();
+});
+
+test("reconcileLookup - leaves lookup unchanged when fingerprint record has a different key", (t) => {
+  const byFingerprint = {
+    key: "other-key",
+    fingerprint: "fp-1",
+    status: "complete"
+  };
+  const lookup = { byKey: null, byFingerprint };
+  const result = reconcileLookup(lookup, "key-1");
+  t.equal(result.byKey, null, "byKey stays null");
+  t.equal(result.byFingerprint, byFingerprint, "byFingerprint unchanged");
+  t.end();
+});
+
+test("reconcileLookup - leaves lookup unchanged when byFingerprint is missing", (t) => {
+  const lookup = { byKey: null, byFingerprint: null };
+  const result = reconcileLookup(lookup, "key-1");
+  t.equal(result.byKey, null, "byKey stays null");
+  t.equal(result.byFingerprint, null, "byFingerprint stays null");
   t.end();
 });
 
