@@ -1,6 +1,6 @@
 ---
 title: DynamoDB Store - idempot-js
-description: AWS DynamoDB-backed storage for idempotency middleware. Purpose-built for Lambda deployments: caller-owned client, conditional-write claims, and DynamoDB TTL support.
+description: AWS DynamoDB-backed storage for idempotency middleware. Purpose-built for Lambda deployments with a caller-owned client, conditional-write claims, and DynamoDB TTL support.
 ---
 
 # DynamoDB Store
