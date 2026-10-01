@@ -82,13 +82,11 @@ The middleware never replays an expired record. A lookup ignores any record whos
 
 Expired rows are removed during lookup. Most stores remove at most 10 rows per lookup, so removal scales with request traffic and no background job is required. A quiet service can keep expired rows for a long time. The Deno SQLite store is the exception: it removes all expired rows in one step.
 
-A retry that arrives after its record expired needs care. The expired row still holds the key, so the insert for the new attempt fails and the middleware returns `409 Conflict`. The response is retryable, but the server holds no cached response for that key.
+A retry that arrives after its record expired succeeds immediately. The claim reclaims any expired row for the key (clearing the stale response and restarting the TTL), so the retry is processed as a new request and its response is cached again. The same applies whatever the old payload was: an expired key is free.
 
-Handle the case in your client:
+Before reclaim-on-claim existed, such a retry could receive `409 Conflict` until a purge reached the row. The DynamoDB store has always reclaimed this way, via the expiry predicate in its conditional-write claim.
 
-- On `409`, wait briefly and retry with the same key.
-- If the retry returns `409` again, the record has expired. The server no longer holds a response for that key, so it cannot deduplicate the request. Retrying with a fresh key starts a new request immediately, but the server can then apply the effect a second time.
-- Set `ttlMs` longer than your client's retry window. A record that outlives its retries never reaches this state.
+Expired rows are removed during lookup. Most stores remove at most 10 rows per lookup, so removal scales with request traffic and no background job is required. A quiet service can keep expired rows for a long time; the reclaim above does not depend on it. The Deno SQLite store is the exception: it removes all expired rows in one step.
 
 The draft specification leaves this policy to the resource. It only requires the resource to define the policy and publish it: see [SPEC section 2.3](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07#section-2.3).
 

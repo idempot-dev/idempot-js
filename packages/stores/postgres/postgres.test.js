@@ -187,3 +187,44 @@ test("PostgresIdempotencyStore - startProcessing propagates non-constraint drive
   await store.close();
   t.end();
 });
+
+test("PostgresIdempotencyStore - startProcessing reclaims an expired row for the same key", async (t) => {
+  const { IdempotencyKeyExistsError } = await import("@idempot/core");
+  const pool = createFakePgPool();
+  const store = new PostgresIdempotencyStore({ pool });
+
+  pool.__store.set("stale-key", {
+    key: "stale-key",
+    fingerprint: "old-fp",
+    status: "complete",
+    response_status: 200,
+    response_headers: "{}",
+    response_body: "old",
+    expires_at: Date.now() - 1000
+  });
+
+  // Different fingerprint: an expired row must be reclaimable regardless of
+  // the old payload, exactly like a purged row would be.
+  await store.startProcessing("stale-key", "new-fp", 60000);
+
+  t.ok(pool.__store.has("stale-key"), "row should exist");
+  const record = pool.__store.get("stale-key");
+  t.equal(record.status, "processing", "reclaimed row must be processing");
+  t.equal(
+    record.fingerprint,
+    "new-fp",
+    "reclaimed row carries the new fingerprint"
+  );
+  t.equal(record.response_status, null, "stale response must be cleared");
+  t.equal(record.response_body, null, "stale response body must be cleared");
+
+  // A live row must still be a conflict: the reclaim only touches expired rows.
+  await t.rejects(
+    store.startProcessing("stale-key", "other-fp", 60000),
+    IdempotencyKeyExistsError,
+    "live row must still raise IdempotencyKeyExistsError"
+  );
+
+  await store.close();
+  t.end();
+});

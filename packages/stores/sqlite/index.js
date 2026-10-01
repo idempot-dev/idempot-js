@@ -123,6 +123,26 @@ export class SqliteIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
+    const now = Date.now();
+
+    // Reclaim an expired row unconditionally, so a same-key retry after
+    // expiry succeeds even when the purge batch has not reached the row
+    // yet. The expiry predicate matches the lookup guard exactly, so every
+    // row lookup hides is reclaimable.
+    const reclaimed = this.db
+      .prepare(
+        `
+      UPDATE idempotency_records
+      SET fingerprint = ?, status = 'processing', expires_at = ?,
+          response_status = NULL, response_headers = NULL, response_body = NULL
+      WHERE key = ? AND expires_at <= ?
+    `
+      )
+      .run(fingerprint, now + ttlMs, key, now);
+    if (reclaimed.changes > 0) {
+      return;
+    }
+
     try {
       this.db
         .prepare(
@@ -132,7 +152,7 @@ export class SqliteIdempotencyStore {
       VALUES (?, ?, 'processing', ?)
     `
         )
-        .run(key, fingerprint, Date.now() + ttlMs);
+        .run(key, fingerprint, now + ttlMs);
     } catch (error) {
       if (error?.code === "SQLITE_CONSTRAINT_PRIMARYKEY") {
         throw new IdempotencyKeyExistsError(

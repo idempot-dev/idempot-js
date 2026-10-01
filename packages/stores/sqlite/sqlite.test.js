@@ -119,3 +119,42 @@ test("sqlite - startProcessing propagates non-constraint driver errors", async (
   store.close();
   t.end();
 });
+
+test("sqlite - startProcessing reclaims an expired row for the same key", async (t) => {
+  const { IdempotencyKeyExistsError } = await import("@idempot/core");
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  await store.startProcessing("stale-key", "old-fp", 60000);
+  await store.complete("stale-key", { status: 200, headers: {}, body: "old" });
+
+  // Force the record to look expired, the same way the runtime tests do.
+  store.db
+    .prepare("UPDATE idempotency_records SET expires_at = ? WHERE key = ?")
+    .run(Date.now() - 1000, "stale-key");
+
+  // Different fingerprint: an expired row must be reclaimable regardless of
+  // the old payload, exactly like a purged row would be.
+  await store.startProcessing("stale-key", "new-fp", 60000);
+
+  const row = store.db
+    .prepare("SELECT * FROM idempotency_records WHERE key = ?")
+    .get("stale-key");
+  t.equal(row.status, "processing", "reclaimed row must be processing");
+  t.equal(
+    row.fingerprint,
+    "new-fp",
+    "reclaimed row carries the new fingerprint"
+  );
+  t.equal(row.response_status, null, "stale response must be cleared");
+  t.equal(row.response_body, null, "stale response body must be cleared");
+
+  // A live row must still be a conflict: the reclaim only touches expired rows.
+  await t.rejects(
+    store.startProcessing("stale-key", "other-fp", 60000),
+    IdempotencyKeyExistsError,
+    "live row must still raise IdempotencyKeyExistsError"
+  );
+
+  store.close();
+  t.end();
+});

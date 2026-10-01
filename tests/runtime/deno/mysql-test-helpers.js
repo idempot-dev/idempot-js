@@ -81,6 +81,25 @@ export function createFakeMysqlClient(sharedStore) {
       }
 
       if (normalized.startsWith("UPDATE")) {
+        if (normalized.includes("RESPONSE_STATUS = NULL")) {
+          // Conditional reclaim: the row is overwritten only when it is
+          // expired, exactly like the SQL's expires_at guard.
+          const [fingerprint, expiresAt, key, now] = params;
+          const record = store.get(key);
+          if (record && record.expires_at <= now) {
+            store.set(key, {
+              key,
+              fingerprint,
+              status: "processing",
+              expires_at: expiresAt,
+              response_status: null,
+              response_headers: null,
+              response_body: null
+            });
+            return [{ affectedRows: 1 }];
+          }
+          return [{ affectedRows: 0 }];
+        }
         const [responseStatus, responseHeaders, responseBody, key] = params;
         const record = store.get(key);
         if (record) {

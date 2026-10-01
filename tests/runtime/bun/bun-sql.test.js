@@ -125,6 +125,35 @@ describe("BunSqlIdempotencyStore", () => {
       ).rejects.toThrow("Idempotency key already exists: dup-key");
     });
 
+    test("reclaims an expired row for the same key", async () => {
+      await store.startProcessing("stale-key", "old-fp", 60000);
+      await store.complete("stale-key", {
+        status: 200,
+        headers: {},
+        body: "old"
+      });
+
+      // Force the record to look expired.
+      store.db
+        .prepare("UPDATE idempotency_records SET expires_at = ? WHERE key = ?")
+        .run(Date.now() - 1000, "stale-key");
+
+      // Different fingerprint: an expired row must be reclaimable regardless
+      // of the old payload, exactly like a purged row would be.
+      await store.startProcessing("stale-key", "new-fp", 60000);
+
+      const result = await store.lookup("stale-key", "new-fp");
+      expect(result.byKey).not.toBeNull();
+      expect(result.byKey.status).toBe("processing");
+      expect(result.byKey.fingerprint).toBe("new-fp");
+      expect(result.byKey.response).toBeUndefined();
+
+      // A live row must still be a conflict.
+      await expect(
+        store.startProcessing("stale-key", "other-fp", 60000)
+      ).rejects.toThrow("Idempotency key already exists: stale-key");
+    });
+
     test("propagates non-constraint driver errors unchanged", async () => {
       // A NOT NULL violation (fingerprint undefined) is not a duplicate-key
       // constraint; it must propagate rather than be translated to 409.

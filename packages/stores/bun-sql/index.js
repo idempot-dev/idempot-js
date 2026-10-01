@@ -337,6 +337,37 @@ export class BunSqlIdempotencyStore {
    */
   async startProcessing(key, fingerprint, ttlMs) {
     await this.ensureSchema();
+    const now = Date.now();
+
+    // Reclaim an expired row unconditionally, so a same-key retry after
+    // expiry succeeds even when the purge batch has not reached the row
+    // yet. The expiry predicate matches the lookup guard exactly, so every
+    // row lookup hides is reclaimable.
+    if (this.isSqlite) {
+      const reclaimed = this.db
+        .prepare(
+          `
+        UPDATE idempotency_records
+        SET fingerprint = ?, status = 'processing', expires_at = ?,
+            response_status = NULL, response_headers = NULL, response_body = NULL
+        WHERE key = ? AND expires_at <= ?
+      `
+        )
+        .run(fingerprint, now + ttlMs, key, now);
+      if (reclaimed.changes > 0) {
+        return;
+      }
+    } else {
+      const keyColumn = this.isMySQL ? "`key`" : '"key"';
+      const reclaimSql = `UPDATE idempotency_records SET fingerprint = ${this.isMySQL ? "?" : "$2"}, status = 'processing', expires_at = ${this.isMySQL ? "?" : "$3"}, response_status = NULL, response_headers = NULL, response_body = NULL WHERE ${keyColumn} = ${this.isMySQL ? "?" : "$1"} AND expires_at <= ${this.isMySQL ? "?" : "$4"}`;
+      const reclaimParams = this.isMySQL
+        ? [fingerprint, now + ttlMs, key, now]
+        : [key, fingerprint, now + ttlMs, now];
+      const reclaimed = await this.db.unsafe(reclaimSql, reclaimParams);
+      if ((reclaimed.changes ?? 0) > 0) {
+        return;
+      }
+    }
 
     try {
       if (this.isSqlite) {

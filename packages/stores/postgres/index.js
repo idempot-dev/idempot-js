@@ -226,12 +226,31 @@ export class PostgresIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
+    const now = Date.now();
+
+    // Reclaim an expired row unconditionally, so a same-key retry after
+    // expiry succeeds even when the purge batch has not reached the row
+    // yet (the review's finding #6: the expired row is hidden from lookup
+    // but still blocked the claim with a 409). The expiry predicate matches
+    // the lookup guard exactly, so every row lookup hides is reclaimable.
+    const reclaimed = await this.#dedicated({
+      name: "idempotency_reclaim",
+      text: `UPDATE ${this.quotedSchemaIdentifier}.idempotency_records
+       SET fingerprint = $2, status = 'processing', expires_at = $3,
+           response_status = NULL, response_headers = NULL, response_body = NULL
+       WHERE key = $1 AND expires_at <= $4`,
+      values: [key, fingerprint, now + ttlMs, now]
+    });
+    if (reclaimed.rowCount > 0) {
+      return;
+    }
+
     try {
       await this.#dedicated({
         name: "idempotency_insert",
         text: `INSERT INTO ${this.quotedSchemaIdentifier}.idempotency_records (key, fingerprint, status, expires_at)
        VALUES ($1, $2, 'processing', $3)`,
-        values: [key, fingerprint, Date.now() + ttlMs]
+        values: [key, fingerprint, now + ttlMs]
       });
     } catch (error) {
       if (error?.code === "23505") {
