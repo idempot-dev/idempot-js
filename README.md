@@ -22,11 +22,11 @@ The declarations are generated at publish time to ensure types match the publish
 
 ## Supported Runtimes, Frameworks, and Stores
 
-| Category       | Options                                                             |
-| -------------- | ------------------------------------------------------------------- |
-| **Runtimes**   | Node.js, Bun, Deno (Lambda & Cloudflare Workers planned)            |
-| **Frameworks** | Express, Hono, Fastify, Bun Server                                  |
-| **Stores**     | Redis, PostgreSQL, MySQL, SQLite (DynamoDB & Cloudflare KV planned) |
+| Category       | Options                                                                |
+| -------------- | ---------------------------------------------------------------------- |
+| **Runtimes**   | Node.js, Bun, Deno, AWS Lambda (via Hono) (Cloudflare Workers planned) |
+| **Frameworks** | Express, Hono, Fastify, Bun Server                                     |
+| **Stores**     | Redis, PostgreSQL, MySQL, SQLite, DynamoDB (Cloudflare KV planned)     |
 
 ## Response Headers
 
@@ -124,15 +124,15 @@ app.post("/orders", idempotency({ store }), async (c) => {
 
 The middleware accepts an options object with the following properties:
 
-| Option          | Type               | Default               | Description                                          |
-| --------------- | ------------------ | --------------------- | ---------------------------------------------------- |
-| `store`         | `IdempotencyStore` | required              | Storage backend (Redis, PostgreSQL, MySQL, SQLite)   |
-| `required`      | `boolean`          | `true`                | Whether the `Idempotency-Key` header is required     |
-| `ttlMs`         | `number`           | `86400000` (24 hours) | Time-to-live for idempotency records in milliseconds |
-| `minKeyLength`  | `number`           | `21`                  | Minimum length for idempotency keys                  |
-| `maxKeyLength`  | `number`           | `255`                 | Maximum length for idempotency keys                  |
-| `excludeFields` | `string[]`         | `[]`                  | Body fields to exclude from request fingerprint      |
-| `resilience`    | `object`           | see below             | Circuit breaker and retry configuration              |
+| Option          | Type               | Default               | Description                                                  |
+| --------------- | ------------------ | --------------------- | ------------------------------------------------------------ |
+| `store`         | `IdempotencyStore` | required              | Storage backend (Redis, PostgreSQL, MySQL, SQLite, DynamoDB) |
+| `required`      | `boolean`          | `true`                | Whether the `Idempotency-Key` header is required             |
+| `ttlMs`         | `number`           | `86400000` (24 hours) | Time-to-live for idempotency records in milliseconds         |
+| `minKeyLength`  | `number`           | `21`                  | Minimum length for idempotency keys                          |
+| `maxKeyLength`  | `number`           | `255`                 | Maximum length for idempotency keys                          |
+| `excludeFields` | `string[]`         | `[]`                  | Body fields to exclude from request fingerprint              |
+| `resilience`    | `object`           | see below             | Circuit breaker and retry configuration                      |
 
 **Resilience options:**
 

@@ -12,6 +12,7 @@ const docsSidebar = [
       { text: "Installation", link: "/guide/installation" },
       { text: "Configuration", link: "/guide/configuration" },
       { text: "Sharing Middleware", link: "/guide/shared-middleware" },
+      { text: "AWS Lambda", link: "/guide/aws-lambda" },
       { text: "Error Reference", link: "/reference/errors" }
     ]
   },
@@ -31,7 +32,8 @@ const docsSidebar = [
       { text: "PostgreSQL", link: "/stores/postgres" },
       { text: "MySQL", link: "/stores/mysql" },
       { text: "SQLite", link: "/stores/sqlite" },
-      { text: "Bun SQL", link: "/stores/bun-sql" }
+      { text: "Bun SQL", link: "/stores/bun-sql" },
+      { text: "DynamoDB", link: "/stores/dynamodb" }
     ]
   },
   {
