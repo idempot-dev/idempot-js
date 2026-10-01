@@ -1,4 +1,22 @@
 /**
+ * Matches the store's guarded OR lookup only when the expiry predicate sits
+ * inside BOTH arms. A whole-statement substring test (`EXPIRES_AT > ?`)
+ * would accept a statement that dropped the guard from one arm, emulate it
+ * with the guard applied to both arms, and let the leak this PR fixes pass
+ * silently.
+ * @type {RegExp}
+ */
+const GUARDED_OR_LOOKUP =
+  /\(\s*`?KEY`?\s*=\s*\?\s+AND\s+EXPIRES_AT\s*>\s*\?\s*\)\s*OR\s*\(\s*FINGERPRINT\s*=\s*\?\s+AND\s+EXPIRES_AT\s*>\s*\?\s*\)/i;
+
+/**
+ * Extracts the LIMIT from a purge DELETE so the fake reclaims no more rows
+ * than the real store's statement does.
+ * @type {RegExp}
+ */
+const DELETE_LIMIT = /\bLIMIT\s+(\d+)/i;
+
+/**
  * Creates an in-memory store that simulates Deno MySQL operations
  * @returns {Map<string, any>}
  */
@@ -28,14 +46,21 @@ export function createFakeMysqlClient(sharedStore) {
 
       if (normalized.startsWith("DELETE")) {
         const now = params[0] || Date.now();
-        let deleted = 0;
-        for (const [key, record] of store) {
-          if (record.expires_at <= now) {
-            store.delete(key);
-            deleted++;
-          }
+        // The real store's DELETE carries `LIMIT 10`, so the fake must
+        // reclaim at most that many expired rows (oldest first, matching
+        // the index order the real drivers walk). A full-table sweep would
+        // erase the exact condition the lookup guard exists for: more
+        // expired rows than the purge batch can reclaim.
+        const limitMatch = DELETE_LIMIT.exec(sql);
+        const limit = limitMatch ? Number(limitMatch[1]) : Infinity;
+        const purgeable = [...store.entries()]
+          .filter(([, record]) => record.expires_at <= now)
+          .sort((a, b) => a[1].expires_at - b[1].expires_at)
+          .slice(0, limit);
+        for (const [key] of purgeable) {
+          store.delete(key);
         }
-        return [{ affectedRows: deleted }];
+        return [{ affectedRows: purgeable.length }];
       }
 
       if (normalized.startsWith("INSERT")) {
@@ -73,14 +98,10 @@ export function createFakeMysqlClient(sharedStore) {
 
       if (normalized.startsWith("SELECT")) {
         // Guarded lookup: params are key, now, fingerprint, now. The
-        // classification anchors the expiry guard, so guard drift never
-        // reaches this branch and the deno store tests fail loudly
-        // instead of passing on drifted SQL.
-        if (
-          normalized.includes("`KEY` = ?") &&
-          normalized.includes("FINGERPRINT = ?") &&
-          normalized.includes("EXPIRES_AT > ?")
-        ) {
+        // classification anchors the expiry guard in each OR arm, so guard
+        // drift never reaches this branch and the deno store tests fail
+        // loudly instead of passing on drifted SQL.
+        if (GUARDED_OR_LOOKUP.test(normalized)) {
           const [key, now, fingerprint] = params;
           const rows = [];
           for (const record of store.values()) {

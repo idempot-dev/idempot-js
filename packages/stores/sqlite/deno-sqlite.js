@@ -97,8 +97,9 @@ export class DenoSqliteIdempotencyStore {
       now
     ]);
 
-    // The expiry guard on each SELECT keeps expired records invisible even
-    // when more rows are expired than the purge batch of 10.
+    // The expiry guard on each SELECT keeps expired records invisible
+    // between purges. Unlike the other SQL stores, this store's purge has no
+    // row limit, so the guard is defensive here.
     const byKeyRows = this.db.queryEntries(
       "SELECT * FROM idempotency_records WHERE key = ? AND expires_at > ?",
       [key, now]

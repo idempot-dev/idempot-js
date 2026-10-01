@@ -106,6 +106,8 @@ Returned when a request with the same idempotency key is already being processed
 - The first request will complete and be cached
 - Subsequent retries will return the cached response
 
+One case behaves differently. If the record for the key expired before the retry arrived, the server holds no response to replay. It still returns `409` for as long as the expired row remains in the store. See [Record Retention](../guide/configuration.md#record-retention) for the expiry policy and the client guidance.
+
 **Fingerprint Conflict**
 
 Returned when a different idempotency key was used for the same request payload.

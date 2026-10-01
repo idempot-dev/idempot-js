@@ -62,6 +62,25 @@ describe("BunSqlIdempotencyStore", () => {
       expect(result.byKey).toBeNull();
     });
 
+    test("does not return an expired record the purge could not reclaim", async () => {
+      // More expired rows than the LIMIT 10 purge can reclaim, with the
+      // target expiring last so it survives; only the guard can hide it.
+      for (let i = 0; i < 20; i++) {
+        await store.startProcessing(
+          `backlog-${i}`,
+          `backlog-fp-${i}`,
+          -100000 + i
+        );
+      }
+      await store.startProcessing("target-key", "target-fp", -1);
+
+      const byKey = await store.lookup("target-key", "other-fp");
+      expect(byKey.byKey).toBeNull();
+
+      const byFingerprint = await store.lookup("other-key", "target-fp");
+      expect(byFingerprint.byFingerprint).toBeNull();
+    });
+
     test("does not return expired records by fingerprint", async () => {
       // Negative TTL inserts an already-expired record; the purge may
       // reclaim it and the expiry guard must hide it either way.

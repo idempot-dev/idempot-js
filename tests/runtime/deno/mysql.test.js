@@ -167,6 +167,34 @@ Deno.test(
 );
 
 Deno.test(
+  "MysqlIdempotencyStore (Deno) does not return an expired record the purge could not reclaim",
+  async () => {
+    const client = createFakeMysqlClient();
+    const store = new MysqlIdempotencyStore({});
+    store.client = client;
+
+    // More expired rows than the LIMIT 10 purge can reclaim, with the
+    // target expiring last so it survives; only the guard can hide it.
+    for (let i = 0; i < 20; i++) {
+      await store.startProcessing(
+        `backlog-${i}`,
+        `backlog-fp-${i}`,
+        -100000 + i
+      );
+    }
+    await store.startProcessing("target-key", "target-fp", -1);
+
+    const byKey = await store.lookup("target-key", "other-fp");
+    assertEquals(byKey.byKey, null);
+
+    const byFingerprint = await store.lookup("other-key", "target-fp");
+    assertEquals(byFingerprint.byFingerprint, null);
+
+    await store.close();
+  }
+);
+
+Deno.test(
   "MysqlIdempotencyStore (Deno) lookup finds record by fingerprint",
   async () => {
     const client = createFakeMysqlClient();

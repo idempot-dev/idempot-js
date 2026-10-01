@@ -7,6 +7,22 @@ import { MysqlIdempotencyStore } from "@idempot/mysql-store";
 import { createFakeMysqlPool } from "./tests/mysql-test-helpers.js";
 import { runStoreTests } from "../../core/tests/store-adapter-suite.js";
 
+/**
+ * Seed more expired rows than the purge batch (LIMIT 10) can reclaim, with
+ * `targetKey` expiring last so it survives the purge. Only the expiry guard
+ * can then hide it, so the lookup below fails if the guard is dropped.
+ * @param {object} store
+ * @param {string} targetKey
+ * @param {string} targetFingerprint
+ * @returns {Promise<void>}
+ */
+async function seedExpiredBacklog(store, targetKey, targetFingerprint) {
+  for (let i = 0; i < 20; i++) {
+    await store.startProcessing(`backlog-${i}`, `backlog-fp-${i}`, -100000 + i);
+  }
+  await store.startProcessing(targetKey, targetFingerprint, -1);
+}
+
 runStoreTests({
   name: "mysql",
   createStore: () => {
@@ -93,6 +109,55 @@ test("MysqlIdempotencyStore - does not return expired records", async (t) => {
     byFingerprint.byFingerprint,
     null,
     "expired record should not be found by fingerprint"
+  );
+
+  await store.close();
+  t.end();
+});
+
+test("MysqlIdempotencyStore - does not return an expired record the purge could not reclaim", async (t) => {
+  const pool = createFakeMysqlPool();
+  const store = new MysqlIdempotencyStore({ pool });
+
+  await seedExpiredBacklog(store, "target-key", "target-fp");
+
+  const byKey = await store.lookup("target-key", "other-fp");
+  t.equal(
+    byKey.byKey,
+    null,
+    "guard must hide an expired record the purge missed"
+  );
+
+  const byFingerprint = await store.lookup("other-key", "target-fp");
+  t.equal(
+    byFingerprint.byFingerprint,
+    null,
+    "guard must hide it by fingerprint too"
+  );
+
+  await store.close();
+  t.end();
+});
+
+test("MysqlIdempotencyStore - batched lookup does not return an expired record the purge could not reclaim", async (t) => {
+  const pool = createFakeMysqlPool();
+  pool.config = { connectionConfig: { multipleStatements: true } };
+  const store = new MysqlIdempotencyStore({ pool });
+
+  await seedExpiredBacklog(store, "target-key", "target-fp");
+
+  const byKey = await store.lookup("target-key", "other-fp");
+  t.equal(
+    byKey.byKey,
+    null,
+    "batched guard must hide an expired record the purge missed"
+  );
+
+  const byFingerprint = await store.lookup("other-key", "target-fp");
+  t.equal(
+    byFingerprint.byFingerprint,
+    null,
+    "batched guard must hide it by fingerprint too"
   );
 
   await store.close();

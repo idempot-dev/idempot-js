@@ -258,6 +258,26 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
     expect(response.body.retryable).toBe(true);
   });
 
+  test("lookup hides an expired record the purge could not reclaim", async () => {
+    // More expired rows than the LIMIT 10 purge can reclaim, so an expired
+    // record can survive the purge; the expiry guard must still hide it by
+    // key and by fingerprint on the Postgres backend.
+    for (let i = 0; i < 20; i++) {
+      await store.startProcessing(
+        `backlog-${i}`,
+        `backlog-fp-${i}`,
+        -100000 + i
+      );
+    }
+    await store.startProcessing("target-key", "target-fp", -1);
+
+    const byKey = await store.lookup("target-key", "other-fp");
+    expect(byKey.byKey).toBeNull();
+
+    const byFingerprint = await store.lookup("other-key", "target-fp");
+    expect(byFingerprint.byFingerprint).toBeNull();
+  });
+
   test("conflict with same fingerprint different key", async () => {
     const key1 = generateIdempotencyKey();
     const key2 = generateIdempotencyKey();
@@ -357,6 +377,26 @@ describe("BunSqlIdempotencyStore with MySQL", () => {
     expect(response1.status).toBe(200);
     expect(response2.status).toBe(200);
     expect(response2.headers["x-idempotent-replayed"]).toBe("true");
+  });
+
+  test("lookup hides an expired record the purge could not reclaim", async () => {
+    // More expired rows than the LIMIT 10 purge can reclaim, so an expired
+    // record can survive the purge; the expiry guard must still hide it by
+    // key and by fingerprint on the MySQL backend.
+    for (let i = 0; i < 20; i++) {
+      await store.startProcessing(
+        `backlog-${i}`,
+        `backlog-fp-${i}`,
+        -100000 + i
+      );
+    }
+    await store.startProcessing("target-key", "target-fp", -1);
+
+    const byKey = await store.lookup("target-key", "other-fp");
+    expect(byKey.byKey).toBeNull();
+
+    const byFingerprint = await store.lookup("other-key", "target-fp");
+    expect(byFingerprint.byFingerprint).toBeNull();
   });
 
   test("conflict with same fingerprint different key", async () => {
