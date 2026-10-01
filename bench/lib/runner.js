@@ -322,7 +322,7 @@ export function runtimeInfo() {
  * (hardware, runtime, preset) for the compare mode to refuse comparisons
  * that would produce misleading deltas. Shape is versioned.
  */
-export function buildBaseline({ preset, modules, results, derived, label }) {
+function buildBaseline({ preset, modules, results, derived, label }) {
   return {
     version: 1,
     runDate: new Date().toISOString(),

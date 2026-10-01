@@ -6,7 +6,7 @@ import fs from "node:fs";
  * against: deltas beyond this are flagged, not failed — the compare mode
  * is informational by design.
  */
-export const MEDIAN_GATE_PCT = 15;
+const MEDIAN_GATE_PCT = 15;
 
 /**
  * Refuse comparisons that would produce misleading deltas. Medians are
