@@ -110,6 +110,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      dynamodb:
+        image: amazon/dynamodb-local:2.5.2
+        ports:
+          - 8000:8000
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -137,6 +141,7 @@ jobs:
           echo "MYSQL_USER=idempot" >> $GITHUB_ENV
           echo "MYSQL_PASSWORD=idempot" >> $GITHUB_ENV
           echo "MYSQL_DATABASE=test" >> $GITHUB_ENV
+          echo "DYNAMODB_ENDPOINT=http://localhost:8000" >> $GITHUB_ENV
       - name: Run tests with coverage verification
         run: pnpm run test:verify-coverage
 
