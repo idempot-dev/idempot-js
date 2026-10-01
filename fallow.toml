@@ -20,6 +20,9 @@ entry = [
   # Integration test utilities
   "tests/integration/shared/prereqs.js",
   "tests/integration/shared/setup.js",
+  # Benchmark modules (loaded dynamically by bench/lib/runner.js via
+  # MODULE_FILES, which fallow cannot trace)
+  "bench/*.js",
 ]
 
 # Dependencies to ignore - these are runtime-native modules (Deno/Bun)
@@ -32,6 +35,17 @@ ignoreDependencies = [
   "sqlite",     # Deno SQLite client
   # Bun runtime namespace
   "bun",
+  # Repository tooling imported only by bench/ and tests/integration
+  # helpers. The published packages declare their own dependencies, and a
+  # production-only install of the root never ships this tooling.
+  "@hono/node-server",
+  "express",
+  "fastify",
+  "ioredis",
+  "mysql2",
+  "pg",
+  "tinybench",
+  "ulid",
 ]
 
 # Patterns for files to exclude from analysis entirely
