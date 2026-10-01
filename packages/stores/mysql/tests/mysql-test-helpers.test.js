@@ -107,6 +107,79 @@ test("createFakeMysqlPool - unguarded batched lookup is not emulated (guard drif
   t.end();
 });
 
+test("createFakeMysqlPool - partially guarded OR SELECT is not emulated (guard drift fails loudly)", async (t) => {
+  const pool = createFakeMysqlPool();
+  const now = Date.now();
+  await pool.query(
+    "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
+    ["test-key", "test-fp", now + 60000]
+  );
+
+  // Guard present in the key arm only. A whole-statement substring check
+  // would accept this, emulate it with the guard applied to both arms,
+  // and hide a one-arm regression that real MySQL would not hide.
+  const result = await pool.query(
+    "SELECT * FROM idempotency_records WHERE (`key` = ? AND expires_at > ?) OR (fingerprint = ?)",
+    ["test-key", now, "test-fp"]
+  );
+  t.same(result, [[], []], "partially guarded statement must get no emulation");
+  t.end();
+});
+
+test("createFakeMysqlPool - partially guarded batched lookup is not emulated (guard drift fails loudly)", async (t) => {
+  const pool = createFakeMysqlPool();
+  pool.config = { connectionConfig: { multipleStatements: true } };
+  await pool.query(
+    "INSERT INTO idempotency_records (key, fingerprint, expires_at) VALUES (?, ?, ?)",
+    ["test-key", "test-fp", Date.now() + 60000]
+  );
+
+  const result = await pool.query(
+    "DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10; SELECT * FROM idempotency_records WHERE (`key` = ? AND expires_at > ?) OR (fingerprint = ?)",
+    [Date.now(), "test-key", Date.now(), "test-fp"]
+  );
+  t.same(result[0][1], [], "partially guarded batched SELECT must get no rows");
+  t.end();
+});
+
+test("createFakeMysqlPool - purge reclaims at most the DELETE LIMIT", async (t) => {
+  const pool = createFakeMysqlPool();
+  const now = Date.now();
+  for (let i = 0; i < 12; i++) {
+    pool.__store.set(`expired-${i}`, {
+      key: `expired-${i}`,
+      fingerprint: `fp-${i}`,
+      status: "processing",
+      expires_at: now - 1000 + i,
+      response_status: null,
+      response_headers: null,
+      response_body: null
+    });
+  }
+
+  await pool.query(
+    "DELETE FROM idempotency_records WHERE expires_at <= ? LIMIT 10",
+    [now]
+  );
+
+  t.equal(
+    pool.__store.size,
+    2,
+    "only the LIMIT 10 oldest expired rows are reclaimed"
+  );
+  t.equal(
+    pool.__store.has("expired-0"),
+    false,
+    "oldest expired row should be reclaimed"
+  );
+  t.equal(
+    pool.__store.has("expired-11"),
+    true,
+    "expired row beyond the LIMIT should survive"
+  );
+  t.end();
+});
+
 test("createFakeMysqlPool - SELECT by key returns empty for non-existent", async (t) => {
   const pool = createFakeMysqlPool();
   const result = await pool.query(

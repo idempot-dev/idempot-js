@@ -1,6 +1,24 @@
 import sinon from "sinon";
 
 /**
+ * Matches the store's guarded OR lookup only when the expiry predicate sits
+ * inside BOTH arms. A whole-statement substring test (`EXPIRES_AT > ?`)
+ * would accept a statement that dropped the guard from one arm, emulate it
+ * with the guard applied to both arms, and let the leak this PR fixes pass
+ * silently.
+ * @type {RegExp}
+ */
+const GUARDED_OR_LOOKUP =
+  /\(\s*`?KEY`?\s*=\s*\?\s+AND\s+EXPIRES_AT\s*>\s*\?\s*\)\s*OR\s*\(\s*FINGERPRINT\s*=\s*\?\s+AND\s+EXPIRES_AT\s*>\s*\?\s*\)/i;
+
+/**
+ * Extracts the LIMIT from a purge DELETE so the fake reclaims no more rows
+ * than the real store's statement does.
+ * @type {RegExp}
+ */
+const DELETE_LIMIT = /\bLIMIT\s+(\d+)/i;
+
+/**
  * Creates an in-memory store that simulates MySQL table operations
  * @returns {Map<string, any>}
  */
@@ -56,18 +74,26 @@ export function createFakeMysqlPool() {
 
       if (parsed.operation === "DELETE_EXPIRED") {
         const now = params[0] || Date.now();
-        let deleted = 0;
-        for (const [key, record] of store) {
-          if (record.expires_at <= now) {
-            store.delete(key);
-            deleted++;
-          }
+        // The real store's DELETE carries `LIMIT 10`, so the fake must
+        // reclaim at most that many expired rows (oldest first, matching
+        // the index order the real drivers walk). A full-table sweep would
+        // erase the exact condition the lookup guard exists for: more
+        // expired rows than the purge batch can reclaim.
+        const limitMatch = DELETE_LIMIT.exec(sql);
+        const limit = limitMatch ? Number(limitMatch[1]) : Infinity;
+        const purgeable = [...store.entries()]
+          .filter(([, record]) => record.expires_at <= now)
+          .sort((a, b) => a[1].expires_at - b[1].expires_at)
+          .slice(0, limit);
+        for (const [key] of purgeable) {
+          store.delete(key);
         }
+        const deleted = purgeable.length;
         if (sql.toUpperCase().includes("SELECT")) {
           // Batched lookup: DELETE + guarded SELECT in one
           // multipleStatements query. SELECT params: key, now,
           // fingerprint, now.
-          if (!sql.toUpperCase().includes("EXPIRES_AT > ?")) {
+          if (!GUARDED_OR_LOOKUP.test(sql)) {
             // Guard drift: the fake refuses to emulate a lookup without
             // the expiry guard so store tests fail loudly.
             return [[{ affectedRows: deleted }, []], []];
@@ -128,17 +154,11 @@ export function createFakeMysqlPool() {
       }
 
       if (parsed.operation === "SELECT") {
-        const normalizedSql = sql.toUpperCase();
-
-        if (
-          normalizedSql.includes("`KEY` = ?") &&
-          normalizedSql.includes("FINGERPRINT = ?") &&
-          normalizedSql.includes("EXPIRES_AT > ?")
-        ) {
+        if (GUARDED_OR_LOOKUP.test(sql)) {
           // Guarded lookup: params are key, now, fingerprint, now. The
-          // classification above anchors the expiry guard, so guard drift
-          // never reaches this branch and store tests fail loudly instead
-          // of passing on drifted SQL.
+          // classification above anchors the expiry guard in each OR arm,
+          // so guard drift never reaches this branch and store tests fail
+          // loudly instead of passing on drifted SQL.
           const [key, now, fingerprint] = params;
           const rows = [];
           for (const record of store.values()) {

@@ -36,6 +36,35 @@ test("sqlite - does not return expired records", async (t) => {
   t.end();
 });
 
+test("sqlite - does not return an expired record the purge could not reclaim", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+
+  // More expired rows than the LIMIT 10 purge can reclaim, with the target
+  // expiring last so it survives; only the expiry guard can hide it, so
+  // this fails if the guard is dropped.
+  for (let i = 0; i < 20; i++) {
+    await store.startProcessing(`backlog-${i}`, `backlog-fp-${i}`, -100000 + i);
+  }
+  await store.startProcessing("target-key", "target-fp", -1);
+
+  const byKey = await store.lookup("target-key", "other-fp");
+  t.equal(
+    byKey.byKey,
+    null,
+    "guard must hide an expired record the purge missed"
+  );
+
+  const byFingerprint = await store.lookup("other-key", "target-fp");
+  t.equal(
+    byFingerprint.byFingerprint,
+    null,
+    "guard must hide it by fingerprint too"
+  );
+
+  store.close();
+  t.end();
+});
+
 test("sqlite - creates store with default path when no options provided", (t) => {
   // This file is also discovered through workspace node_modules symlinks,
   // so several copies can run concurrently and share the project cwd. Run

@@ -76,6 +76,22 @@ idempotency({ store, ttlMs: 60 * 60 * 1000 }); // 1 hour
 idempotency({ store, ttlMs: 7 * 24 * 60 * 60 * 1000 }); // 7 days
 ```
 
+### Expiration Policy
+
+The middleware never replays an expired record. A lookup ignores any record whose `expires_at` is in the past, even when the row is still in the table.
+
+Expired rows are removed during lookup. Most stores remove at most 10 rows per lookup, so removal scales with request traffic and no background job is required. A quiet service can keep expired rows for a long time. The Deno SQLite store is the exception: it removes all expired rows in one step.
+
+A retry that arrives after its record expired needs care. The expired row still holds the key, so the insert for the new attempt fails and the middleware returns `409 Conflict`. The response is retryable, but the server holds no cached response for that key.
+
+Handle the case in your client:
+
+- On `409`, wait briefly and retry with the same key.
+- If the retry returns `409` again, the record has expired. The server no longer holds a response for that key, so it cannot deduplicate the request. Retrying with a fresh key starts a new request immediately, but the server can then apply the effect a second time.
+- Set `ttlMs` longer than your client's retry window. A record that outlives its retries never reaches this state.
+
+The draft specification leaves this policy to the resource. It only requires the resource to define the policy and publish it: see [SPEC section 2.3](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07#section-2.3).
+
 ## Field Exclusions
 
 Exclude fields that change on every request but don't affect the outcome:
