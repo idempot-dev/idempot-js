@@ -220,9 +220,6 @@ importers:
       '@aws-sdk/client-dynamodb':
         specifier: ^3.700.0
         version: 3.1144.0
-      sinon:
-        specifier: ^21.1.2
-        version: 21.1.2
 
   packages/stores/mysql:
     dependencies:
