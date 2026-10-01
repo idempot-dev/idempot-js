@@ -45,6 +45,9 @@ ignoreDependencies = [
   "mysql2",
   "pg",
   "tinybench",
+  "@aws-sdk/client-dynamodb",
+  # ^ imported only by the Lambda deploy-test bundle entry; esbuild inlines
+  # it into the deployed artifact, so no runtime install is needed.
   "ulid",
 ]
 
