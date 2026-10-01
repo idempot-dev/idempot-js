@@ -235,3 +235,39 @@ Deno.test(
     await store.close();
   }
 );
+
+Deno.test(
+  "MysqlIdempotencyStore (Deno) startProcessing reclaims an expired row for the same key",
+  async () => {
+    const client = createFakeMysqlClient();
+    const store = new MysqlIdempotencyStore({});
+    store.client = client;
+
+    await store.startProcessing("stale-key", "old-fp", 60000);
+    await store.complete("stale-key", {
+      status: 200,
+      headers: {},
+      body: "old"
+    });
+
+    // Force the record to look expired.
+    client.__store.get("stale-key").expires_at = Date.now() - 1000;
+
+    // Different fingerprint: an expired row must be reclaimable regardless
+    // of the old payload, exactly like a purged row would be.
+    await store.startProcessing("stale-key", "new-fp", 60000);
+
+    const result = await store.lookup("stale-key", "new-fp");
+    assertEquals(result.byKey?.status, "processing");
+    assertEquals(result.byKey?.fingerprint, "new-fp");
+    assertEquals(result.byKey?.response, undefined);
+
+    // A live row must still be a conflict: the reclaim only touches expired rows.
+    await assertRejects(
+      () => store.startProcessing("stale-key", "other-fp", 60000),
+      IdempotencyKeyExistsError
+    );
+
+    await store.close();
+  }
+);

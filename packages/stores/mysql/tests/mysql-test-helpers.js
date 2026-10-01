@@ -37,6 +37,9 @@ function parseSql(sql) {
     return { operation: "INSERT", table: "idempotency_records" };
   }
   if (normalized.startsWith("UPDATE")) {
+    if (normalized.includes("RESPONSE_STATUS = NULL")) {
+      return { operation: "RECLAIM", table: "idempotency_records" };
+    }
     return { operation: "UPDATE", table: "idempotency_records" };
   }
   if (normalized.startsWith("DELETE") && normalized.includes("EXPIRES_AT")) {
@@ -135,6 +138,26 @@ export function createFakeMysqlPool() {
           response_body: null
         });
         return [{ affectedRows: 1 }, []];
+      }
+
+      if (parsed.operation === "RECLAIM") {
+        // Emulate the conditional reclaim: the row is overwritten only when
+        // it is expired, exactly like the SQL's expires_at guard.
+        const [fingerprint, expiresAt, key, now] = params;
+        const record = store.get(key);
+        if (record && record.expires_at <= now) {
+          store.set(key, {
+            key,
+            fingerprint,
+            status: "processing",
+            expires_at: expiresAt,
+            response_status: null,
+            response_headers: null,
+            response_body: null
+          });
+          return [{ affectedRows: 1 }, []];
+        }
+        return [{ affectedRows: 0 }, []];
       }
 
       if (parsed.operation === "UPDATE") {

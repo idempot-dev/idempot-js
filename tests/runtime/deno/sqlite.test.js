@@ -110,3 +110,40 @@ Deno.test(
     store.close();
   }
 );
+
+Deno.test(
+  "DenoSqliteIdempotencyStore startProcessing reclaims an expired row for the same key",
+  async () => {
+    const store = new DenoSqliteIdempotencyStore({ path: ":memory:" });
+
+    await store.startProcessing("stale-key", "old-fp", 60000);
+    await store.complete("stale-key", {
+      status: 200,
+      headers: {},
+      body: "old"
+    });
+
+    // Force the record to look expired.
+    store.db.query(
+      "UPDATE idempotency_records SET expires_at = ? WHERE key = ?",
+      [Date.now() - 1000, "stale-key"]
+    );
+
+    // Different fingerprint: an expired row must be reclaimable regardless
+    // of the old payload, exactly like a purged row would be.
+    await store.startProcessing("stale-key", "new-fp", 60000);
+
+    const result = await store.lookup("stale-key", "new-fp");
+    assertEquals(result.byKey?.status, "processing");
+    assertEquals(result.byKey?.fingerprint, "new-fp");
+    assertEquals(result.byKey?.response, undefined);
+
+    // A live row must still be a conflict: the reclaim only touches expired rows.
+    await assertRejects(
+      () => store.startProcessing("stale-key", "other-fp", 60000),
+      IdempotencyKeyExistsError
+    );
+
+    store.close();
+  }
+);

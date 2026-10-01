@@ -178,10 +178,25 @@ export class MysqlIdempotencyStore {
    * @returns {Promise<void>}
    */
   async startProcessing(key, fingerprint, ttlMs) {
+    const now = Date.now();
+
+    // Reclaim an expired row unconditionally, so a same-key retry after
+    // expiry succeeds even when the purge batch has not reached the row
+    // yet. The expiry predicate matches the lookup guard exactly, so every
+    // row lookup hides is reclaimable.
+    /** @type {any} */
+    const reclaimed = await this.pool.query(
+      `UPDATE \`${this.tableName}\` SET fingerprint = ?, status = 'processing', expires_at = ?, response_status = NULL, response_headers = NULL, response_body = NULL WHERE \`key\` = ? AND expires_at <= ?`,
+      [fingerprint, now + ttlMs, key, now]
+    );
+    if (reclaimed[0].affectedRows > 0) {
+      return;
+    }
+
     try {
       await this.pool.query(
         `INSERT INTO \`${this.tableName}\` (\`key\`, fingerprint, status, expires_at) VALUES (?, ?, 'processing', ?)`,
-        [key, fingerprint, Date.now() + ttlMs]
+        [key, fingerprint, now + ttlMs]
       );
     } catch (error) {
       const isDuplicate =
