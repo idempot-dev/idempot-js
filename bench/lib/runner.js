@@ -21,6 +21,7 @@ const MODULE_FILES = [
   "./e2e.hono-postgres.js",
   "./e2e.hono-mysql.js",
   "./e2e.hono-redis.js",
+  "./e2e.hono-dynamodb.js",
   "./e2e.express-sqlite.js",
   "./e2e.express-postgres.js",
   "./e2e.express-mysql.js",
