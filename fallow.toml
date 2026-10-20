@@ -22,7 +22,7 @@ entry = [
   "tests/integration/shared/setup.js",
   # Benchmark modules (loaded dynamically by bench/lib/runner.js via
   # MODULE_FILES, which fallow cannot trace)
-  "bench/*.js",
+  "bench/**/*.js",
 ]
 
 # Dependencies to ignore - these are runtime-native modules (Deno/Bun)
