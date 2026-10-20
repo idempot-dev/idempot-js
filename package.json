@@ -92,11 +92,6 @@
     "docs:preview": "vitepress preview docs",
     "lint:links": "./scripts/link-check.sh"
   },
-  "dependencies": {
-    "jsonpath-plus": "^10.3.0",
-    "opossum": "^9.0.0",
-    "xxhash-wasm": "^1.1.0"
-  },
   "peerDependencies": {
     "hono": ">=4.0.0"
   },
@@ -113,7 +108,6 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsdoc": "^50.0.0",
     "express": "^5.2.1",
-    "fast-check": "^4.10.0",
     "fastify": "^5.12.4",
     "globals": "^17.12.0",
     "hono": "^4.13.7",
@@ -125,7 +119,6 @@
     "pg": "^8.23.0",
     "prettier": "^3.9.6",
     "semantic-release": "^25.0.9",
-    "sinon": "^21.1.2",
     "tap": "^21.8.0",
     "tinybench": "^6.2.0",
     "typescript": "^6.0.3",
