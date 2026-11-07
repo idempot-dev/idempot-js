@@ -44,6 +44,7 @@
     "@idempot/core": "workspace:*"
   },
   "devDependencies": {
-    "@idempot/sqlite-store": "workspace:*"
+    "@idempot/sqlite-store": "workspace:*",
+    "express": "^5.3.0"
   }
 }
