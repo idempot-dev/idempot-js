@@ -13,7 +13,6 @@
   },
   "files": [
     "index.js",
-    "deno-sqlite.js",
     "types",
     "README.md",
     "LICENSE"
