@@ -44,24 +44,11 @@ This project uses **apple/container** (not Docker) for containerized tests.
 
 **pnpm is the required package manager for this project.** Always use `pnpm` instead of `npm` or `yarn`.
 
-## Git Worktrees + pnpm
-
-**Why worktrees:** Isolated workspaces for parallel agent work without interference.
-
 **Global virtual store** (enabled in `pnpm-workspace.yaml`):
 
 - Each worktree's `node_modules` contains symlinks to a shared package store
 - First `pnpm install` downloads packages; subsequent worktrees are nearly instant
 - Minimal per-worktree disk overhead
-
-**Worktree creation workflow:**
-
-1. Create worktree: `git worktree add .worktrees/<branch-name> -b <branch-name>`
-2. `cd .worktrees/<branch-name>`
-3. Run `pnpm install` (creates symlinks to shared store)
-4. Verify baseline: `pnpm test`
-
-**Critical:** Never share `node_modules` between worktrees. Each needs its own symlink tree.
 
 ### ESM Considerations
 
