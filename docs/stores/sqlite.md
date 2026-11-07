@@ -1,6 +1,6 @@
 ---
 title: SQLite Store - idempot-js
-description: SQLite-backed storage for idempotency middleware. File-based or in-memory storage using better-sqlite3. Supports Node.js and Deno runtimes.
+description: SQLite-backed storage for idempotency middleware. File-based or in-memory storage using better-sqlite3. Supports Node.js and Bun runtimes.
 ---
 
 # SQLite Store
@@ -54,13 +54,3 @@ Mark a request as complete with its response data. Updates the record with statu
 ### `store.close()`
 
 Close the database connection. Call this on shutdown.
-
-## Deno Support
-
-For Deno, use `DenoSqliteIdempotencyStore`:
-
-```javascript
-import { DenoSqliteIdempotencyStore } from "@idempot/sqlite-store/deno-sqlite.js";
-
-const store = new DenoSqliteIdempotencyStore({ path: "./idempotency.db" });
-```

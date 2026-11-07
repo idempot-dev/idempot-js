@@ -24,7 +24,7 @@ The declarations are generated at publish time to ensure types match the publish
 
 | Category       | Options                                                             |
 | -------------- | ------------------------------------------------------------------- |
-| **Runtimes**   | Node.js, Bun, Deno (Lambda & Cloudflare Workers planned)            |
+| **Runtimes**   | Node.js, Bun (Lambda & Cloudflare Workers planned)                  |
 | **Frameworks** | Express, Hono, Fastify, Bun Server                                  |
 | **Stores**     | Redis, PostgreSQL, MySQL, SQLite (DynamoDB & Cloudflare KV planned) |
 

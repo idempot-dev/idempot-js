@@ -7,7 +7,7 @@ This directory contains example applications demonstrating various ways to use t
 The examples showcase:
 
 - **Multiple Storage Backends**: SQLite, Redis, PostgreSQL (DynamoDB & Cloudflare KV planned)
-- **Deployment Patterns**: Node.js servers, Deno, Bun (AWS Lambda & Cloudflare Workers planned)
+- **Deployment Patterns**: Node.js servers, Bun (AWS Lambda & Cloudflare Workers planned)
 - **Idempotency Features**: Optional/required keys, field exclusions, custom headers
 
 ## Quick Start
@@ -38,13 +38,6 @@ All examples follow a similar pattern. To run any example:
 | `redis-app.js`                       | Redis               | Node.js server with Redis persistence (requires Redis server)                               |
 | `postgres-app.js`                    | PostgreSQL          | Node.js server with PostgreSQL persistence                                                  |
 | `express-postgres-multi-endpoint.js` | PostgreSQL          | Express with shared middleware instance across multiple endpoints                           |
-
-### Deno Examples
-
-| File                 | Storage             | Description                         |
-| -------------------- | ------------------- | ----------------------------------- |
-| `deno-sqlite-app.js` | SQLite (file-based) | Deno runtime with SQLite storage    |
-| `deno-redis-app.js`  | Redis               | Deno runtime with Redis persistence |
 
 ### Setup Scripts
 
@@ -93,12 +86,6 @@ Environment variables:
 - `REDIS_HOST` (default: localhost)
 - `REDIS_PORT` (default: 6379)
 - `REDIS_PASSWORD`
-
-### Deno Example
-
-```bash
-deno run --allow-all examples/deno-sqlite-app.js
-```
 
 ### Bun Example
 

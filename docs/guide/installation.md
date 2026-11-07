@@ -1,13 +1,13 @@
 ---
 title: Installation - idempot-js
-description: Install idempotency middleware for Express, Fastify, or Hono. Choose from Redis, PostgreSQL, MySQL, SQLite, or Bun SQL storage backends. Supports Node.js, Bun, and Deno.
+description: Install idempotency middleware for Express, Fastify, or Hono. Choose from Redis, PostgreSQL, MySQL, SQLite, or Bun SQL storage backends. Supports Node.js and Bun.
 ---
 
 # Installation
 
 ## Requirements
 
-- Node.js 18+, Bun, or Deno
+- Node.js 18+ or Bun
 - Any package manager (npm, yarn, pnpm)
 
 ## Combinations
@@ -18,7 +18,6 @@ You can use any combination of runtime, framework, and store:
 | ------- | ---------------------- | ----------------------------------------- |
 | Node.js | Express, Fastify, Hono | Redis, PostgreSQL, MySQL, SQLite          |
 | Bun     | Express, Fastify, Hono | Redis, PostgreSQL, MySQL, SQLite, Bun SQL |
-| Deno    | Hono                   | Redis, PostgreSQL, MySQL, SQLite          |
 
 <sup>1</sup> Express and Fastify require Node.js runtime APIs. Hono is cross-platform and works on all supported runtimes.
 

@@ -8,7 +8,7 @@ MySQL storage backend for idempotency.
 npm install @idempot/mysql-store mysql2
 ```
 
-## Usage (Node.js)
+## Usage
 
 ```javascript
 import { MysqlIdempotencyStore } from "@idempot/mysql-store";
@@ -28,41 +28,6 @@ process.on("SIGINT", async () => {
 });
 ```
 
-## Usage (Deno)
-
-For Deno, import from the deno subpath:
-
-```javascript
-import { MysqlIdempotencyStore } from "@idempot/mysql-store/deno-mysql.js";
-
-const store = new MysqlIdempotencyStore({
-  hostname: "localhost",
-  port: 3306,
-  db: "myapp",
-  username: "root",
-  password: "password"
-});
-
-await store.connect();
-```
-
-> **Note:** Option names differ between runtimes because they match the underlying libraries:
->
-> - Node.js uses [`mysql2`](https://github.com/sidorares/node-mysql2) (`host`, `user`, `database`)
-> - Deno uses [`deno-mysql`](https://deno.land/x/mysql) (`hostname`, `username`, `db`)
-
-Or import directly from GitHub:
-
-```javascript
-import { MysqlIdempotencyStore } from "https://raw.githubusercontent.com/idempot-dev/idempot-js/main/packages/stores/mysql/deno-mysql.js";
-```
-
-Or with a version tag:
-
-```javascript
-import { MysqlIdempotencyStore } from "https://raw.githubusercontent.com/idempot-dev/idempot-js/v0.1.0/packages/stores/mysql/deno-mysql.js";
-```
-
 ## Schema
 
 The store creates a table named `idempotency_records` with:
@@ -77,9 +42,9 @@ The store creates a table named `idempotency_records` with:
 
 ## API
 
-### Node.js: `new MysqlIdempotencyStore(options)`
+### `new MysqlIdempotencyStore(options)`
 
-Creates a new MySQL store for Node.js. Options are passed directly to `mysql2.createPool()`.
+Creates a new MySQL store. Options are passed directly to `mysql2.createPool()`.
 
 **Common Options:**
 
@@ -104,19 +69,6 @@ values are bound placeholders). Pools passed via the `pool` option keep
 mysql2's defaults; lookups then use a single `key = ? OR fingerprint = ?`
 SELECT instead.
 
-### Deno: `new MysqlIdempotencyStore(options)`
-
-Creates a new MySQL store for Deno.
-
-**Options:**
-
-- `hostname`: MySQL hostname (default: `"localhost"`)
-- `port`: MySQL port (default: `3306`)
-- `username`: MySQL username (default: `"root"`)
-- `password`: MySQL password (default: `""`)
-- `db`: Database name (default: `"mysql"`)
-- `poolSize`: Connection pool size (default: `3`)
-
 ### `store.lookup(key, fingerprint)`
 
 Look up an idempotency record by key and fingerprint. Returns `{byKey, byFingerprint}`.
@@ -131,7 +83,7 @@ Mark a request as complete with its response data. Updates the record with statu
 
 ### `store.close()`
 
-Close the connection pool (Node.js) or database connection (Deno).
+Close the connection pool.
 
 ## TypeScript Support
 

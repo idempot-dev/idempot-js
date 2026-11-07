@@ -3,7 +3,7 @@
   "url": "https://context7.com/idempot-dev/idempot-js",
   "public_key": "pk_nYf7Zx5nAEIOsKNOox8S9",
   "projectTitle": "idempot-js",
-  "description": "Idempotency middleware for Node.js, Bun, and Deno. Supports Express, Fastify, and Hono with pluggable storage backends including Redis, PostgreSQL, MySQL, SQLite, and Bun SQL.",
+  "description": "Idempotency middleware for Node.js and Bun. Supports Express, Fastify, and Hono with pluggable storage backends including Redis, PostgreSQL, MySQL, SQLite, and Bun SQL.",
   "excludeFolders": ["docs/plans"],
   "excludeFiles": ["AGENTS.md"],
   "rules": [

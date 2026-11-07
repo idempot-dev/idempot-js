@@ -195,15 +195,14 @@ All storage backends implement the `IdempotencyStore` interface. Each has differ
 
 **Implementation:**
 
-- Node.js: `MysqlIdempotencyStore` uses `mysql2` with connection pooling
-- Deno: `MysqlIdempotencyStore` uses `mysql` from deno.land/x (import via `@idempot/mysql-store/deno-mysql.js`)
+- `MysqlIdempotencyStore` uses `mysql2` with connection pooling
 - JSON column for response headers
 - Indexed queries on key and fingerprint
 
 **Similar schema to PostgreSQL but with:**
 
 - MySQL-specific syntax (backticks, different JSON handling)
-- Connection pooling via `mysql2` Pool or Deno's `mysql` client
+- Connection pooling via `mysql2` Pool
 
 ### Bun SQL (`packages/stores/bun-sql/`)
 
@@ -287,7 +286,6 @@ The circuit breaker pattern provides graceful degradation:
 
 - **Node.js**: Full support via better-sqlite3, ioredis, pg, mysql2
 - **Bun**: Native SQLite via `bun:sqlite`, ioredis support
-- **Deno**: Native SQLite via `deno-sqlite`, native Redis support, MySQL via `@idempot/mysql-store/deno-mysql.js`
 - **AWS Lambda**: Planned (DynamoDB or Redis via AWS SDK)
 - **Cloudflare Workers**: Planned (KV storage)
 
@@ -372,7 +370,6 @@ runAdapterTests({
 ### Runtime Tests
 
 - Bun-specific tests run with Bun runtime
-- Deno-specific tests run with Deno
 - AWS Lambda and Cloudflare Workers tests planned
 
 ### Local Development
