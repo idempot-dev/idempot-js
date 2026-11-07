@@ -14,64 +14,57 @@ container_exists() {
     [ -n "$output" ] && [ "$output" != "[]" ]
 }
 
+container_running() {
+    container inspect "$1" 2>/dev/null | grep -q '"status":"running"'
+}
+
+container_state() {
+    if container_running "$1"; then
+        echo running
+    elif container_exists "$1"; then
+        echo stopped
+    else
+        echo "not created"
+    fi
+}
+
+# Start an existing container, or create it when absent.
+start_container() {
+    local name="$1"
+    shift
+
+    if container_running "$name"; then
+        echo "$name is already running"
+    elif container_exists "$name"; then
+        echo "Starting $name..."
+        container start "$name"
+    else
+        echo "Starting $name..."
+        container run -d --name "$name" "$@"
+    fi
+}
+
 start() {
-    # Check if containers are already running
-    REDIS_RUNNING=false
-    POSTGRES_RUNNING=false
-    MYSQL_RUNNING=false
-    
-    if container_exists "$REDIS_CONTAINER"; then
-        REDIS_RUNNING=true
-    fi
-    
-    if container_exists "$POSTGRES_CONTAINER"; then
-        POSTGRES_RUNNING=true
-    fi
-    
-    if container_exists "$MYSQL_CONTAINER"; then
-        MYSQL_RUNNING=true
-    fi
-    
-    if [ "$REDIS_RUNNING" = true ] && [ "$POSTGRES_RUNNING" = true ] && [ "$MYSQL_RUNNING" = true ]; then
+    if container_running "$REDIS_CONTAINER" &&
+        container_running "$POSTGRES_CONTAINER" &&
+        container_running "$MYSQL_CONTAINER"; then
         echo "$CONTAINER_NAME is already running (Redis on 6379, Postgres on 5432, MySQL on 3306)"
         exit 0
     fi
-    
-    # Remove any existing containers before starting fresh
-    if [ "$REDIS_RUNNING" = false ]; then
-        container stop "$REDIS_CONTAINER" 2>/dev/null || true
-        container delete "$REDIS_CONTAINER" 2>/dev/null || true
-    fi
-    
-    if [ "$POSTGRES_RUNNING" = false ]; then
-        container stop "$POSTGRES_CONTAINER" 2>/dev/null || true
-        container delete "$POSTGRES_CONTAINER" 2>/dev/null || true
-    fi
 
-    if [ "$MYSQL_RUNNING" = false ]; then
-        container stop "$MYSQL_CONTAINER" 2>/dev/null || true
-        container delete "$MYSQL_CONTAINER" 2>/dev/null || true
-    fi
-
-    echo "Starting Redis..."
-    container run -d \
-        --name "$REDIS_CONTAINER" \
+    start_container "$REDIS_CONTAINER" \
         -p 6379:6379 \
         arm64v8/redis:7-alpine \
         redis-server --appendonly yes
 
-    echo "Starting Postgres..."
-    container run -d \
-        --name "$POSTGRES_CONTAINER" \
+    start_container "$POSTGRES_CONTAINER" \
         -p 5432:5432 \
         -e POSTGRES_USER=idempot \
         -e POSTGRES_PASSWORD=idempot \
         -e POSTGRES_DB=test \
         postgres:16-alpine
 
-    echo "Starting MySQL..."
-    container run -d \
-        --name "$MYSQL_CONTAINER" \
+    start_container "$MYSQL_CONTAINER" \
         -p 3306:3306 \
         -e MYSQL_ROOT_PASSWORD=rootpass \
         -e MYSQL_USER=idempot \
@@ -140,9 +133,9 @@ stop() {
 
 status() {
     echo "Container status:"
-    container_exists "$REDIS_CONTAINER" && echo "Redis: running" || echo "Redis: not running"
-    container_exists "$POSTGRES_CONTAINER" && echo "Postgres: running" || echo "Postgres: not running"
-    container_exists "$MYSQL_CONTAINER" && echo "MySQL: running" || echo "MySQL: not running"
+    echo "Redis: $(container_state "$REDIS_CONTAINER")"
+    echo "Postgres: $(container_state "$POSTGRES_CONTAINER")"
+    echo "MySQL: $(container_state "$MYSQL_CONTAINER")"
 }
 
 logs() {
