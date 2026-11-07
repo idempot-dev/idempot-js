@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress";
 
 const siteUrl = "https://js.idempot.dev";
 const siteName = "idempot-js";
-const siteDescription = "Idempotency middleware for Node.js, Bun, and Deno. Supports Express, Fastify, and Hono with pluggable storage backends including Redis, PostgreSQL, MySQL, and SQLite.";
+const siteDescription = "Idempotency middleware for Node.js and Bun. Supports Express, Fastify, and Hono with pluggable storage backends including Redis, PostgreSQL, MySQL, and SQLite.";
 
 const docsSidebar = [
   {
@@ -59,7 +59,7 @@ export default defineConfig({
     // SEO: Meta tags
     ["meta", { name: "robots", content: "index, follow" }],
     ["meta", { name: "author", content: "idempot-dev" }],
-    ["meta", { name: "keywords", content: "idempotency, middleware, express, fastify, hono, node.js, bun, deno, redis, postgresql, mysql, sqlite, ietf, retry, duplicate detection" }],
+    ["meta", { name: "keywords", content: "idempotency, middleware, express, fastify, hono, node.js, bun, redis, postgresql, mysql, sqlite, ietf, retry, duplicate detection" }],
     // Open Graph
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:site_name", content: siteName }],
@@ -98,7 +98,7 @@ export default defineConfig({
         "@type": "SoftwareApplication",
         name: "idempot-js",
         applicationCategory: "DeveloperApplication",
-        operatingSystem: "Node.js, Bun, Deno",
+        operatingSystem: "Node.js, Bun",
         offers: {
           "@type": "Offer",
           price: "0",
