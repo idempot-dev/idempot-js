@@ -89,6 +89,40 @@ test("store packages structure exists", async (t) => {
   }
 });
 
+test("packages install the same client version as the root", async (t) => {
+  // Each consumer package declares its framework or database client as a peer,
+  // so pnpm resolves that peer separately from the root devDependency. A peer
+  // range such as ">=4.0.0" never changes, so its pin does not move when
+  // Dependabot bumps the root: the package's own test suite then runs an older
+  // client than the integration suite.
+  const consumers = {
+    "packages/frameworks/hono": "hono",
+    "packages/frameworks/express": "express",
+    "packages/frameworks/fastify": "fastify",
+    "packages/stores/postgres": "pg",
+    "packages/stores/mysql": "mysql2"
+  };
+
+  for (const [pkgDir, dep] of Object.entries(consumers)) {
+    const readVersion = (base) => {
+      const manifestPath = join(base, "node_modules", dep, "package.json");
+      return existsSync(manifestPath)
+        ? JSON.parse(readFileSync(manifestPath, "utf-8")).version
+        : null;
+    };
+
+    const rootVersion = readVersion(rootDir);
+    const pkgVersion = readVersion(join(rootDir, pkgDir));
+
+    t.ok(rootVersion, `${dep} is installed at the root`);
+    t.equal(
+      pkgVersion,
+      rootVersion,
+      `${pkgDir} runs ${dep} ${rootVersion}, the version the root installs`
+    );
+  }
+});
+
 test("each package has valid package.json", async (t) => {
   const packageDirs = [
     "packages/core",

@@ -48,6 +48,7 @@
     "@idempot/core": "workspace:*"
   },
   "devDependencies": {
+    "mysql2": "^3.24.6",
     "sinon": "^21.1.2"
   }
 }
