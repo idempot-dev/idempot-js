@@ -98,6 +98,7 @@
     "@cucumber/cucumber": "^12.9.0",
     "@eslint/js": "^9.39.5",
     "@hono/node-server": "^2.1.5",
+    "@idempot/core": "workspace:*",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/npm": "^13.2.0",
     "better-sqlite3": "^12.11.1",

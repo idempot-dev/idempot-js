@@ -1,6 +1,0 @@
-{
-  "imports": {
-    "../../src/": "../../src/",
-    "../../src/store/deno-kv.js": "../../src/store/deno-kv.js"
-  }
-}
