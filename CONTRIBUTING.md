@@ -27,7 +27,6 @@ Run these before committing:
 | `pnpm run test:spec`            | Spec tests (Cucumber)                             |
 | `pnpm run test:integration`     | Integration tests                                 |
 | `pnpm run test:bun`             | Bun runtime tests                                 |
-| `pnpm run test:deno`            | Deno runtime tests                                |
 
 ### Coverage Requirements
 
@@ -51,7 +50,6 @@ Every PR runs the same checks as local:
 - Spec consistency with website
 - Tests on Node 22, 24 with coverage verification
 - Bun runtime tests
-- Deno runtime tests
 - Spec compliance tests (Cucumber)
 - Workflow validation
 

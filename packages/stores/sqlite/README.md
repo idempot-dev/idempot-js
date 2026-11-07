@@ -52,16 +52,6 @@ Mark a request as complete with its response data. Updates the record with statu
 
 Close the database connection. Call this on shutdown.
 
-## Deno Support
-
-For Deno, use `DenoSqliteIdempotencyStore`:
-
-```javascript
-import { DenoSqliteIdempotencyStore } from "@idempot/sqlite-store/deno-sqlite.js";
-
-const store = new DenoSqliteIdempotencyStore({ path: "./idempotency.db" });
-```
-
 ## TypeScript Support
 
 This library uses JavaScript with JSDoc comments for type information. Enable `allowJs` in your TypeScript configuration to use these types directly—no separate .d.ts files needed.
