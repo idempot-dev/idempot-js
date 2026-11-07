@@ -61,19 +61,6 @@ Close the Redis connection.
 
 Ensure Redis persistence is configured (AOF strongly recommended). See [Redis persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
 
-## Deno Support
-
-For Deno, use `DenoRedisIdempotencyStore`:
-
-```javascript
-import { DenoRedisIdempotencyStore } from "@idempot/redis-store/deno-redis.js";
-
-const store = new DenoRedisIdempotencyStore({
-  hostname: "127.0.0.1",
-  port: 6379
-});
-```
-
 ## TypeScript Support
 
 This library uses JavaScript with JSDoc comments for type information. Enable `allowJs` in your TypeScript configuration to use these types directly—no separate .d.ts files needed.

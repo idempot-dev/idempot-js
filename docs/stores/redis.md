@@ -1,6 +1,6 @@
 ---
 title: Redis Store - idempot-js
-description: Redis-backed storage for idempotency middleware. High-performance caching with configurable key prefixes. Supports Node.js and Deno runtimes.
+description: Redis-backed storage for idempotency middleware. High-performance caching with configurable key prefixes. Supports Node.js and Bun runtimes.
 ---
 
 # Redis Store
@@ -57,16 +57,3 @@ Mark a request as complete with its response data. Updates the record with statu
 ### `store.close()`
 
 Close the Redis connection.
-
-## Deno Support
-
-For Deno, use `DenoRedisIdempotencyStore`:
-
-```javascript
-import { DenoRedisIdempotencyStore } from "@idempot/redis-store/deno-redis.js";
-
-const store = new DenoRedisIdempotencyStore({
-  hostname: "127.0.0.1",
-  port: 6379
-});
-```

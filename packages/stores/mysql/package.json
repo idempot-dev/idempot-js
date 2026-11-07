@@ -9,15 +9,10 @@
     ".": {
       "types": "./types/node-mysql.d.ts",
       "import": "./node-mysql.js"
-    },
-    "./deno-mysql.js": {
-      "types": "./types/deno-mysql.d.ts",
-      "import": "./deno-mysql.js"
     }
   },
   "files": [
     "node-mysql.js",
-    "deno-mysql.js",
     "types",
     "README.md",
     "LICENSE"

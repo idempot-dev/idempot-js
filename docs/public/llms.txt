@@ -1,6 +1,6 @@
 # idempot-js
 
-> Idempotency middleware for Node.js, Bun, and Deno. Native middleware for Express, Fastify, and Hono with pluggable storage backends: Redis, PostgreSQL, MySQL, SQLite, and Bun SQL. Implements the IETF draft-ietf-httpapi-idempotency-key-header-07 specification.
+> Idempotency middleware for Node.js and Bun. Native middleware for Express, Fastify, and Hono with pluggable storage backends: Redis, PostgreSQL, MySQL, SQLite, and Bun SQL. Implements the IETF draft-ietf-httpapi-idempotency-key-header-07 specification.
 
 Key facts:
 
@@ -46,7 +46,7 @@ Links point to markdown sources in the GitHub repository. The published document
 
 ## Stores
 
-- [Redis](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/redis.md): Redis storage backend for Node.js and Deno
+- [Redis](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/redis.md): Redis storage backend for Node.js and Bun
 - [PostgreSQL](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/postgres.md): PostgreSQL storage backend
 - [MySQL](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/mysql.md): MySQL storage backend
 - [SQLite](https://raw.githubusercontent.com/idempot-dev/idempot-js/main/docs/stores/sqlite.md): SQLite storage backend

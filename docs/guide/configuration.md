@@ -80,13 +80,13 @@ idempotency({ store, ttlMs: 7 * 24 * 60 * 60 * 1000 }); // 7 days
 
 The middleware never replays an expired record. A lookup ignores any record whose `expires_at` is in the past, even when the row is still in the table.
 
-Expired rows are removed during lookup. Most stores remove at most 10 rows per lookup, so removal scales with request traffic and no background job is required. A quiet service can keep expired rows for a long time. The Deno SQLite store is the exception: it removes all expired rows in one step.
+Expired rows are removed during lookup. Most stores remove at most 10 rows per lookup, so removal scales with request traffic and no background job is required. A quiet service can keep expired rows for a long time.
 
 A retry that arrives after its record expired succeeds immediately. The claim reclaims any expired row for the key (clearing the stale response and restarting the TTL), so the retry is processed as a new request and its response is cached again. The same applies whatever the old payload was: an expired key is free.
 
 Before reclaim-on-claim existed, such a retry could receive `409 Conflict` until a purge reached the row. The DynamoDB store has always reclaimed this way, via the expiry predicate in its conditional-write claim.
 
-Expired rows are removed during lookup. Most stores remove at most 10 rows per lookup, so removal scales with request traffic and no background job is required. A quiet service can keep expired rows for a long time; the reclaim above does not depend on it. The Deno SQLite store is the exception: it removes all expired rows in one step.
+Expired rows are removed during lookup. Most stores remove at most 10 rows per lookup, so removal scales with request traffic and no background job is required. A quiet service can keep expired rows for a long time; the reclaim above does not depend on it.
 
 The draft specification leaves this policy to the resource. It only requires the resource to define the policy and publish it: see [SPEC section 2.3](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07#section-2.3).
 
@@ -232,10 +232,9 @@ Use your existing database for idempotency when possible. For high-volume system
 
 ## Runtime Compatibility
 
-All configuration options work across Node.js, Bun, and Deno runtimes.
+All configuration options work across Node.js and Bun runtimes.
 
 | Runtime | All Options Supported |
 | ------- | --------------------- |
 | Node.js | ✅                    |
 | Bun     | ✅                    |
-| Deno    | ✅                    |

@@ -11,8 +11,7 @@ export default [
       sourceType: "module",
       globals: {
         ...globals.node,
-        ...globals.es2021,
-        Deno: "readonly"
+        ...globals.es2021
       }
     },
     rules: {

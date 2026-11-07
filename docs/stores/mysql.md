@@ -1,6 +1,6 @@
 ---
 title: MySQL Store - idempot-js
-description: MySQL-backed storage for idempotency middleware. Compatible with mysql2 package. Supports Node.js and Deno runtimes with connection pooling.
+description: MySQL-backed storage for idempotency middleware. Compatible with mysql2 package. Supports Node.js and Bun runtimes with connection pooling.
 ---
 
 # MySQL Store
@@ -11,7 +11,7 @@ description: MySQL-backed storage for idempotency middleware. Compatible with my
 npm install @idempot/mysql-store mysql2
 ```
 
-## Usage (Node.js)
+## Usage
 
 ```javascript
 import { MysqlIdempotencyStore } from "@idempot/mysql-store";
@@ -31,24 +31,6 @@ process.on("SIGINT", async () => {
 });
 ```
 
-## Usage (Deno)
-
-For Deno, import from the deno subpath:
-
-```javascript
-import { MysqlIdempotencyStore } from "@idempot/mysql-store/deno-mysql.js";
-
-const store = new MysqlIdempotencyStore({
-  hostname: "localhost",
-  port: 3306,
-  db: "myapp",
-  username: "root",
-  password: "password"
-});
-
-await store.connect();
-```
-
 ## Schema
 
 The store creates a table named `idempotency_records` with:
@@ -63,9 +45,9 @@ The store creates a table named `idempotency_records` with:
 
 ## API
 
-### Node.js: `new MysqlIdempotencyStore(options)`
+### `new MysqlIdempotencyStore(options)`
 
-Creates a new MySQL store for Node.js. Options are passed directly to `mysql2.createPool()`.
+Creates a new MySQL store. Options are passed directly to `mysql2.createPool()`.
 
 **Common Options:**
 
@@ -76,19 +58,6 @@ Creates a new MySQL store for Node.js. Options are passed directly to `mysql2.cr
 - `password`: MySQL password
 - `database`: MySQL database name
 
-### Deno: `new MysqlIdempotencyStore(options)`
-
-Creates a new MySQL store for Deno.
-
-**Options:**
-
-- `hostname`: MySQL hostname (default: `"localhost"`)
-- `port`: MySQL port (default: `3306`)
-- `username`: MySQL username (default: `"root"`)
-- `password`: MySQL password (default: `""`)
-- `db`: Database name (default: `"mysql"`)
-- `poolSize`: Connection pool size (default: `3`)
-
 ### `store.close()`
 
-Close the connection pool (Node.js) or database connection (Deno).
+Close the connection pool.
