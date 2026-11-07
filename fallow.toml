@@ -25,14 +25,10 @@ entry = [
   "bench/**/*.js",
 ]
 
-# Dependencies to ignore - these are runtime-native modules (Deno/Bun)
-# that will never be in package.json, or transitive dependencies required
-# by tools (e.g. VitePress/rolldown-vite) but not directly imported.
+# Dependencies to ignore - these are runtime-native modules (Bun) that will
+# never be in package.json, or transitive dependencies required by tools
+# (e.g. VitePress/rolldown-vite) but not directly imported.
 ignoreDependencies = [
-  # Deno native modules
-  "@db/redis",  # Deno Redis client
-  "mysql",      # Deno MySQL client
-  "sqlite",     # Deno SQLite client
   # Bun runtime namespace
   "bun",
   # Repository tooling imported only by bench/ and tests/integration
