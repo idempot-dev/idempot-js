@@ -4,5 +4,5 @@
     "rootDir": ".",
     "declarationDir": "types"
   },
-  "include": ["node-mysql.js", "deno-mysql.js"]
+  "include": ["node-mysql.js"]
 }

@@ -4,5 +4,5 @@
     "rootDir": ".",
     "declarationDir": "types"
   },
-  "include": ["node-redis.js", "deno-redis.js"]
+  "include": ["node-redis.js"]
 }
