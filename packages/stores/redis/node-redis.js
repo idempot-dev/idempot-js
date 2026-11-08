@@ -107,7 +107,7 @@ export class RedisIdempotencyStore {
       "NX"
     );
     // Fingerprint index is non-unique (multiple keys may share a fingerprint,
-    // matching the SQL stores and deno-redis), so it is a plain SET, not NX.
+    // matching the SQL stores), so it is a plain SET, not NX.
     pipeline.set(`fingerprint:${fingerprint}`, key, "EX", ttlSeconds);
     const results = await pipeline.exec();
 

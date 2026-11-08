@@ -9,15 +9,10 @@
     ".": {
       "types": "./types/node-redis.d.ts",
       "import": "./node-redis.js"
-    },
-    "./deno-redis.js": {
-      "types": "./types/deno-redis.d.ts",
-      "import": "./deno-redis.js"
     }
   },
   "files": [
     "node-redis.js",
-    "deno-redis.js",
     "types",
     "README.md",
     "LICENSE"
