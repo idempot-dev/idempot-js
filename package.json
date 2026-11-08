@@ -73,8 +73,6 @@
     "example:bun:sqlite": "bun run examples/bun-sql-app.js",
     "test:bun": "bun test tests/runtime/bun/",
     "test:bun:coverage": "bun test tests/runtime/bun/ --coverage",
-    "test:deno": "deno test tests/runtime/deno/",
-    "test:deno:sqlite": "deno run --allow-write examples/deno-sqlite-app.ts",
     "test:integration": "node tests/integration/shared/prereqs.js && tap tests/integration/",
     "test:integration:start": "node tests/integration/shared/setup.js start",
     "test:integration:stop": "node tests/integration/shared/setup.js stop",
