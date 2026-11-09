@@ -124,7 +124,7 @@
     "tinybench": "^6.2.2",
     "typescript": "^6.0.3",
     "ulid": "^3.0.2",
-    "vitepress": "2.0.0-alpha.20"
+    "vitepress": "2.0.0-alpha.21"
   },
   "lint-staged": {
     "*.js": [
