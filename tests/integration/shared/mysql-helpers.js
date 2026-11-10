@@ -1,30 +1,10 @@
-import { execSync } from "child_process";
 import { createRequire } from "module";
+
+import { readPort } from "./env.js";
 
 const require = createRequire(import.meta.url);
 
-const MYSQL_PORT = 3306;
-
-export async function startMysql() {
-  console.log("Starting local MySQL...");
-  try {
-    execSync("brew services start mysql", { stdio: "inherit" });
-  } catch {
-    // MySQL might not be installed or already running
-  }
-}
-
-export async function stopMysql() {
-  try {
-    execSync("brew services stop mysql", { stdio: "inherit" });
-  } catch {
-    // MySQL might not be installed or already stopped
-  }
-}
-
-export function getMySqlUrl(database = "test") {
-  return `mysql://idempot:idempot@localhost:${MYSQL_PORT}/${database}`;
-}
+const MYSQL_PORT = readPort("MYSQL_PORT", 3307);
 
 export function generateTableName() {
   return `idempotency_records_${process.pid}_${Date.now()}`;

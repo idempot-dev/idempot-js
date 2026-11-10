@@ -1,9 +1,12 @@
 import { MysqlIdempotencyStore } from "../../../packages/stores/mysql/node-mysql.js";
+import { readPort } from "./env.js";
+
+const MYSQL_PORT = readPort("MYSQL_PORT", 3307);
 
 export function nodeMysqlOptions(tableName = "idempotency_records") {
   return {
     host: "localhost",
-    port: 3306,
+    port: MYSQL_PORT,
     database: "test",
     user: "idempot",
     password: "idempot",

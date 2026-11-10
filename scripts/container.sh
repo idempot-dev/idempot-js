@@ -28,6 +28,10 @@ container_state() {
     fi
 }
 
+port_open() {
+    nc -z 127.0.0.1 "$1" 2>/dev/null
+}
+
 # Start an existing container, or create it when absent.
 start_container() {
     local name="$1"
@@ -45,10 +49,13 @@ start_container() {
 }
 
 start() {
+    # Check the published ports, not just the container names: a container
+    # created before the Postgres port move is running but does not serve 5433.
     if container_running "$REDIS_CONTAINER" &&
         container_running "$POSTGRES_CONTAINER" &&
-        container_running "$MYSQL_CONTAINER"; then
-        echo "$CONTAINER_NAME is already running (Redis on 6379, Postgres on 5433, MySQL on 3306)"
+        container_running "$MYSQL_CONTAINER" &&
+        port_open 6379 && port_open 5433 && port_open 3307; then
+        echo "$CONTAINER_NAME is already running (Redis on 6379, Postgres on 5433, MySQL on 3307)"
         exit 0
     fi
 
@@ -67,7 +74,7 @@ start() {
         postgres:16-alpine
 
     start_container "$MYSQL_CONTAINER" \
-        -p 3306:3306 \
+        -p 3307:3306 \
         -e MYSQL_ROOT_PASSWORD=rootpass \
         -e MYSQL_USER=idempot \
         -e MYSQL_PASSWORD=idempot \
@@ -97,7 +104,8 @@ start() {
             break
         fi
         if [ $i -eq 30 ]; then
-            echo "ERROR: Postgres failed to start"
+            echo "ERROR: Postgres failed to start on host port 5433"
+            echo "If $POSTGRES_CONTAINER predates the 5433 port move, run: $0 restart"
             container logs "$POSTGRES_CONTAINER"
             exit 1
         fi
@@ -105,21 +113,22 @@ start() {
     done
 
     # Wait for MySQL using host port
-    echo "Waiting for MySQL on port 3306..."
+    echo "Waiting for MySQL on port 3307..."
     for i in {1..30}; do
-        if nc -z 127.0.0.1 3306 2>/dev/null; then
+        if nc -z 127.0.0.1 3307 2>/dev/null; then
             echo "MySQL is ready"
             break
         fi
         if [ $i -eq 30 ]; then
-            echo "ERROR: MySQL failed to start"
+            echo "ERROR: MySQL failed to start on host port 3307"
+            echo "If $MYSQL_CONTAINER predates the 3307 port move, run: $0 restart"
             container logs "$MYSQL_CONTAINER"
             exit 1
         fi
         sleep 1
     done
 
-    echo "$CONTAINER_NAME is running (Redis on 6379, Postgres on 5433, MySQL on 3306)"
+    echo "$CONTAINER_NAME is running (Redis on 6379, Postgres on 5433, MySQL on 3307)"
 }
 
 stop() {
