@@ -68,4 +68,5 @@ pnpm test packages/stores/postgres/postgres.test.js
 
 `pnpm test` excludes `tests/integration/`. The coverage commands include it,
 because the Postgres store is only fully covered by those suites, so they need
-the container stack from [CONTRIBUTING](../CONTRIBUTING.md#running-integration-tests-locally).
+the container stack described in `CONTRIBUTING.md`, under Running Integration
+Tests Locally.
