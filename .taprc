@@ -1,4 +1,4 @@
-files:
+include:
   - "tests/integration/*.test.js"
   - "tests/integration/**/*.test.js"
   - "tests/monorepo/**/*.test.js"
