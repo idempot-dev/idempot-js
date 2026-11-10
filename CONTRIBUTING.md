@@ -87,9 +87,14 @@ container system start
 pnpm run test:container:start
 ```
 
-This starts Redis (port 6379), Postgres (port 5433) and MySQL (port 3306) in a
-lightweight VM. Postgres is published on host port 5433 so that it does not
-collide with a Postgres already installed on the default port 5432.
+This starts Redis (port 6379), Postgres (port 5433) and MySQL (port 3307) in a
+lightweight VM. Postgres and MySQL are published on uncommon host ports so that
+they do not collide with services already installed on the default ports 5432
+and 3306.
+
+If you ran the containers before this port change, run
+`pnpm run test:container:restart` once: an existing container keeps its old port
+mapping, and the integration prereq check will not find it.
 
 ### Cleanup
 

@@ -6,10 +6,11 @@ const require = createRequire(import.meta.url);
 const { Pool } = require("pg");
 const mysql = require("mysql2/promise");
 import Redis from "ioredis";
+import { readPort } from "./env.js";
 import { POSTGRES_PORT } from "./postgres.js";
 
 const REDIS_PORT = 6379;
-const MYSQL_PORT = Number(process.env.MYSQL_PORT ?? 3306);
+const MYSQL_PORT = readPort("MYSQL_PORT", 3307);
 const MAX_RETRIES = 30;
 const RETRY_INTERVAL_MS = 1000;
 
@@ -19,6 +20,10 @@ function log(message) {
 
 function error(message) {
   console.error(`[prereqs] ERROR: ${message}`);
+}
+
+function describeError(err) {
+  return err instanceof Error ? err.message : String(err);
 }
 
 function checkContainerCommand() {
@@ -101,8 +106,12 @@ async function waitForMysql(maxRetries = MAX_RETRIES) {
   return false;
 }
 
-async function verifyPostgresConnection() {
-  try {
+// A container can publish its port before the service accepts connections, so
+// each verifier retries. Without this the first integration run after a cold
+// start fails on a transient "starting up" error.
+async function verifyPostgresConnection(maxRetries = 10) {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
     const pool = new Pool({
       host: "localhost",
       port: POSTGRES_PORT,
@@ -111,32 +120,46 @@ async function verifyPostgresConnection() {
       password: "idempot",
       connectionTimeoutMillis: 5000
     });
-    await pool.query("SELECT 1");
-    await pool.end();
-    return true;
-  } catch {
-    return false;
+    try {
+      await pool.query("SELECT 1");
+      return true;
+    } catch (err) {
+      lastError = err;
+      await new Promise((r) => setTimeout(r, 500));
+    } finally {
+      await pool.end();
+    }
   }
+  error(`Cannot connect to Postgres: ${describeError(lastError)}`);
+  return false;
 }
 
-async function verifyRedisConnection() {
-  try {
+async function verifyRedisConnection(maxRetries = 10) {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
     const client = new Redis({
       host: "127.0.0.1",
       port: REDIS_PORT,
-      connectTimeout: 5000
+      connectTimeout: 5000,
+      maxRetriesPerRequest: 1,
+      retryStrategy: () => null
     });
-    await client.ping();
-    await client.quit();
-    return true;
-  } catch {
-    return false;
+    try {
+      await client.ping();
+      return true;
+    } catch (err) {
+      lastError = err;
+      await new Promise((r) => setTimeout(r, 500));
+    } finally {
+      client.disconnect();
+    }
   }
+  error(`Cannot connect to Redis: ${describeError(lastError)}`);
+  return false;
 }
 
 async function verifyMysqlConnection(maxRetries = 10) {
-  // MySQL opens the port before it can authenticate, so keep trying for a few
-  // seconds while the container finishes initialising.
+  let lastError;
   for (let i = 0; i < maxRetries; i++) {
     try {
       const connection = await mysql.createConnection({
@@ -147,13 +170,18 @@ async function verifyMysqlConnection(maxRetries = 10) {
         password: "idempot",
         connectTimeout: 5000
       });
-      await connection.query("SELECT 1");
-      await connection.end();
-      return true;
-    } catch {
+      try {
+        await connection.query("SELECT 1");
+        return true;
+      } finally {
+        await connection.end().catch(() => {});
+      }
+    } catch (err) {
+      lastError = err;
       await new Promise((r) => setTimeout(r, 500));
     }
   }
+  error(`Cannot connect to MySQL: ${describeError(lastError)}`);
   return false;
 }
 
@@ -228,21 +256,21 @@ async function checkPrereqs() {
 
   const pgConn = await verifyPostgresConnection();
   if (!pgConn) {
-    error("Cannot connect to Postgres (auth failed or database not ready)");
+    error("Postgres connection verification failed");
     return false;
   }
   log("Postgres connection verified");
 
   const redisConn = await verifyRedisConnection();
   if (!redisConn) {
-    error("Cannot connect to Redis (auth failed or service not ready)");
+    error("Redis connection verification failed");
     return false;
   }
   log("Redis connection verified");
 
   const mysqlConn = await verifyMysqlConnection();
   if (!mysqlConn) {
-    error("Cannot connect to MySQL (auth failed or database not ready)");
+    error("MySQL connection verification failed");
     return false;
   }
   log("MySQL connection verified");

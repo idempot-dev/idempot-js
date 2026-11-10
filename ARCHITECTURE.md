@@ -381,12 +381,13 @@ For local development, integration tests run against Redis, Postgres and MySQL c
 - Container name: `idempot-js-dev`
 - Redis: `arm64v8/redis:7-alpine` on port 6379
 - Postgres: `postgres:16-alpine` on host port 5433 (container port 5432)
-- MySQL: `arm64v8/mysql:8` on port 3306
+- MySQL: `arm64v8/mysql:8` on host port 3307 (container port 3306)
 - Database: `test` with user `idempot` / password `idempot`
 
-Postgres is published on 5433 to stay clear of a local Postgres on 5432. The
-integration suites read the port from `POSTGRES_PORT`, defaulting to 5433; CI
-sets it to 5432 to match its service container.
+Postgres is published on 5433 and MySQL on 3307 to stay clear of local services
+on the default ports 5432 and 3306. The integration suites read `POSTGRES_PORT`
+(default 5433) and `MYSQL_PORT` (default 3307); CI sets both to the default ports
+to match its service containers.
 
 **npm Scripts:**
 
@@ -400,11 +401,14 @@ sets it to 5432 to match its service container.
 **Usage:**
 
 ```bash
-# Start containers, run tests, stop containers
-npm run test:container:start && npm run test:integration && npm run test:container:stop
+# Start containers if needed, run the integration suites
+pnpm run test:integration
 
-# Just start containers for manual testing
-npm run test:container:start
+# Start containers for manual testing
+pnpm run test:container:start
+
+# Stop and remove the containers
+pnpm run test:container:stop
 ```
 
 The containers use arm64 architecture (native to Apple Silicon) to avoid Rosetta translation overhead.

@@ -1,6 +1,7 @@
 import { PostgresIdempotencyStore } from "../../../packages/stores/postgres/index.js";
+import { readPort } from "./env.js";
 
-export const POSTGRES_PORT = Number(process.env.POSTGRES_PORT ?? 5433);
+export const POSTGRES_PORT = readPort("POSTGRES_PORT", 5433);
 
 export function postgresOptions(schema) {
   return {
