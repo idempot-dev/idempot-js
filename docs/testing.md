@@ -50,8 +50,11 @@ Individual framework test files should:
 ## Running Tests
 
 ```bash
-# Run all tests
+# Run unit tests (no external services needed)
 pnpm test
+
+# Run integration tests (starts the containers when needed)
+pnpm run test:integration
 
 # Run tests with coverage
 pnpm run test:coverage
@@ -62,3 +65,7 @@ pnpm run test:verify-coverage
 # Run specific test file
 pnpm test packages/stores/postgres/postgres.test.js
 ```
+
+`pnpm test` excludes `tests/integration/`. The coverage commands include it,
+because the Postgres store is only fully covered by those suites, so they need
+the container stack from [CONTRIBUTING](../CONTRIBUTING.md#running-integration-tests-locally).

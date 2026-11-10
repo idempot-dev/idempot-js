@@ -21,7 +21,7 @@ Run these before committing:
 | `pnpm run check`                | Lint + format check                               |
 | `pnpm run lint`                 | ESLint only                                       |
 | `pnpm run format:check`         | Prettier check only                               |
-| `pnpm run test`                 | Unit tests                                        |
+| `pnpm run test`                 | Unit tests, no services required                  |
 | `pnpm run test:verify-coverage` | **Verify 100% coverage** (required before commit) |
 | `pnpm run test:coverage`        | Detailed coverage report                          |
 | `pnpm run test:spec`            | Spec tests (Cucumber)                             |
@@ -39,6 +39,11 @@ pnpm run test:verify-coverage
 # Debug uncovered lines
 pnpm run test:coverage
 ```
+
+The coverage commands include the integration suites, because the Postgres
+store is only fully covered by them. Start the containers before running
+them (see [Running Integration Tests Locally](#running-integration-tests-locally)).
+`pnpm run test` excludes those suites and needs no services.
 
 ### CI (GitHub Actions)
 
@@ -82,7 +87,9 @@ container system start
 pnpm run test:container:start
 ```
 
-This starts Redis (port 6379) and Postgres (port 5432) in a lightweight VM.
+This starts Redis (port 6379), Postgres (port 5433) and MySQL (port 3306) in a
+lightweight VM. Postgres is published on host port 5433 so that it does not
+collide with a Postgres already installed on the default port 5432.
 
 ### Cleanup
 
