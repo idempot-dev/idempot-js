@@ -23,17 +23,6 @@ module.exports = {
     "@semantic-release/release-notes-generator",
     "@semantic-release/npm",
     [
-      "@semantic-release/git",
-      {
-        assets: [
-          "package.json",
-          "packages/*/package.json",
-          "packages/*/*/package.json"
-        ],
-        message: "chore(release): ${nextRelease.version} [skip ci]"
-      }
-    ],
-    [
       "@semantic-release/github",
       {
         successCommentCondition: false,
