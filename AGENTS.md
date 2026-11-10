@@ -12,7 +12,7 @@
 
 Run `pnpm run test:verify-coverage` before committing. When trying to learn which lines are uncovered, use `pnpm run test:coverage`, which will report full coverage details for all files.
 
-**Dev tooling is exempt from the coverage gate.** Directories such as `bench/` and `scripts/` are development tooling, not shipped library code: they stay outside the tap coverage gate (kept out of the `.taprc` `files:` allowlist), and they must not be given unit tests or pulled into the gate to satisfy the 100% rule. Dev tooling is verified by its own checks instead — for example `pnpm bench:smoke` verifies the benchmark harness. If you add a new dev-tool directory, keep it out of the `.taprc` `files:` globs and give it a smoke check or equivalent; do not restructure the coverage gate to accommodate it.
+**Dev tooling is exempt from the coverage gate.** Directories such as `bench/` and `scripts/` are development tooling, not shipped library code: they stay outside the tap coverage gate (kept out of the `.taprc` `include:` allowlist), and they must not be given unit tests or pulled into the gate to satisfy the 100% rule. Dev tooling is verified by its own checks instead — for example `pnpm bench:smoke` verifies the benchmark harness. If you add a new dev-tool directory, keep it out of the `.taprc` `include:` globs and give it a smoke check or equivalent; do not restructure the coverage gate to accommodate it.
 
 **All commits must pass linting and formatting checks:**
 
