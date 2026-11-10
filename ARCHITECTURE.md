@@ -374,23 +374,28 @@ runAdapterTests({
 
 ### Local Development
 
-For local development, integration tests run against Redis and Postgres containers managed by [apple/container](https://github.com/apple/container).
+For local development, integration tests run against Redis, Postgres and MySQL containers managed by [apple/container](https://github.com/apple/container).
 
 **Container Configuration:**
 
 - Container name: `idempot-js-dev`
 - Redis: `arm64v8/redis:7-alpine` on port 6379
-- Postgres: `postgres:16-alpine` on port 5432
+- Postgres: `postgres:16-alpine` on host port 5433 (container port 5432)
+- MySQL: `arm64v8/mysql:8` on port 3306
 - Database: `test` with user `idempot` / password `idempot`
+
+Postgres is published on 5433 to stay clear of a local Postgres on 5432. The
+integration suites read the port from `POSTGRES_PORT`, defaulting to 5433; CI
+sets it to 5432 to match its service container.
 
 **npm Scripts:**
 
-| Script                   | Description                         |
-| ------------------------ | ----------------------------------- |
-| `test:container:start`   | Start Redis and Postgres containers |
-| `test:container:stop`    | Stop and remove containers          |
-| `test:container:restart` | Restart containers                  |
-| `test:integration`       | Run integration tests               |
+| Script                   | Description                                 |
+| ------------------------ | ------------------------------------------- |
+| `test:container:start`   | Start Redis, Postgres and MySQL containers  |
+| `test:container:stop`    | Stop and remove containers                  |
+| `test:container:restart` | Restart containers                          |
+| `test:integration`       | Start containers if needed, run integration |
 
 **Usage:**
 
