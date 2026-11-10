@@ -48,7 +48,7 @@ start() {
     if container_running "$REDIS_CONTAINER" &&
         container_running "$POSTGRES_CONTAINER" &&
         container_running "$MYSQL_CONTAINER"; then
-        echo "$CONTAINER_NAME is already running (Redis on 6379, Postgres on 5432, MySQL on 3306)"
+        echo "$CONTAINER_NAME is already running (Redis on 6379, Postgres on 5433, MySQL on 3306)"
         exit 0
     fi
 
@@ -57,8 +57,10 @@ start() {
         arm64v8/redis:7-alpine \
         redis-server --appendonly yes
 
+    # Host port 5433 keeps the container off the default port that a local
+    # Postgres usually occupies.
     start_container "$POSTGRES_CONTAINER" \
-        -p 5432:5432 \
+        -p 5433:5432 \
         -e POSTGRES_USER=idempot \
         -e POSTGRES_PASSWORD=idempot \
         -e POSTGRES_DB=test \
@@ -88,9 +90,9 @@ start() {
     done
 
     # Wait for Postgres using host port
-    echo "Waiting for Postgres on port 5432..."
+    echo "Waiting for Postgres on port 5433..."
     for i in {1..30}; do
-        if nc -z 127.0.0.1 5432 2>/dev/null; then
+        if nc -z 127.0.0.1 5433 2>/dev/null; then
             echo "Postgres is ready"
             break
         fi
@@ -117,7 +119,7 @@ start() {
         sleep 1
     done
 
-    echo "$CONTAINER_NAME is running (Redis on 6379, Postgres on 5432, MySQL on 3306)"
+    echo "$CONTAINER_NAME is running (Redis on 6379, Postgres on 5433, MySQL on 3306)"
 }
 
 stop() {

@@ -4,10 +4,12 @@ import net from "net";
 
 const require = createRequire(import.meta.url);
 const { Pool } = require("pg");
+const mysql = require("mysql2/promise");
 import Redis from "ioredis";
+import { POSTGRES_PORT } from "./postgres.js";
 
-const POSTGRES_PORT = 5432;
 const REDIS_PORT = 6379;
+const MYSQL_PORT = Number(process.env.MYSQL_PORT ?? 3306);
 const MAX_RETRIES = 30;
 const RETRY_INTERVAL_MS = 1000;
 
@@ -65,6 +67,10 @@ async function checkRedis() {
   return checkPort(REDIS_PORT);
 }
 
+async function checkMysql() {
+  return checkPort(MYSQL_PORT);
+}
+
 async function waitForPostgres(maxRetries = MAX_RETRIES) {
   for (let i = 0; i < maxRetries; i++) {
     if (await checkPostgres()) {
@@ -78,6 +84,16 @@ async function waitForPostgres(maxRetries = MAX_RETRIES) {
 async function waitForRedis(maxRetries = MAX_RETRIES) {
   for (let i = 0; i < maxRetries; i++) {
     if (await checkRedis()) {
+      return true;
+    }
+    await new Promise((r) => setTimeout(r, RETRY_INTERVAL_MS));
+  }
+  return false;
+}
+
+async function waitForMysql(maxRetries = MAX_RETRIES) {
+  for (let i = 0; i < maxRetries; i++) {
+    if (await checkMysql()) {
       return true;
     }
     await new Promise((r) => setTimeout(r, RETRY_INTERVAL_MS));
@@ -118,6 +134,29 @@ async function verifyRedisConnection() {
   }
 }
 
+async function verifyMysqlConnection(maxRetries = 10) {
+  // MySQL opens the port before it can authenticate, so keep trying for a few
+  // seconds while the container finishes initialising.
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const connection = await mysql.createConnection({
+        host: "localhost",
+        port: MYSQL_PORT,
+        database: "test",
+        user: "idempot",
+        password: "idempot",
+        connectTimeout: 5000
+      });
+      await connection.query("SELECT 1");
+      await connection.end();
+      return true;
+    } catch {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  return false;
+}
+
 async function startContainers() {
   log("Attempting to start containers...");
   try {
@@ -126,7 +165,7 @@ async function startContainers() {
       cwd: process.cwd()
     });
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -150,8 +189,9 @@ async function checkPrereqs() {
 
   const postgresUp = await checkPostgres();
   const redisUp = await checkRedis();
+  const mysqlUp = await checkMysql();
 
-  if (!postgresUp || !redisUp) {
+  if (!postgresUp || !redisUp || !mysqlUp) {
     log("Services not reachable. Attempting to start containers...");
     const started = await startContainers();
     if (!started) {
@@ -161,6 +201,7 @@ async function checkPrereqs() {
 
     const newPostgresUp = await waitForPostgres();
     const newRedisUp = await waitForRedis();
+    const newMysqlUp = await waitForMysql();
 
     if (!newPostgresUp) {
       error("Postgres is not reachable after starting containers");
@@ -173,9 +214,16 @@ async function checkPrereqs() {
       return false;
     }
     log("Redis is ready");
+
+    if (!newMysqlUp) {
+      error("MySQL is not reachable after starting containers");
+      return false;
+    }
+    log("MySQL is ready");
   } else {
     log("Postgres is ready");
     log("Redis is ready");
+    log("MySQL is ready");
   }
 
   const pgConn = await verifyPostgresConnection();
@@ -191,6 +239,13 @@ async function checkPrereqs() {
     return false;
   }
   log("Redis connection verified");
+
+  const mysqlConn = await verifyMysqlConnection();
+  if (!mysqlConn) {
+    error("Cannot connect to MySQL (auth failed or database not ready)");
+    return false;
+  }
+  log("MySQL connection verified");
 
   log("All prerequisites satisfied!");
   return true;
