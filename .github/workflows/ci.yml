@@ -129,6 +129,7 @@ jobs:
         run: |
           echo "PGHOST=localhost" >> $GITHUB_ENV
           echo "PGPORT=5432" >> $GITHUB_ENV
+          echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
           echo "PGUSER=idempot" >> $GITHUB_ENV
           echo "PGPASSWORD=idempot" >> $GITHUB_ENV
           echo "PGDATABASE=test" >> $GITHUB_ENV
