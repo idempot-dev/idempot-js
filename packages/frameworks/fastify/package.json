@@ -45,6 +45,6 @@
   },
   "devDependencies": {
     "@idempot/sqlite-store": "workspace:*",
-    "fastify": "^5.12.7"
+    "fastify": "^5.12.8"
   }
 }
