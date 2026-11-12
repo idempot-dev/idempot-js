@@ -231,6 +231,8 @@ jobs:
         run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Test the classification checker
+        run: pnpm run test:spec-classification-checker
       - name: Check spec classification
         run: pnpm run check:spec-classification
       - name: Run draft compliance scenarios
