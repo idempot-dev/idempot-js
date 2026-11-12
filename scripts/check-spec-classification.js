@@ -35,19 +35,37 @@ function declaredSections(text) {
 /**
  * Tags are inherited, so a Rule carries the class of every scenario inside it.
  * @param {string} text
- * @returns {{title: string, tags: string[], scenarios: {name: string, tags: string[], line: number}[], line: number}[]}
+ * @returns {{rules: {title: string, tags: string[], scenarios: {name: string, tags: string[], line: number}[], line: number}[], problems: string[]}}
  */
 function parseRules(text) {
-  /** @type {ReturnType<typeof parseRules>} */
+  /** @type {ReturnType<typeof parseRules>["rules"]} */
   const rules = [];
+  /** @type {string[]} */
+  const problems = [];
   let pending = [];
   let current = null;
+  let inDocString = false;
 
   text.split("\n").forEach((raw, index) => {
     const line = raw.trim();
+    if (line.startsWith('"""')) {
+      inDocString = !inDocString;
+      return;
+    }
+    if (inDocString) return;
     if (!line || line.startsWith("#")) return;
     if (line.startsWith("@")) {
       pending.push(...tagsOn(line));
+      return;
+    }
+    if (line.startsWith("Feature:")) {
+      const classes = pending.filter((tag) => CLASS_TAGS.includes(tag));
+      if (classes.length > 0) {
+        problems.push(
+          `line ${index + 1}: the Feature line carries ${classes.join(", ")}; a class belongs on a Rule`
+        );
+      }
+      pending = [];
       return;
     }
     if (line.startsWith("Rule:")) {
@@ -81,7 +99,22 @@ function parseRules(text) {
     }
   });
 
-  return rules;
+  return { rules, problems };
+}
+
+/**
+ * @param {string} left
+ * @param {string} right
+ * @returns {number}
+ */
+function compareSections(left, right) {
+  const a = left.split(".").map(Number);
+  const b = right.split(".").map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const difference = (a[i] ?? 0) - (b[i] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
 }
 
 /**
@@ -90,10 +123,8 @@ function parseRules(text) {
  * @returns {number}
  */
 function main(featurePath, draftPath) {
-  const rules = parseRules(readFileSync(featurePath, "utf8"));
+  const { rules, problems } = parseRules(readFileSync(featurePath, "utf8"));
   const sections = declaredSections(readFileSync(draftPath, "utf8"));
-  /** @type {string[]} */
-  const problems = [];
   /** @type {Map<string, number>} */
   const bySection = new Map();
   let draft = 0;
@@ -149,10 +180,27 @@ function main(featurePath, draftPath) {
           `line ${scenario.line}: scenario "${scenario.name}" carries ${own.join(", ")}, but tags are inherited and a scenario must not add a class`
         );
       }
+      const ownSections = scenario.tags.filter((tag) =>
+        tag.startsWith(SECTION_PREFIX)
+      );
+      if (ownSections.length > 0) {
+        problems.push(
+          `line ${scenario.line}: scenario "${scenario.name}" cites ${ownSections.join(", ")}; a draft section belongs on its Rule`
+        );
+      }
     }
 
     if (classes[0] === "@draft") draft += rule.scenarios.length;
     if (classes[0] === "@library") library += rule.scenarios.length;
+  }
+
+  if (problems.length === 0 && draft + library === 0) {
+    problems.push("the feature file holds no scenarios");
+  }
+  if (problems.length === 0 && draft === 0) {
+    problems.push(
+      "no @draft Rule, so the draft compliance selection would run nothing"
+    );
   }
 
   if (problems.length > 0) {
@@ -166,7 +214,9 @@ function main(featurePath, draftPath) {
   console.log(
     `spec classification: ${draft + library} scenarios, ${draft} draft, ${library} library`
   );
-  for (const [section, count] of [...bySection].sort()) {
+  for (const [section, count] of [...bySection].sort((a, b) =>
+    compareSections(a[0], b[0])
+  )) {
     const label = `@draft @section:${section}`;
     console.log(`  ${label.padEnd(22)}${count}`);
   }
