@@ -2,9 +2,9 @@ name: Link Check
 
 on:
   push:
-    branches: [main]
+    branches: [main, next-major]
   pull_request:
-    branches: [main]
+    branches: [main, next-major]
   schedule:
     - cron: '0 0 * * *'  # Daily at midnight
 
