@@ -4,7 +4,7 @@ Idempotency middleware for Hono, Express, and Fastify.
 
 ## Features
 
-- Implements the IETF draft [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07) specification
+- Implements the IETF draft [draft-ietf-httpapi-idempotency-key-header-07](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07). 13 of the 49 scenarios in the published spec suite are traced to the draft; the other 36 cover behaviour it leaves open, such as recording and replaying responses
 - Request fingerprinting for conflict detection
 - Built-in resilience: retries, timeouts, circuit breaker
 - Modular packages reduce install time and dependencies

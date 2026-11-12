@@ -23,6 +23,6 @@ features:
   - title: Pluggable Stores
     details: Redis, PostgreSQL, MySQL, SQLite, or Bun SQL
   - title: IETF Compliant
-    details: Implements the Idempotency-Key header specification
+    details: 13 spec scenarios trace to draft-07, and 36 more cover documented library policy
     link: https://idempot.dev/learn/spec
 ---
