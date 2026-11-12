@@ -114,6 +114,12 @@ received, with any scheme, host and port removed:
 The host is deliberately excluded: behind a proxy, HTTP/2 `:authority` and redirects, the same
 request can be presented under a different origin, and a retry must still match.
 
+Origin-form targets are used verbatim: no dot-segment or percent-encoding normalisation, so the
+token follows what the server received rather than a reconstruction of it, and a scheme-relative
+target such as `//host/path` stays distinct from `/path`. Only a target with a scheme is parsed,
+to drop its origin. A target the parser rejects is kept verbatim rather than raising, because it
+arrives from the client and must not become an unhandled error inside middleware.
+
 The route and the principal are hashed to a fixed-width token before they are combined with
 anything else. Composing `scope + "\n" + body` directly would be ambiguous, because a query
 string or a principal value can contain a newline; hashing first removes the boundary question,
