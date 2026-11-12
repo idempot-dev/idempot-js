@@ -48,10 +48,15 @@ so an override adds a class instead of replacing one. The suite is therefore gro
 
 ## 4. Integration checks
 
-- [ ] 4.1 Run the full, draft, unclassified and conflicts selections in sequence and verify all
-      four pass with the expected counts, and that the tap suite is unaffected.
-- [ ] 4.2 Verify the local feature file still matches upstream by running the `spec-consistency`
-      comparison locally.
+- [x] 4.1 Run the full, draft, unclassified and conflicts selections in sequence and verify all
+      four pass with the expected counts, and that the tap suite is unaffected. Done: 49 scenarios
+      and 362 steps in the full run, 13 and 96 in the draft run, and zero in both the unclassified
+      and the conflicts selections. `pnpm test` is unaffected. The same selections run green in
+      the `spec-compliance` job on `main` at `3b0092e`.
+- [x] 4.2 Verify the local feature file still matches upstream by running the `spec-consistency`
+      comparison locally. Done: `tail -n +5` of the local file is identical to
+      `raw.githubusercontent.com/idempot-dev/website/main/docs/specs/idempotency.feature`, and the
+      job is green on `main` at `3b0092e`.
 
 ## Workflow follow-up
 
