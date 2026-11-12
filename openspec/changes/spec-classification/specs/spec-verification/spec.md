@@ -45,6 +45,12 @@ MUST match a section that exists in the vendored draft text.
 - **WHEN** the block is classified as library policy
 - **THEN** it carries no draft section identifier
 
+#### Scenario: Scenario-level section tag fails the build
+
+- **GIVEN** a scenario inside a library policy `Rule` that carries a draft section identifier of its own
+- **WHEN** the classification check runs
+- **THEN** the job fails, because a section identifier belongs on the enclosing `Rule`
+
 ### Requirement: Draft compliance is verifiable on its own
 
 The suite MUST be runnable as two disjoint selections, draft-mandated and library policy,
@@ -60,6 +66,12 @@ reportable as a single pass or fail result.
 
 - **WHEN** the draft selection and the library selection are compared with the full suite
 - **THEN** the two selections share no scenario and together contain all scenarios
+
+#### Scenario: Empty draft selection fails the build
+
+- **GIVEN** a feature file whose every `Rule` is library policy
+- **WHEN** the classification check runs
+- **THEN** the job fails, because the draft selection would contain no scenario and cucumber would exit zero on it
 
 ### Requirement: Classification is authored at the source of truth
 

@@ -32,6 +32,11 @@ so an override adds a class instead of replacing one. The suite is therefore gro
       file parses by running the same commands locally and comparing their results with the job
       steps.
 - [x] 2.4 Record the draft count from 2.2 and verify it matches the number the checker prints.
+- [x] 2.5 Cover the checker with a fixture self-check
+      (`scripts/check-spec-classification.test.js`, `pnpm test:spec-classification-checker`),
+      wired into the `spec-compliance` job. Make the checker fail when no `Rule` is `@draft` or
+      the feature holds no scenario, reject a scenario-level `@section` tag and a class tag on
+      the `Feature` line, and ignore tag-shaped lines inside doc strings.
 
 ## 3. Published claims
 

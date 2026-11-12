@@ -18,7 +18,8 @@ otherwise be filed under a draft heading.
 
 - Classify every scenario in the Gherkin suite as either draft-mandated or library policy,
   using one class tag per `Rule` block (`@draft` with a `@section:x.y` companion, or
-  `@library`), with scenario-level overrides where a block mixes the two.
+  `@library`). Cucumber accumulates tags down the tree, so a block cannot be overridden at
+  scenario level: a block that mixes the two classes is split into two `Rule`s.
 - Replace the plain-text section comments with `Rule` headings that name the draft section
   or state that the block is library policy.
 - Classify all 49 existing scenarios in this pass. Partial classification is rejected.
