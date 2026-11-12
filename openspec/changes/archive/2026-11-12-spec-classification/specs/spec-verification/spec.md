@@ -69,7 +69,7 @@ reportable as a single pass or fail result.
 
 #### Scenario: Empty draft selection fails the build
 
-- **GIVEN** a feature file whose every `Rule` is library policy
+- **GIVEN** a feature file where every `Rule` is library policy
 - **WHEN** the classification check runs
 - **THEN** the job fails, because the draft selection would contain no scenario and cucumber would exit zero on it
 
