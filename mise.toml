@@ -1,4 +1,5 @@
 [tools]
 bun = "latest"
 node = "24"
+"npm:@fission-ai/openspec" = "1.17.0"
 pnpm = "latest"
