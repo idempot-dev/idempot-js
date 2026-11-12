@@ -47,6 +47,38 @@ Individual framework test files should:
 - **Maintainability**: Changes to interface behavior only need updating in one place
 - **Coverage**: 100% coverage is still achieved without redundant tests
 
+## Spec Compliance Suite
+
+`tests/spec/idempotency.feature` is the published Gherkin suite. It runs against a real Express
+server and the SQLite store, so it needs no containers.
+
+The canonical copy lives in [`idempot-dev/website`](https://github.com/idempot-dev/website/blob/main/docs/specs/idempotency.feature)
+and is published as documentation. The copy here is generated: do not edit it, run
+`pnpm run spec:sync` after the upstream file changes. A CI job fails if the two diverge.
+
+Every scenario belongs to exactly one `Rule`, and the `Rule` carries the classification:
+
+- `@draft` plus `@section:x.y` states a requirement of draft-ietf-httpapi-idempotency-key-header-07.
+  The section must exist in `SPEC.md`.
+- `@library` states behaviour this library chose. The draft does not specify it.
+
+Tags are inherited by the scenarios inside a `Rule`, so a scenario must not carry a class tag of
+its own: cucumber would report it as belonging to both classes. That is why the suite is grouped
+into Rules of one class each rather than tagging individual scenarios.
+
+```bash
+# Run the whole suite
+pnpm run test:spec
+
+# Run only the scenarios traced to the draft
+pnpm run test:spec:draft
+
+# Fail if a scenario is unclassified, doubly classified, or cites a missing section
+pnpm run check:spec-classification
+```
+
+The last command also prints the count per class, which is the number the README quotes.
+
 ## Running Tests
 
 ```bash
