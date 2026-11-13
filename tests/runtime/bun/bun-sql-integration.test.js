@@ -12,8 +12,12 @@ import { ulid } from "ulid";
 const require = createRequire(import.meta.url);
 const { Pool } = require("pg");
 
-const POSTGRES_URL = "postgres://idempot:idempot@localhost:5432/test";
-const MYSQL_URL = "mysql://idempot:idempot@localhost:3306/test";
+// The dev containers publish Postgres on 5433 and MySQL on 3307, while CI uses
+// the defaults, so both ports come from the same variables the tap suites read.
+const POSTGRES_PORT = process.env.POSTGRES_PORT ?? "5432";
+const MYSQL_PORT = process.env.MYSQL_PORT ?? "3306";
+const POSTGRES_URL = `postgres://idempot:idempot@localhost:${POSTGRES_PORT}/test`;
+const MYSQL_URL = `mysql://idempot:idempot@localhost:${MYSQL_PORT}/test`;
 
 function generateTestId() {
   return "t" + ulid().toLowerCase();
@@ -72,7 +76,7 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
 
     const pool = new Pool({
       host: "localhost",
-      port: 5432,
+      port: Number(POSTGRES_PORT),
       database: "test",
       user: "idempot",
       password: "idempot"
@@ -98,7 +102,7 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
 
     const pool = new Pool({
       host: "localhost",
-      port: 5432,
+      port: Number(POSTGRES_PORT),
       database: "test",
       user: "idempot",
       password: "idempot"
@@ -122,7 +126,7 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
 
     const pool = new Pool({
       host: "localhost",
-      port: 5432,
+      port: Number(POSTGRES_PORT),
       database: "test",
       user: "idempot",
       password: "idempot"
@@ -311,7 +315,7 @@ describe("BunSqlIdempotencyStore with MySQL", () => {
   beforeEach(async () => {
     mysqlConnection = await mysql.createConnection({
       host: "localhost",
-      port: 3306,
+      port: Number(MYSQL_PORT),
       user: "idempot",
       password: "idempot",
       database: "test"
