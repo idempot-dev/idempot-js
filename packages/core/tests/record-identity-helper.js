@@ -5,13 +5,14 @@
  * path with query) and the client key, and fingerprints the body under that
  * identity. A test that queries the store by the client key alone finds nothing,
  * so it must derive the same identity instead of guessing the stored shape.
+ *
+ * Every suite uses this one implementation: the adapter suite, the integration
+ * suites, the Cucumber steps and the Bun runtime suite. A copy per suite is how
+ * the same stale seed reached three of them at once.
  */
 
-import {
-  deriveScopeToken,
-  buildRecordKey
-} from "../../../packages/core/src/identity.js";
-import { generateScopedFingerprint } from "../../../packages/core/src/fingerprint.js";
+import { deriveScopeToken, buildRecordKey } from "../src/identity.js";
+import { generateScopedFingerprint } from "../src/fingerprint.js";
 
 /**
  * The record key the middleware derives for a client key on a route.

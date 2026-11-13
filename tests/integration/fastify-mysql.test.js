@@ -4,7 +4,7 @@ import { idempotency } from "../../packages/frameworks/fastify/index.js";
 import { generateIdempotencyKey } from "./shared/shared-helpers.js";
 import { initMysqlSchema, generateTableName } from "./shared/mysql-helpers.js";
 import { makeRequest } from "./shared/request.js";
-import { recordKeyFor } from "./shared/identity.js";
+import { recordKeyFor } from "../../packages/core/tests/record-identity-helper.js";
 import {
   createNodeMysqlStore,
   waitForIdempotencyRecordComplete

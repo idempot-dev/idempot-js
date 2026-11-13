@@ -5,7 +5,10 @@ import { idempotency } from "../../packages/frameworks/hono/index.js";
 import { generateIdempotencyKey } from "./shared/shared-helpers.js";
 import { initMysqlSchema, generateTableName } from "./shared/mysql-helpers.js";
 import { makeRequest } from "./shared/request.js";
-import { recordKeyFor, scopedFingerprintFor } from "./shared/identity.js";
+import {
+  recordKeyFor,
+  scopedFingerprintFor
+} from "../../packages/core/tests/record-identity-helper.js";
 import {
   createNodeMysqlStore,
   waitForIdempotencyRecordComplete

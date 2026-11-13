@@ -11,7 +11,10 @@ import {
   generateIdempotencyKey
 } from "./shared/shared-helpers.js";
 import { makeRequest } from "./shared/request.js";
-import { recordKeyFor, scopedFingerprintFor } from "./shared/identity.js";
+import {
+  recordKeyFor,
+  scopedFingerprintFor
+} from "../../packages/core/tests/record-identity-helper.js";
 import {
   createPostgresStore,
   waitForIdempotencyRecordComplete

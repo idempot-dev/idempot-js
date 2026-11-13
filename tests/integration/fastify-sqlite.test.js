@@ -3,7 +3,7 @@ import Fastify from "fastify";
 import { idempotency } from "../../packages/frameworks/fastify/index.js";
 import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
 import { makeRequest, makeRequestWithoutKey } from "./shared/request.js";
-import { recordKeyFor } from "./shared/identity.js";
+import { recordKeyFor } from "../../packages/core/tests/record-identity-helper.js";
 
 function createFastifySqliteApp(store) {
   const app = Fastify();
