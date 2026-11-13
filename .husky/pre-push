@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# Static checks only: fast enough to run on every push, and no services
+# needed. Run `pnpm verify` (with `pnpm test:container:start` behind it)
+# before opening a pull request; CI runs the complete gate.
+npm run verify:fast

@@ -7,3 +7,5 @@ CLAUDE.md
 docs/plans
 docs/.vitepress
 bench/results.md
+.pi/
+.auto/
