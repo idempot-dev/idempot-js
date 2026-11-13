@@ -71,6 +71,19 @@ This section covers how to run integration tests on your Mac for local developme
 - [apple/container](https://github.com/apple/container) installed
 - `nc` (netcat) installed: `brew install netcat`
 
+### Running the checks
+
+`pnpm verify` runs everything CI runs: lint, formatting, the spec classification
+and test split checks, the tap suite at 100% coverage, the Cucumber suite and the
+Bun suite. It needs the development containers, so start them first with
+`pnpm run test:container:start`.
+
+`pnpm verify:fast` runs only the static checks and needs no services.
+
+The git hooks use neither in full. `pre-commit` runs lint-staged plus a fast unit
+subset (`pnpm test:unit`, no services), and `pre-push` runs `pnpm verify:fast`.
+The complete gate is CI's job and yours before a pull request.
+
 ### Setup
 
 1. Download and install the latest apple/container from [GitHub releases](https://github.com/apple/container/releases)

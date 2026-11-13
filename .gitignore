@@ -50,3 +50,5 @@ bench/baseline.local.json
 bench/results/
 docs/.vitepress/cache/
 .worktrees/
+.pi/
+.auto/
