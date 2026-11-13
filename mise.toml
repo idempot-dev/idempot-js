@@ -1,5 +1,6 @@
 [tools]
 bun = "latest"
 node = "24"
+"npm:@ast-grep/cli" = "0.51.2"
 "npm:@fission-ai/openspec" = "1.17.0"
 pnpm = "latest"
