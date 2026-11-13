@@ -110,7 +110,7 @@ One case behaves differently. If the record for the key expired before the retry
 
 **Fingerprint Conflict**
 
-Returned when a different idempotency key was used for the same request payload.
+Returned when a different idempotency key was used for the same request payload. The comparison happens inside one route, which is the method plus the path and query string, so the same payload on another route is a separate operation and does not conflict.
 
 ```json
 {

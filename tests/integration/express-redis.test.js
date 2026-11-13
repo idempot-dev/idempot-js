@@ -2,9 +2,9 @@ import t from "tap";
 import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
 import { makeRequest } from "./shared/request.js";
+import { recordKeyFor, scopedFingerprintFor } from "./shared/identity.js";
 import { createRedisStore, cleanupRedis } from "./shared/redis.js";
 import { createLostRaceStore } from "./shared/lost-race-store.js";
-import { generateFingerprint } from "../../packages/core/src/fingerprint.js";
 
 function createExpressRedisApp(store, client) {
   const app = express();
@@ -144,11 +144,11 @@ t.test(
   async (t) => {
     const { store, client, prefix } = t.context;
     const key = "redis-race-12345678901234567890";
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
     // Seed the winner's processing record so the loser's SET NX misses
     // on the real driver, exactly like the SQL race tests.
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const app = createExpressRedisApp(wrapped, client);
@@ -176,9 +176,9 @@ t.test(
   async (t) => {
     const { store, client, prefix } = t.context;
     const key = "redis-race-12345678901234567890";
-    const winnerFp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const winnerFp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, winnerFp, 60000);
+    await store.startProcessing(await recordKeyFor(key), winnerFp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const app = createExpressRedisApp(wrapped, client);
@@ -206,10 +206,10 @@ t.test(
   async (t) => {
     const { store, client } = t.context;
     const key = "redis-race-complete-12345678901";
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, fp, 60000);
-    await store.complete(key, {
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
+    await store.complete(await recordKeyFor(key), {
       status: 200,
       headers: { "content-type": "application/json" },
       body: '{"winner":true}'

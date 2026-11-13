@@ -5,12 +5,12 @@ import { idempotency } from "../../packages/frameworks/hono/index.js";
 import { generateIdempotencyKey } from "./shared/shared-helpers.js";
 import { initMysqlSchema, generateTableName } from "./shared/mysql-helpers.js";
 import { makeRequest } from "./shared/request.js";
+import { recordKeyFor, scopedFingerprintFor } from "./shared/identity.js";
 import {
   createNodeMysqlStore,
   waitForIdempotencyRecordComplete
 } from "./shared/mysql.js";
 import { createLostRaceStore } from "./shared/lost-race-store.js";
-import { generateFingerprint } from "../../packages/core/src/fingerprint.js";
 
 function createHonoMysqlApp(store) {
   const app = new Hono();
@@ -64,15 +64,16 @@ t.test("Hono + MySQL - first request creates record", async (t) => {
     "should return correct body"
   );
 
-  await waitForIdempotencyRecordComplete(store, key);
+  await waitForIdempotencyRecordComplete(store, await recordKeyFor(key));
 
+  const recordKey = await recordKeyFor(key);
   const [rows] = await store.pool.query(
     `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
-    [key]
+    [recordKey]
   );
 
   t.equal(rows.length, 1, "should have one idempotency record");
-  t.equal(rows[0].key, key, "key should match");
+  t.equal(rows[0].key, recordKey, "key should match");
   t.equal(rows[0].status, "complete", "status should be complete");
 });
 
@@ -87,7 +88,7 @@ t.test(
       body: { foo: "bar" }
     });
 
-    await waitForIdempotencyRecordComplete(store, key);
+    await waitForIdempotencyRecordComplete(store, await recordKeyFor(key));
 
     const response2 = await makeRequest(port, {
       idempotencyKey: key,
@@ -102,9 +103,10 @@ t.test(
       "duplicate should have replay header"
     );
 
+    const recordKey = await recordKeyFor(key);
     const [rows] = await store.pool.query(
       `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
-      [key]
+      [recordKey]
     );
 
     t.equal(rows.length, 1, "should still have one idempotency record");
@@ -136,11 +138,11 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
     // Seed the winner's processing record directly on the real store so the
     // loser's insert hits the real driver's duplicate-key constraint (ER_DUP_ENTRY).
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const app = createHonoMysqlApp(wrapped);
@@ -165,9 +167,9 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const winnerFp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const winnerFp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, winnerFp, 60000);
+    await store.startProcessing(await recordKeyFor(key), winnerFp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const app = createHonoMysqlApp(wrapped);
@@ -192,10 +194,10 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, fp, 60000);
-    await store.complete(key, {
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
+    await store.complete(await recordKeyFor(key), {
       status: 200,
       headers: { "content-type": "application/json" },
       body: '{"winner":true}'
@@ -224,9 +226,9 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     // missRecheck: simulate the winner's record having expired (TTL) before
     // the loser's re-lookup runs -> KTD2 says the loser still gets a 409.

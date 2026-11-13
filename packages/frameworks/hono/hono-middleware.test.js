@@ -180,6 +180,41 @@ test("hono - non-key-exists error from startProcessing stays 503", async (t) => 
   t.equal(res.status, 503, "unrelated store error stays a 503");
 });
 
+test("hono - a different query string is a different operation", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = new Hono();
+  const middleware = idempotency({ store, required: true });
+  let calls = 0;
+  app.post("/test", middleware, (c) => {
+    calls++;
+    return c.json({ calls });
+  });
+
+  const send = (path) =>
+    app.request(`http://localhost${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": "query-key-123456789012"
+      },
+      body: JSON.stringify({ foo: "bar" })
+    });
+
+  const first = await send("/test?a=1");
+  const second = await send("/test?a=2");
+
+  t.equal(first.status, 200, "the first query string should succeed");
+  t.equal(second.status, 200, "a different query string must not replay");
+  t.equal(calls, 2, "both requests must run the handler");
+  t.same(
+    await second.json(),
+    { calls: 2 },
+    "the second request's own response"
+  );
+
+  await store.close();
+});
+
 // Run shared adapter test suite
 runAdapterTests({
   name: "hono",

@@ -3,6 +3,7 @@ import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
 import { generateIdempotencyKey } from "./shared/shared-helpers.js";
 import { initMysqlSchema, generateTableName } from "./shared/mysql-helpers.js";
+import { recordKeyFor } from "./shared/identity.js";
 import { makeRequest, makeRequestWithoutKey } from "./shared/request.js";
 import {
   createNodeMysqlStore,
@@ -56,15 +57,16 @@ t.test("Express + MySQL - first request creates record", async (t) => {
     "should return correct body"
   );
 
-  await waitForIdempotencyRecordComplete(store, key);
+  await waitForIdempotencyRecordComplete(store, await recordKeyFor(key));
 
+  const recordKey = await recordKeyFor(key);
   const [rows] = await store.pool.query(
     `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
-    [key]
+    [recordKey]
   );
 
   t.equal(rows.length, 1, "should have one idempotency record");
-  t.equal(rows[0].key, key, "key should match");
+  t.equal(rows[0].key, recordKey, "key should match");
   t.equal(rows[0].status, "complete", "status should be complete");
 });
 
@@ -79,7 +81,7 @@ t.test(
       body: { foo: "bar" }
     });
 
-    await waitForIdempotencyRecordComplete(store, key);
+    await waitForIdempotencyRecordComplete(store, await recordKeyFor(key));
 
     const response2 = await makeRequest(port, {
       idempotencyKey: key,
@@ -94,9 +96,10 @@ t.test(
       "duplicate should have replay header"
     );
 
+    const recordKey = await recordKeyFor(key);
     const [rows] = await store.pool.query(
       `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
-      [key]
+      [recordKey]
     );
 
     t.equal(rows.length, 1, "should still have one idempotency record");
@@ -130,7 +133,7 @@ t.test(
     const key = generateIdempotencyKey();
 
     await t.rejects(
-      store.complete(key, {
+      store.complete(await recordKeyFor(key), {
         status: 200,
         headers: { "content-type": "application/json" },
         body: '{"success":true}'

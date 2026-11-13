@@ -1,5 +1,6 @@
 import { test } from "tap";
-import { generateFingerprint } from "../src/fingerprint.js";
+import { generateScopedFingerprint } from "../src/fingerprint.js";
+import { deriveScopeToken, buildRecordKey } from "../src/identity.js";
 import { IdempotencyKeyExistsError } from "../src/errors.js";
 
 /**
@@ -393,11 +394,16 @@ export function runAdapterTests(adapter) {
     // Pre-populate store with "processing" state for the SAME payload the
     // request will send, so it is a same-payload retry (-> 409), not a
     // fingerprint-mismatch (which would be -> 422).
-    const fingerprint = await generateFingerprint(
+    const scopeToken = await deriveScopeToken({
+      method: "POST",
+      url: "/test"
+    });
+    const fingerprint = await generateScopedFingerprint(
+      scopeToken,
       JSON.stringify({ foo: "bar" })
     );
     await store.startProcessing(
-      "concurrent-key-12345678901",
+      buildRecordKey(scopeToken, "concurrent-key-12345678901"),
       fingerprint,
       60000
     );
@@ -1055,6 +1061,238 @@ export function runAdapterTests(adapter) {
 
     t.equal(response.status, 200, "should succeed after retries");
     t.equal(attempts, 3, "should retry 3 times");
+
+    await teardown();
+  });
+
+  // Test: The same key on another route is another operation
+  test(`${adapter.name} - the same key and body on another route runs independently`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({ store });
+    const calls = [];
+
+    mount("POST", "/api", middleware, async (req, res) => {
+      calls.push("api");
+      return res.send({ route: "api" });
+    });
+
+    mount("POST", "/other", middleware, async (req, res) => {
+      calls.push("other");
+      return res.send({ route: "other" });
+    });
+
+    const headers = { "idempotency-key": "route-key-1234567890123" };
+    const body = { foo: "bar" };
+
+    const first = normalizeResponse(
+      await request({ method: "POST", path: "/api", headers, body })
+    );
+    const second = normalizeResponse(
+      await request({ method: "POST", path: "/other", headers, body })
+    );
+
+    t.equal(first.status, 200, "the first route should succeed");
+    t.equal(second.status, 200, "another route must not conflict");
+    t.same(calls, ["api", "other"], "both handlers must run");
+    t.equal(second.body?.route, "other", "the second route's own response");
+    t.notOk(
+      second.headers["x-idempotent-replayed"] ||
+        second.headers["X-Idempotent-Replayed"],
+      "must not replay the other route's record"
+    );
+
+    await teardown();
+  });
+
+  // Test: The fingerprint conflict is a same-route question
+  test(`${adapter.name} - a different key with the same body on another route is not a conflict`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({ store });
+    let otherCalls = 0;
+
+    mount("POST", "/api", middleware, async (req, res) => {
+      return res.send({ route: "api" });
+    });
+
+    mount("POST", "/other", middleware, async (req, res) => {
+      otherCalls++;
+      return res.send({ route: "other" });
+    });
+
+    const body = { foo: "bar" };
+
+    await request({
+      method: "POST",
+      path: "/api",
+      headers: { "idempotency-key": "conflict-key-12345678901" },
+      body
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/other",
+        headers: { "idempotency-key": "conflict-key-22345678901" },
+        body
+      })
+    );
+
+    t.equal(
+      response.status,
+      200,
+      "another route is not a fingerprint conflict"
+    );
+    t.equal(otherCalls, 1, "the other route's handler must run");
+    t.equal(response.body?.route, "other", "the other route's own response");
+
+    await teardown();
+  });
+
+  // Test: The method is part of the operation
+  test(`${adapter.name} - the same key and body on another method runs independently`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({ store });
+    const calls = [];
+
+    mount("POST", "/method-test", middleware, async (req, res) => {
+      calls.push("POST");
+      return res.send({ method: "POST" });
+    });
+
+    mount("PATCH", "/method-test", middleware, async (req, res) => {
+      calls.push("PATCH");
+      return res.send({ method: "PATCH" });
+    });
+
+    const headers = { "idempotency-key": "method-key-123456789012" };
+    const body = { foo: "bar" };
+
+    const first = normalizeResponse(
+      await request({ method: "POST", path: "/method-test", headers, body })
+    );
+    const second = normalizeResponse(
+      await request({ method: "PATCH", path: "/method-test", headers, body })
+    );
+
+    t.equal(first.status, 200, "the POST should succeed");
+    t.equal(second.status, 200, "the PATCH must not replay the POST");
+    t.same(calls, ["POST", "PATCH"], "both handlers must run");
+    t.equal(second.body?.method, "PATCH", "the PATCH's own response");
+    t.notOk(
+      second.headers["x-idempotent-replayed"] ||
+        second.headers["X-Idempotent-Replayed"],
+      "must not replay the POST's record"
+    );
+
+    await teardown();
+  });
+
+  // Test: A record from another route is invisible here
+  test(`${adapter.name} - a record seeded under another route is not replayed`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({ store });
+
+    const otherScope = await deriveScopeToken({
+      method: "POST",
+      url: "/elsewhere"
+    });
+    const otherFingerprint = await generateScopedFingerprint(
+      otherScope,
+      JSON.stringify({ foo: "bar" })
+    );
+    const elsewhereKey = buildRecordKey(
+      otherScope,
+      "elsewhere-key-123456789012"
+    );
+    await store.startProcessing(elsewhereKey, otherFingerprint, 60000);
+    await store.complete(elsewhereKey, {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ elsewhere: true })
+    });
+
+    let handlerCalls = 0;
+    mount("POST", "/here", middleware, async (req, res) => {
+      handlerCalls++;
+      return res.send({ here: true });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/here",
+        headers: { "idempotency-key": "elsewhere-key-123456789012" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 200, "the request should run on this route");
+    t.equal(handlerCalls, 1, "the handler must run");
+    t.equal(response.body?.here, true, "this route's own response");
+    t.notOk(
+      response.headers["x-idempotent-replayed"] ||
+        response.headers["X-Idempotent-Replayed"],
+      "must not replay another route's record"
+    );
+
+    await teardown();
+  });
+
+  // Test: The stored identity is the one the adapter derives for the request
+  test(`${adapter.name} - composes the stored identity from the request`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({ store });
+
+    const scopeToken = await deriveScopeToken({
+      method: "POST",
+      url: "/seed"
+    });
+    const recordKey = buildRecordKey(scopeToken, "seeded-key-123456789012");
+    const fingerprint = await generateScopedFingerprint(
+      scopeToken,
+      JSON.stringify({ foo: "bar" })
+    );
+    await store.startProcessing(recordKey, fingerprint, 60000);
+    await store.complete(recordKey, {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ seeded: true })
+    });
+
+    let handlerCalls = 0;
+    mount("POST", "/seed", middleware, async (req, res) => {
+      handlerCalls++;
+      return res.send({ handler: true });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/seed",
+        headers: { "idempotency-key": "seeded-key-123456789012" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 201, "the seeded record should replay");
+    t.equal(handlerCalls, 0, "the handler must not run for a seeded record");
+    t.equal(response.body?.seeded, true, "replays the seeded body");
+    t.equal(
+      response.headers["x-idempotent-replayed"] ||
+        response.headers["X-Idempotent-Replayed"],
+      "true",
+      "replays with the replay header"
+    );
 
     await teardown();
   });

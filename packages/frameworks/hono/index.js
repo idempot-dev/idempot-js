@@ -6,7 +6,9 @@
 
 import { randomUUID } from "node:crypto";
 import {
-  generateFingerprint,
+  generateScopedFingerprint,
+  deriveScopeToken,
+  buildRecordKey,
   validateExcludeFields,
   validateIdempotencyKey,
   validateIdempotencyOptions,
@@ -133,14 +135,20 @@ export function idempotency(options = {}) {
       return sendErrorResponse(c, 400, problem);
     }
 
+    const scopeToken = await deriveScopeToken({ method, url: c.req.url });
+    const recordKey = buildRecordKey(scopeToken, key);
     const body = await c.req.text();
-    const fingerprint = await generateFingerprint(body, opts.excludeFields);
+    const fingerprint = await generateScopedFingerprint(
+      scopeToken,
+      body,
+      opts.excludeFields
+    );
 
     let lookup;
     try {
       lookup = reconcileLookup(
-        await resilientStore.lookup(key, fingerprint),
-        key
+        await resilientStore.lookup(recordKey, fingerprint),
+        recordKey
       );
     } catch {
       const problem = storeUnavailableResponse({
@@ -150,7 +158,7 @@ export function idempotency(options = {}) {
       return sendErrorResponse(c, 503, problem);
     }
 
-    const conflict = checkLookupConflicts(lookup, key, fingerprint);
+    const conflict = checkLookupConflicts(lookup, recordKey, fingerprint);
     if (conflict.conflict) {
       const problem = conflictErrorResponse(
         /** @type {number} */ (conflict.status),
@@ -175,14 +183,18 @@ export function idempotency(options = {}) {
 
     if (!lookup.byKey && !lookup.byFingerprint) {
       try {
-        await resilientStore.startProcessing(key, fingerprint, opts.ttlMs);
+        await resilientStore.startProcessing(
+          recordKey,
+          fingerprint,
+          opts.ttlMs
+        );
       } catch (error) {
         if (error instanceof IdempotencyKeyExistsError) {
           let recheck;
           try {
             recheck = reconcileLookup(
-              await resilientStore.lookup(key, fingerprint),
-              key
+              await resilientStore.lookup(recordKey, fingerprint),
+              recordKey
             );
           } catch {
             const problem = storeUnavailableResponse({
@@ -194,7 +206,7 @@ export function idempotency(options = {}) {
 
           const recheckConflict = checkLookupConflicts(
             recheck,
-            key,
+            recordKey,
             fingerprint
           );
           if (recheckConflict.conflict) {
@@ -249,7 +261,7 @@ export function idempotency(options = {}) {
       };
 
       try {
-        await resilientStore.complete(key, response);
+        await resilientStore.complete(recordKey, response);
       } catch (err) {
         console.error("Failed to cache response:", err);
       }

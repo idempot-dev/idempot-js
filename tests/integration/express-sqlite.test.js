@@ -3,6 +3,7 @@ import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
 import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
 import { makeRequest } from "./shared/request.js";
+import { recordKeyFor } from "./shared/identity.js";
 
 function createExpressSqliteApp(store) {
   const app = express();
@@ -50,12 +51,13 @@ t.test("Express + SQLite - first request creates record", async (t) => {
     "should return correct body"
   );
 
+  const recordKey = await recordKeyFor("test-key-12345678901234567890");
   const records = store.db
     .prepare("SELECT * FROM idempotency_records WHERE key = ?")
-    .all("test-key-12345678901234567890");
+    .all(recordKey);
 
   t.equal(records.length, 1, "should have one idempotency record");
-  t.equal(records[0].key, "test-key-12345678901234567890", "key should match");
+  t.equal(records[0].key, recordKey, "key should match");
   t.equal(records[0].status, "complete", "status should be complete");
 
   const orders = store.db.prepare("SELECT * FROM orders").all();
@@ -84,9 +86,10 @@ t.test(
       "duplicate should have replay header"
     );
 
+    const recordKey = await recordKeyFor("test-key-dupe-123456789012345");
     const idempotencyRecords = store.db
       .prepare("SELECT * FROM idempotency_records WHERE key = ?")
-      .all("test-key-dupe-123456789012345");
+      .all(recordKey);
 
     t.equal(
       idempotencyRecords.length,

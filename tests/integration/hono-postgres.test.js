@@ -11,12 +11,12 @@ import {
   generateIdempotencyKey
 } from "./shared/shared-helpers.js";
 import { makeRequest } from "./shared/request.js";
+import { recordKeyFor, scopedFingerprintFor } from "./shared/identity.js";
 import {
   createPostgresStore,
   waitForIdempotencyRecordComplete
 } from "./shared/postgres.js";
 import { createLostRaceStore } from "./shared/lost-race-store.js";
-import { generateFingerprint } from "../../packages/core/src/fingerprint.js";
 import { IdempotencyKeyExistsError } from "../../packages/core/src/errors.js";
 
 function createHonoPostgresApp(store) {
@@ -76,15 +76,20 @@ t.test("Hono + Postgres - first request creates record", async (t) => {
     "should return correct body"
   );
 
-  await waitForIdempotencyRecordComplete(store, schema, key);
+  await waitForIdempotencyRecordComplete(
+    store,
+    schema,
+    await recordKeyFor(key)
+  );
 
+  const recordKey = await recordKeyFor(key);
   const records = await store.pool.query(
     `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-    [key]
+    [recordKey]
   );
 
   t.equal(records.rows.length, 1, "should have one idempotency record");
-  t.equal(records.rows[0].key, key, "key should match");
+  t.equal(records.rows[0].key, recordKey, "key should match");
   t.equal(records.rows[0].status, "complete", "status should be complete");
 
   const orders = await store.pool.query(`SELECT * FROM ${schema}.orders`);
@@ -102,7 +107,11 @@ t.test(
       body: { foo: "bar" }
     });
 
-    await waitForIdempotencyRecordComplete(store, schema, key);
+    await waitForIdempotencyRecordComplete(
+      store,
+      schema,
+      await recordKeyFor(key)
+    );
 
     const response2 = await makeRequest(port, {
       idempotencyKey: key,
@@ -117,9 +126,10 @@ t.test(
       "duplicate should have replay header"
     );
 
+    const recordKey = await recordKeyFor(key);
     const idempotencyRecords = await store.pool.query(
       `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-      [key]
+      [recordKey]
     );
 
     t.equal(
@@ -175,7 +185,11 @@ t.test(
       body: { foo: "bar" }
     });
 
-    await waitForIdempotencyRecordComplete(store, schema, key);
+    await waitForIdempotencyRecordComplete(
+      store,
+      schema,
+      await recordKeyFor(key)
+    );
 
     const response2 = await makeRequest(port, {
       idempotencyKey: key,
@@ -201,11 +215,11 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
     // Seed the winner's processing record directly on the real store so the
     // loser's insert hits the real driver's primary-key constraint (23505).
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const app = createHonoPostgresApp(wrapped);
@@ -230,9 +244,9 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const winnerFp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const winnerFp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, winnerFp, 60000);
+    await store.startProcessing(await recordKeyFor(key), winnerFp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const app = createHonoPostgresApp(wrapped);
@@ -257,10 +271,10 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, fp, 60000);
-    await store.complete(key, {
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
+    await store.complete(await recordKeyFor(key), {
       status: 200,
       headers: { "content-type": "application/json" },
       body: '{"winner":true}'
@@ -289,9 +303,9 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     // missRecheck: simulate the winner's record having expired (TTL) before
     // the loser's re-lookup runs -> KTD2 says the loser still gets a 409.
@@ -317,11 +331,11 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = generateIdempotencyKey();
-    const fp = generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
     const results = await Promise.allSettled([
-      store.startProcessing(key, fp, 60000),
-      store.startProcessing(key, fp, 60000)
+      store.startProcessing(await recordKeyFor(key), fp, 60000),
+      store.startProcessing(await recordKeyFor(key), fp, 60000)
     ]);
 
     // The primary key on `key` guarantees exactly one INSERT commits and the

@@ -10,6 +10,7 @@ import {
   generateIdempotencyKey
 } from "./shared/shared-helpers.js";
 import { makeRequest } from "./shared/request.js";
+import { recordKeyFor } from "./shared/identity.js";
 import {
   createPostgresStore,
   waitForIdempotencyRecordComplete
@@ -74,15 +75,20 @@ t.test("Fastify + Postgres - first request creates record", async (t) => {
     "should return correct body"
   );
 
-  await waitForIdempotencyRecordComplete(store, schema, key);
+  await waitForIdempotencyRecordComplete(
+    store,
+    schema,
+    await recordKeyFor(key)
+  );
 
+  const recordKey = await recordKeyFor(key);
   const records = await store.pool.query(
     `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-    [key]
+    [recordKey]
   );
 
   t.equal(records.rows.length, 1, "should have one idempotency record");
-  t.equal(records.rows[0].key, key, "key should match");
+  t.equal(records.rows[0].key, recordKey, "key should match");
   t.equal(records.rows[0].status, "complete", "status should be complete");
 
   const orders = await store.pool.query(`SELECT * FROM ${schema}.orders`);
@@ -100,7 +106,11 @@ t.test(
       body: { foo: "bar" }
     });
 
-    await waitForIdempotencyRecordComplete(store, schema, key);
+    await waitForIdempotencyRecordComplete(
+      store,
+      schema,
+      await recordKeyFor(key)
+    );
 
     const response2 = await makeRequest(port, {
       idempotencyKey: key,
@@ -115,9 +125,10 @@ t.test(
       "duplicate should have replay header"
     );
 
+    const recordKey = await recordKeyFor(key);
     const idempotencyRecords = await store.pool.query(
       `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-      [key]
+      [recordKey]
     );
 
     t.equal(

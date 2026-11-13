@@ -4,7 +4,11 @@ import { Hono } from "hono";
 import { idempotency } from "../../../packages/frameworks/hono/index.js";
 import { BunSqlIdempotencyStore } from "../../../packages/stores/bun-sql/index.js";
 import { createLostRaceStore } from "../../../tests/integration/shared/lost-race-store.js";
-import { generateFingerprint } from "../../../packages/core/src/fingerprint.js";
+import {
+  deriveScopeToken,
+  buildRecordKey,
+  generateScopedFingerprint
+} from "../../../packages/core/src/index.js";
 import mysql from "mysql2/promise";
 import { createRequire } from "module";
 import { ulid } from "ulid";
@@ -25,6 +29,22 @@ function generateTestId() {
 
 function generateIdempotencyKey() {
   return "key" + ulid().toLowerCase();
+}
+
+/**
+ * The record key the middleware derives for the suite's POST /api requests.
+ * @param {string} clientKey
+ * @returns {Promise<string>}
+ */
+async function recordKeyFor(clientKey) {
+  const scopeToken = await deriveScopeToken({ method: "POST", url: "/api" });
+  return buildRecordKey(scopeToken, clientKey);
+}
+
+/** @returns {Promise<string>} */
+async function scopedFingerprintForBody() {
+  const scopeToken = await deriveScopeToken({ method: "POST", url: "/api" });
+  return generateScopedFingerprint(scopeToken, JSON.stringify({ foo: "bar" }));
 }
 
 async function makeRequest(port, options) {
@@ -132,13 +152,14 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
       password: "idempot"
     });
 
+    const recordKey = await recordKeyFor(key);
     const records = await pool.query(
       `SELECT * FROM ${schema}.idempotency_records WHERE key = $1`,
-      [key]
+      [recordKey]
     );
 
     expect(records.rows.length).toBe(1);
-    expect(records.rows[0].key).toBe(key);
+    expect(records.rows[0].key).toBe(recordKey);
     expect(records.rows[0].status).toBe("complete");
 
     await pool.end();
@@ -164,11 +185,11 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
 
   test("lost insert race returns 409 when winner is still processing", async () => {
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintForBody();
 
     // Seed the winner's processing record directly on the real bun-sql store
     // so the loser's insert hits the real driver's primary-key constraint.
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const raceApp = createApp(wrapped);
@@ -189,9 +210,9 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
 
   test("lost race with different payload returns 422", async () => {
     const key = generateIdempotencyKey();
-    const winnerFp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const winnerFp = await scopedFingerprintForBody();
 
-    await store.startProcessing(key, winnerFp, 60000);
+    await store.startProcessing(await recordKeyFor(key), winnerFp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const raceApp = createApp(wrapped);
@@ -212,10 +233,11 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
 
   test("lost race replays 200 when winner already completed", async () => {
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintForBody();
 
-    await store.startProcessing(key, fp, 60000);
-    await store.complete(key, {
+    const recordKey = await recordKeyFor(key);
+    await store.startProcessing(recordKey, fp, 60000);
+    await store.complete(recordKey, {
       status: 200,
       headers: { "content-type": "application/json" },
       body: '{"winner":true}'
@@ -240,9 +262,9 @@ describe("BunSqlIdempotencyStore with PostgreSQL", () => {
 
   test("lost race re-lookup finds no record returns 409 (TTL expiry)", async () => {
     const key = generateIdempotencyKey();
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintForBody();
 
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     // missRecheck: simulate the winner's record having expired (TTL) before
     // the loser's re-lookup runs -> KTD2 says the loser still gets a 409.
@@ -355,13 +377,14 @@ describe("BunSqlIdempotencyStore with MySQL", () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ success: true, body: { foo: "bar" } });
 
+    const recordKey = await recordKeyFor(key);
     const [rows] = await mysqlConnection.query(
       "SELECT * FROM idempotency_records WHERE `key` = ?",
-      [key]
+      [recordKey]
     );
 
     expect(rows.length).toBe(1);
-    expect(rows[0].key).toBe(key);
+    expect(rows[0].key).toBe(recordKey);
     expect(rows[0].status).toBe("complete");
   });
 

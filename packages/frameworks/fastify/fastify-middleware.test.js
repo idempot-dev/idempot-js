@@ -328,3 +328,39 @@ test("fastify - non-key-exists error from startProcessing stays 503", async (t) 
 
   t.equal(response.statusCode, 503, "unrelated store error stays a 503");
 });
+
+test("fastify - a different query string is a different operation", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = Fastify();
+  let calls = 0;
+  app.post(
+    "/test",
+    { preHandler: idempotency({ store, required: true }) },
+    async () => {
+      calls++;
+      return { calls };
+    }
+  );
+
+  const inject = (url) =>
+    app.inject({
+      method: "POST",
+      url,
+      payload: { foo: "bar" },
+      headers: {
+        "Content-Type": "application/json",
+        "idempotency-key": "query-key-123456789012"
+      }
+    });
+
+  const first = await inject("/test?a=1");
+  const second = await inject("/test?a=2");
+
+  t.equal(first.statusCode, 200, "the first query string should succeed");
+  t.equal(second.statusCode, 200, "a different query string must not replay");
+  t.equal(calls, 2, "both requests must run the handler");
+  t.same(second.json(), { calls: 2 }, "the second request's own response");
+
+  await app.close();
+  await store.close();
+});

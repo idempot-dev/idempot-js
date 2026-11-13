@@ -10,7 +10,7 @@ description: Internal core API documentation for building custom framework integ
 The `@idempot/core` package provides the underlying idempotency implementation. It handles:
 
 - Idempotency key validation and parsing
-- Request fingerprinting (hash of method + path + body)
+- Request identity (method, path and query) and fingerprinting (hash of that identity plus the body)
 - Response caching and retrieval
 - Key generation for clients
 
