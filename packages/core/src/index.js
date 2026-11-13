@@ -5,7 +5,11 @@
  * @typedef {import("./default-options.js").IdempotencyOptions} IdempotencyOptions
  */
 
-export { generateFingerprint } from "./fingerprint.js";
+export {
+  generateFingerprint,
+  generateScopedFingerprint
+} from "./fingerprint.js";
+export { deriveScopeToken, buildRecordKey } from "./identity.js";
 export {
   validateExcludeFields,
   validateIdempotencyKey,

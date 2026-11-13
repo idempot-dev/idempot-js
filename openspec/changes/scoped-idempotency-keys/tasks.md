@@ -2,10 +2,10 @@
 
 ## 1. Branch and core identity
 
-- [ ] 1.1 Create `next-major` from `main`, push it, and verify the CI workflow runs on the branch and a draft pull request can target it.
-- [ ] 1.2 Add a core helper that turns a method, a path with query and an optional principal into a scope token, and a second that combines that token with the client key into a record key. Unit-test method upper-casing, path and query retention, scheme and host being ignored, a different query producing a different token, and an absent or throwing principal producing the operation-only token. Verify the new tests pass and `pnpm test:verify-coverage` stays at 100%.
-- [ ] 1.3 Compose the fingerprint from the scope token and the canonical body. Unit-test that one body under two routes yields different fingerprints, that identical requests agree, and that `excludeFields` still removes root-level and JSONPath fields. Verify the fingerprint tests pass.
-- [ ] 1.4 Keep the pre-scoping body-only hash available for the compatibility path, and pin it with a unit test that asserts a literal hash for a known body, so a later edit cannot silently change what the released version produced.
+- [x] 1.1 Create `next-major` from `main`, push it, and verify the CI workflow runs on the branch and a draft pull request can target it. Done: `CI` and `Link Check` both succeeded on the push of `e165134` to `next-major`, and pull request #268 targeted the branch with all twelve checks green.
+- [x] 1.2 Add a core helper that turns a method, a path with query and an optional principal into a scope token, and a second that combines that token with the client key into a record key. Unit-test method upper-casing, path and query retention, scheme and host being ignored, a different query producing a different token, and an absent principal producing the operation-only token. The throwing case belongs to 3.3, where the scope function is called. Verify the new tests pass and `pnpm test:verify-coverage` stays at 100%.
+- [x] 1.3 Compose the fingerprint from the scope token and the canonical body. Unit-test that one body under two routes yields different fingerprints, that identical requests agree, and that `excludeFields` still removes root-level and JSONPath fields. Verify the fingerprint tests pass.
+- [x] 1.4 Keep the pre-scoping body-only hash available for the compatibility path, and pin it with a unit test that asserts a literal hash for a known body, so a later edit cannot silently change what the released version produced.
 
 ## 2. Framework adapters
 
@@ -25,7 +25,7 @@
 
 ## 4. Compatibility with pre-scoping records
 
-- [ ] 4.1 Add the fallback: when the scoped lookup misses, look up the client key with the pre-scoping hash and honour the record. Verify a middleware test in which a record seeded under the old identity still replays.
+- [ ] 4.1 Add the fallback: when the scoped lookup misses, look up the client key with the pre-scoping hash and honour the record. Verify a middleware test in which a record seeded under the old identity still replays. Also make sure a legacy record found through the fingerprint index cannot conflict with a scoped request under a different key: the two hash domains are not provably disjoint, because a client can store a body that hashes to a scoped fingerprint.
 - [ ] 4.2 Verify the fallback respects retention: a seeded pre-scoping record whose expiry has passed must not replay, and the handler must run.
 - [ ] 4.3 Add an upgrade note to `docs/guide/configuration.md` stating that pre-scoping records are honoured only for their remaining TTL and that the upgrade cannot be reversed within that window, and verify `pnpm docs:build` succeeds.
 
