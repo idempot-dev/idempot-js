@@ -1,5 +1,9 @@
 import { Given, When } from "@cucumber/cucumber";
-import { generateFingerprint } from "../../../packages/core/src/fingerprint.js";
+import {
+  deriveScopeToken,
+  buildRecordKey,
+  generateScopedFingerprint
+} from "../../../packages/core/src/index.js";
 import { UnavailableIdempotencyStore } from "./unavailable-store.js";
 
 Given(
@@ -48,11 +52,21 @@ Given("the endpoint will delay processing by {int}ms", function (delayMs) {
 });
 
 Given("the key {string} is currently being processed", async function (key) {
-  // Pre-populate store with "processing" state for the SAME payload the
-  // concurrent scenarios send ({"foo":"bar"}), so this is a same-payload
-  // retry (-> 409), not a fingerprint-mismatch (which would be -> 422).
-  const fingerprint = await generateFingerprint(JSON.stringify({ foo: "bar" }));
-  await this.store.startProcessing(key, fingerprint, 60000);
+  // Pre-populate store with "processing" state for the SAME payload and route
+  // the concurrent scenarios send (a POST to /api with {"foo":"bar"}), so this
+  // is a same-payload retry (-> 409), not a fingerprint-mismatch (-> 422).
+  // The middleware stores a key composed from the request identity, so the
+  // seed must use the same composition.
+  const scopeToken = await deriveScopeToken({ method: "POST", url: "/api" });
+  const fingerprint = await generateScopedFingerprint(
+    scopeToken,
+    JSON.stringify({ foo: "bar" })
+  );
+  await this.store.startProcessing(
+    buildRecordKey(scopeToken, key),
+    fingerprint,
+    60000
+  );
 });
 
 Given(

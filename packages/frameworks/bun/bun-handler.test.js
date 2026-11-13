@@ -139,6 +139,42 @@ test("bun - non-key-exists error from startProcessing stays 503", async (t) => {
   t.equal(res.status, 503, "unrelated store error stays a 503");
 });
 
+test("bun - a different query string is a different operation", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const wrap = idempotency({ store, required: true });
+  let calls = 0;
+  const handler = wrap(async () => {
+    calls++;
+    return Response.json({ calls });
+  });
+
+  const send = (url) =>
+    handler(
+      new Request(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "query-key-123456789012"
+        },
+        body: JSON.stringify({ foo: "bar" })
+      })
+    );
+
+  const first = await send("http://localhost/test?a=1");
+  const second = await send("http://localhost/test?a=2");
+
+  t.equal(first.status, 200, "the first query string should succeed");
+  t.equal(second.status, 200, "a different query string must not replay");
+  t.equal(calls, 2, "both requests must run the handler");
+  t.same(
+    await second.json(),
+    { calls: 2 },
+    "the second request's own response"
+  );
+
+  await store.close();
+});
+
 runAdapterTests({
   name: "bun",
   setup: async () => {

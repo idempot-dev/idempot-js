@@ -4,8 +4,8 @@ import { Hono } from "hono";
 import { idempotency } from "../../packages/frameworks/hono/index.js";
 import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
 import { makeRequest } from "./shared/request.js";
+import { recordKeyFor, scopedFingerprintFor } from "./shared/identity.js";
 import { createLostRaceStore } from "./shared/lost-race-store.js";
-import { generateFingerprint } from "../../packages/core/src/fingerprint.js";
 
 function createHonoSqliteApp(store) {
   const app = new Hono();
@@ -58,12 +58,13 @@ t.test("Hono + SQLite - first request creates record", async (t) => {
     "should return correct body"
   );
 
+  const recordKey = await recordKeyFor("test-key-12345678901234567890");
   const records = store.db
     .prepare("SELECT * FROM idempotency_records WHERE key = ?")
-    .all("test-key-12345678901234567890");
+    .all(recordKey);
 
   t.equal(records.length, 1, "should have one idempotency record");
-  t.equal(records[0].key, "test-key-12345678901234567890", "key should match");
+  t.equal(records[0].key, recordKey, "key should match");
   t.equal(records[0].status, "complete", "status should be complete");
 
   const orders = store.db.prepare("SELECT * FROM orders").all();
@@ -92,9 +93,10 @@ t.test(
       "duplicate should have replay header"
     );
 
+    const recordKey = await recordKeyFor("test-key-dupe-123456789012345");
     const idempotencyRecords = store.db
       .prepare("SELECT * FROM idempotency_records WHERE key = ?")
-      .all("test-key-dupe-123456789012345");
+      .all(recordKey);
 
     t.equal(
       idempotencyRecords.length,
@@ -141,11 +143,11 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = "race-key-12345678901234567890";
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
     // Seed the winner's processing record directly on the real store so the
     // loser's insert hits the real driver's primary-key constraint.
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const app = createHonoSqliteApp(wrapped);
@@ -170,9 +172,9 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = "race-key-12345678901234567890";
-    const winnerFp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const winnerFp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, winnerFp, 60000);
+    await store.startProcessing(await recordKeyFor(key), winnerFp, 60000);
 
     const wrapped = createLostRaceStore(store);
     const app = createHonoSqliteApp(wrapped);
@@ -197,10 +199,10 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = "race-complete-key-12345678901";
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, fp, 60000);
-    await store.complete(key, {
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
+    await store.complete(await recordKeyFor(key), {
       status: 200,
       headers: { "content-type": "application/json" },
       body: '{"winner":true}'
@@ -229,9 +231,9 @@ t.test(
   async (t) => {
     const { store } = t.context;
     const key = "race-expired-key-12345678901";
-    const fp = await generateFingerprint(JSON.stringify({ foo: "bar" }));
+    const fp = await scopedFingerprintFor(JSON.stringify({ foo: "bar" }));
 
-    await store.startProcessing(key, fp, 60000);
+    await store.startProcessing(await recordKeyFor(key), fp, 60000);
 
     // missRecheck: simulate the winner's record having expired (TTL) before
     // the loser's re-lookup runs -> KTD2 says the loser still gets a 409.

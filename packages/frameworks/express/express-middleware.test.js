@@ -222,6 +222,133 @@ test("express - non-key-exists error from startProcessing stays 503", async (t) 
   t.equal(response.status, 503, "unrelated store error stays a 503");
 });
 
+test("express - a mounted router prefix is part of the operation", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = express();
+  app.use(express.json());
+
+  const seen = [];
+  const router = express.Router();
+  router.post("/test", idempotency({ store, required: true }), (req, res) => {
+    seen.push({ url: req.url, originalUrl: req.originalUrl });
+    res.json({ route: "api" });
+  });
+  app.use("/api", router);
+  app.post("/test", idempotency({ store, required: true }), (req, res) => {
+    seen.push({ url: req.url, originalUrl: req.originalUrl });
+    res.json({ route: "root" });
+  });
+
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+
+  const send = (path) =>
+    new Promise((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: "localhost",
+          port,
+          path,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": "mount-key-123456789012"
+          }
+        },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => (data += chunk));
+          res.on("end", () => {
+            resolve({
+              status: res.statusCode,
+              headers: res.headers,
+              body: JSON.parse(data)
+            });
+          });
+        }
+      );
+      req.on("error", reject);
+      req.write(JSON.stringify({ foo: "bar" }));
+      req.end();
+    });
+
+  const first = await send("/api/test");
+  const second = await send("/test");
+
+  t.equal(first.status, 200, "the mounted route should succeed");
+  t.equal(second.status, 200, "the root route must not conflict");
+  t.equal(seen.length, 2, "both handlers must run");
+  t.equal(seen[0].url, seen[1].url, "both handlers see the same req.url");
+  t.not(
+    seen[0].originalUrl,
+    seen[1].originalUrl,
+    "only originalUrl separates them"
+  );
+  t.equal(second.body.route, "root", "the root route's own response");
+  t.notOk(second.headers["x-idempotent-replayed"], "must not replay");
+
+  server.close();
+  await store.close();
+});
+
+test("express - a different query string is a different operation", async (t) => {
+  const store = new SqliteIdempotencyStore({ path: ":memory:" });
+  const app = express();
+  app.use(express.json());
+
+  let calls = 0;
+  app.post("/test", idempotency({ store, required: true }), (req, res) => {
+    calls++;
+    res.json({ calls });
+  });
+
+  const server = http.createServer(app);
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+
+  const send = (path) =>
+    new Promise((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: "localhost",
+          port,
+          path,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": "query-key-123456789012"
+          }
+        },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => (data += chunk));
+          res.on("end", () => {
+            resolve({
+              status: res.statusCode,
+              headers: res.headers,
+              body: JSON.parse(data)
+            });
+          });
+        }
+      );
+      req.on("error", reject);
+      req.write(JSON.stringify({ foo: "bar" }));
+      req.end();
+    });
+
+  const first = await send("/test?a=1");
+  const second = await send("/test?a=2");
+
+  t.equal(first.status, 200, "the first query string should succeed");
+  t.equal(second.status, 200, "a different query string must not replay");
+  t.equal(calls, 2, "both requests must run the handler");
+  t.same(second.body, { calls: 2 }, "the second request's own response");
+
+  server.close();
+  await store.close();
+});
+
 // Run shared adapter test suite
 runAdapterTests({
   name: "express",

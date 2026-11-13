@@ -17,17 +17,22 @@ You can reuse the same idempotency middleware instance across multiple endpoints
 
 ## How It Works
 
-The middleware uses request fingerprints to distinguish operations. The fingerprint includes:
+A record is identified by the route of the request and the idempotency key. The
+route is the HTTP method plus the path and query string. The middleware combines
+the key with that identity before it reaches the store, so one shared middleware
+instance keeps the endpoints apart without any configuration.
 
-- Request body content
-- HTTP method
-- Excluded fields (if configured)
-
-Each endpoint naturally creates different fingerprints because they have different request bodies and paths. This means:
+The fingerprint covers the request body, with any `excludeFields` removed, and it
+is only compared inside the same route. This means:
 
 - Same idempotency key on `/orders` → one operation
-- Same idempotency key on `/payments` → different operation
-- Same idempotency key on same endpoint with same body → duplicate detected
+- Same idempotency key on `/payments` → a different operation with its own record
+- Same idempotency key on the same route with the same body → duplicate detected
+- Same idempotency key on the same route with a different body → 422 response
+
+The query string is part of the route, so `/orders?page=2` is a different
+operation from `/orders?page=3`. A retry must repeat the path and the query
+exactly, because the middleware compares them as sent.
 
 ## Basic Pattern
 
@@ -158,4 +163,4 @@ app.post("/b", middleware, handlerB);
 
 ## Key Takeaway
 
-Sharing middleware is safe and recommended when endpoints need the same idempotency behavior. The request fingerprinting ensures proper isolation between endpoints while giving you centralized monitoring and configuration.
+Sharing middleware is safe and recommended when endpoints need the same idempotency behavior. The route is part of the record identity, so endpoints stay isolated while you keep one configuration and one circuit breaker state.
