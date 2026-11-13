@@ -4,7 +4,10 @@ import { Hono } from "hono";
 import { idempotency } from "../../packages/frameworks/hono/index.js";
 import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
 import { makeRequest } from "./shared/request.js";
-import { recordKeyFor, scopedFingerprintFor } from "./shared/identity.js";
+import {
+  recordKeyFor,
+  scopedFingerprintFor
+} from "../../packages/core/tests/record-identity-helper.js";
 import { createLostRaceStore } from "./shared/lost-race-store.js";
 
 function createHonoSqliteApp(store) {

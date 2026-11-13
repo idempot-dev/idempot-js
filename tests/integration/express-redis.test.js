@@ -2,7 +2,10 @@ import t from "tap";
 import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
 import { makeRequest } from "./shared/request.js";
-import { recordKeyFor, scopedFingerprintFor } from "./shared/identity.js";
+import {
+  recordKeyFor,
+  scopedFingerprintFor
+} from "../../packages/core/tests/record-identity-helper.js";
 import { createRedisStore, cleanupRedis } from "./shared/redis.js";
 import { createLostRaceStore } from "./shared/lost-race-store.js";
 

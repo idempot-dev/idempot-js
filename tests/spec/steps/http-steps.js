@@ -1,9 +1,8 @@
 import { Given, When } from "@cucumber/cucumber";
 import {
-  deriveScopeToken,
-  buildRecordKey,
-  generateScopedFingerprint
-} from "../../../packages/core/src/index.js";
+  recordKeyFor,
+  scopedFingerprintFor
+} from "../../../packages/core/tests/record-identity-helper.js";
 import { UnavailableIdempotencyStore } from "./unavailable-store.js";
 
 Given(
@@ -57,16 +56,10 @@ Given("the key {string} is currently being processed", async function (key) {
   // is a same-payload retry (-> 409), not a fingerprint-mismatch (-> 422).
   // The middleware stores a key composed from the request identity, so the
   // seed must use the same composition.
-  const scopeToken = await deriveScopeToken({ method: "POST", url: "/api" });
-  const fingerprint = await generateScopedFingerprint(
-    scopeToken,
+  const fingerprint = await scopedFingerprintFor(
     JSON.stringify({ foo: "bar" })
   );
-  await this.store.startProcessing(
-    buildRecordKey(scopeToken, key),
-    fingerprint,
-    60000
-  );
+  await this.store.startProcessing(await recordKeyFor(key), fingerprint, 60000);
 });
 
 Given(

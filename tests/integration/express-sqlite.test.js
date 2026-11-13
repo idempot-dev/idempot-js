@@ -3,7 +3,7 @@ import express from "express";
 import { idempotency } from "../../packages/frameworks/express/index.js";
 import { createSqliteStore, cleanupSqlite } from "./shared/sqlite.js";
 import { makeRequest } from "./shared/request.js";
-import { recordKeyFor } from "./shared/identity.js";
+import { recordKeyFor } from "../../packages/core/tests/record-identity-helper.js";
 
 function createExpressSqliteApp(store) {
   const app = express();

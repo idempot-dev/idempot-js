@@ -10,7 +10,7 @@ import {
   generateIdempotencyKey
 } from "./shared/shared-helpers.js";
 import { makeRequest } from "./shared/request.js";
-import { recordKeyFor } from "./shared/identity.js";
+import { recordKeyFor } from "../../packages/core/tests/record-identity-helper.js";
 import {
   createPostgresStore,
   waitForIdempotencyRecordComplete
