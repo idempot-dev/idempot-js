@@ -12,6 +12,7 @@ class IdempotencyWorld {
     this.lastResponseIndex = null;
     this.responseIndex = 0;
     this.responseDelay = 0;
+    this.principal = null;
     this.store = null;
   }
 
@@ -23,9 +24,14 @@ class IdempotencyWorld {
 
     const expressApp = express();
     expressApp.use(express.json());
-    expressApp.use(idempotency({ store }));
+    expressApp.use(
+      idempotency({
+        store,
+        scope: (req) => req.headers["x-principal"]
+      })
+    );
 
-    expressApp.all("/api", async (req, res) => {
+    const handle = async (req, res) => {
       if (this.responseDelay > 0) {
         await new Promise((resolve) => setTimeout(resolve, this.responseDelay));
       }
@@ -49,8 +55,16 @@ class IdempotencyWorld {
       if (key) {
         store.db.prepare("INSERT INTO orders (data) VALUES (?)").run(body);
       }
-      res.json({ success: true, body: parsedBody });
-    });
+
+      const payload = { success: true, body: parsedBody };
+      if (req.headers["x-principal"]) {
+        payload.principal = req.headers["x-principal"];
+      }
+      res.json(payload);
+    };
+
+    expressApp.all("/api", handle);
+    expressApp.all("/other", handle);
 
     return new Promise((resolve) => {
       this.server = expressApp.listen(0, () => {
@@ -126,6 +140,10 @@ class IdempotencyWorld {
 
     if (idempotencyKey !== null && idempotencyKey !== undefined) {
       headers["Idempotency-Key"] = idempotencyKey;
+    }
+
+    if (this.principal) {
+      headers["X-Principal"] = this.principal;
     }
 
     const options = {
