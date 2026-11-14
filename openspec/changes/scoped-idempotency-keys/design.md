@@ -174,6 +174,14 @@ unconditional rather than an option. It serves one deploy window and is deleted 
 release; an option for it would outlive its reason. During the first TTL every genuinely new
 request pays a second lookup, which is the price of not duplicating side effects.
 
+A fingerprint index spans every operation, and the two hash domains are not provably disjoint: a
+client can store a body whose pre-scoping hash equals a scoped fingerprint. A scoped fingerprint
+hit therefore counts only when the record's key carries the operation's scope token. The
+fallback returns the record keyed by the client key, even when its fingerprint differs, so a
+changed payload still answers 422; it ignores the fallback's fingerprint hit, because that index
+mixes both domains and a different key with the same body is a miss during the window rather
+than the old 409. A collision is then a miss, never a conflict.
+
 A legacy row is unscoped by definition, so the grace deliberately accepts an old, unscoped
 response for its remaining TTL. `expires_at` drains those rows as it always has, after which
 the fallback is dead code.
@@ -204,6 +212,11 @@ lookup path.
   is replayed → one major release, one set of release notes, no second upgrade window.
 - **A principal that rotates orphans records** → document that the scope must be stable across
   retries, and that a token hash is a poor scope for exactly that reason.
+- **A client key can look like a scoped key.** A key shaped `<16 hex>:<rest>` is byte-identical
+  to a scoped record key, and the grace window cannot tell the two apart. A client that knows
+  the route can construct the shape, and the outcome is a 422 or a replay for one key. Tagging
+  records with a domain marker, or rejecting the shape, is the fix; both wait for the nullable
+  `scope` column.
 
 ## Migration Plan
 

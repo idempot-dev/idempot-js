@@ -11,6 +11,7 @@ import {
   deriveScopeToken,
   buildRecordKey,
   resolvePrincipal,
+  lookupWithLegacyFallback,
   validateExcludeFields,
   validateIdempotencyKey,
   validateIdempotencyOptions,
@@ -158,12 +159,16 @@ export function idempotency(options = {}) {
       opts.excludeFields
     );
 
-    let lookup;
+    let found;
     try {
-      lookup = reconcileLookup(
-        await resilientStore.lookup(recordKey, fingerprint),
-        recordKey
-      );
+      found = await lookupWithLegacyFallback(resilientStore, {
+        recordKey,
+        fingerprint,
+        scopeToken,
+        key,
+        body: bodyText,
+        excludeFields: opts.excludeFields
+      });
     } catch {
       const problem = storeUnavailableResponse({
         status: 503,
@@ -173,7 +178,8 @@ export function idempotency(options = {}) {
       return;
     }
 
-    const conflict = checkLookupConflicts(lookup, recordKey, fingerprint);
+    const lookup = found.lookup;
+    const conflict = checkLookupConflicts(lookup, found.key, found.fingerprint);
     if (conflict.conflict) {
       const problem = conflictErrorResponse(
         /** @type {number} */ (conflict.status),

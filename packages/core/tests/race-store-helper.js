@@ -7,9 +7,10 @@ export const RACE_KEY = "race-test-key-1234567890-abcdef";
 
 /**
  * Creates a stub idempotency store that deterministically exercises the
- * middleware's catch-and-reroute path. The first `lookup()` always misses so
- * the request reaches `startProcessing`; subsequent lookups simulate the
- * re-check after a duplicate-key error.
+ * middleware's catch-and-reroute path. The first two `lookup()` calls miss
+ * (the scoped lookup and the pre-scoping fallback), so the request reaches
+ * `startProcessing`; later lookups simulate the re-check after a duplicate-key
+ * error.
  *
  * @param {Object} opts
  * @param {{status: string, fingerprint?: string, response?: any} | null} opts.secondLookup - record returned by the re-lookup (null = no record)
@@ -25,6 +26,10 @@ export function createRaceStubStore(opts) {
       lookupCount++;
       if (lookupCount === 1) {
         fingerprintSeen = fingerprint;
+        return { byKey: null, byFingerprint: null };
+      }
+      if (lookupCount === 2) {
+        // The pre-scoping fallback; these scenarios have no legacy record.
         return { byKey: null, byFingerprint: null };
       }
       if (opts.relookupError) {
