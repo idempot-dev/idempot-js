@@ -140,7 +140,10 @@ or `undefined` when there is no principal:
 The route is always part of the identity and needs no configuration, because it is available in
 every adapter and never ambiguous. A scope function that returns `undefined` falls back to the
 route alone; one that throws is caught and treated the same way, because a missing principal
-must not turn into a 500 and must not silently widen the scope to every user.
+must not turn into a 500 and must not silently widen the scope to every user. A finite number is
+accepted as a principal and converted to a string, because a numeric user id is a common
+mistake. Any other non-string return is treated as absent and warned once, because a silently
+disabled scope shares the route-only identity across every principal.
 
 ### 4. Conflict semantics follow from the identity
 

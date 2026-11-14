@@ -45,6 +45,7 @@ runAdapterTests({
     };
   },
   createMiddleware: (options) => idempotency(options),
+  scope: (request) => request.headers["x-principal"],
   createStore: () => new SqliteIdempotencyStore({ path: ":memory:" })
 });
 

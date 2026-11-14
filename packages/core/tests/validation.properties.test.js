@@ -311,6 +311,7 @@ test("validateIdempotencyOptions - unknown options throw", async (t) => {
               "ttlMs",
               "excludeFields",
               "store",
+              "scope",
               "minKeyLength",
               "maxKeyLength",
               "resilience"

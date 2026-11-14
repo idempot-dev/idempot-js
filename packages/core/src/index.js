@@ -9,7 +9,11 @@ export {
   generateFingerprint,
   generateScopedFingerprint
 } from "./fingerprint.js";
-export { deriveScopeToken, buildRecordKey } from "./identity.js";
+export {
+  deriveScopeToken,
+  buildRecordKey,
+  resolvePrincipal
+} from "./identity.js";
 export {
   validateExcludeFields,
   validateIdempotencyKey,

@@ -9,6 +9,7 @@ import {
   generateScopedFingerprint,
   deriveScopeToken,
   buildRecordKey,
+  resolvePrincipal,
   validateExcludeFields,
   validateIdempotencyKey,
   validateIdempotencyOptions,
@@ -135,7 +136,12 @@ export function idempotency(options = {}) {
       return sendErrorResponse(c, 400, problem);
     }
 
-    const scopeToken = await deriveScopeToken({ method, url: c.req.url });
+    const principal = resolvePrincipal(opts.scope, c);
+    const scopeToken = await deriveScopeToken({
+      method,
+      url: c.req.url,
+      principal
+    });
     const recordKey = buildRecordKey(scopeToken, key);
     const body = await c.req.text();
     const fingerprint = await generateScopedFingerprint(

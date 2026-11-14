@@ -134,6 +134,26 @@ test("validateIdempotencyOptions - rejects ttlMs greater than 1 year", (t) => {
   t.end();
 });
 
+test("validateIdempotencyOptions - rejects a scope that is not a function", (t) => {
+  t.throws(() => validateIdempotencyOptions({ scope: "alice" }), {
+    message: "scope must be a function"
+  });
+  t.throws(() => validateIdempotencyOptions({ scope: 42 }), {
+    message: "scope must be a function"
+  });
+  t.throws(() => validateIdempotencyOptions({ scope: true }), {
+    message: "scope must be a function"
+  });
+  t.end();
+});
+
+test("validateIdempotencyOptions - accepts a scope function and null", (t) => {
+  t.doesNotThrow(() => validateIdempotencyOptions({ scope: () => "alice" }));
+  t.doesNotThrow(() => validateIdempotencyOptions({ scope: null }));
+  t.doesNotThrow(() => validateIdempotencyOptions({}));
+  t.end();
+});
+
 test("validateIdempotencyKey - rejects keys containing commas", (t) => {
   const result = validateIdempotencyKey("key-with,comma-21chars");
   t.equal(result.valid, false);
