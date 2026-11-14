@@ -385,6 +385,56 @@ describe("BunSqlIdempotencyStore with MySQL", () => {
     expect(response2.headers["x-idempotent-replayed"]).toBe("true");
   });
 
+  test("a 255-character key inserts, looks up and completes", async () => {
+    const key = "k".repeat(255);
+
+    const response1 = await makeRequest(port, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+
+    const response2 = await makeRequest(port, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+
+    expect(response1.status).toBe(200);
+    expect(response2.status).toBe(200);
+    expect(response2.headers["x-idempotent-replayed"]).toBe("true");
+
+    const recordKey = await recordKeyFor(key);
+    expect(recordKey.length).toBe(272);
+
+    const [rows] = await mysqlConnection.query(
+      "SELECT * FROM idempotency_records WHERE `key` = ?",
+      [recordKey]
+    );
+    expect(rows.length).toBe(1);
+    expect(rows[0].key).toBe(recordKey);
+    expect(rows[0].status).toBe("complete");
+  });
+
+  test("the 238/239-character threshold is exact", async () => {
+    for (const length of [238, 239]) {
+      const key = "k".repeat(length);
+      const response1 = await makeRequest(port, {
+        idempotencyKey: key,
+        body: { length }
+      });
+      const response2 = await makeRequest(port, {
+        idempotencyKey: key,
+        body: { length }
+      });
+
+      expect(response1.status).toBe(200);
+      expect(response2.status).toBe(200);
+      expect(response2.headers["x-idempotent-replayed"]).toBe("true");
+
+      const recordKey = await recordKeyFor(key);
+      expect(recordKey.length).toBe(length + 17);
+    }
+  });
+
   test("lookup hides an expired record the purge could not reclaim", async () => {
     // More expired rows than the LIMIT 10 purge can reclaim, so an expired
     // record can survive the purge; the expiry guard must still hide it by

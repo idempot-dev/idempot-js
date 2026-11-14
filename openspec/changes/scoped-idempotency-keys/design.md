@@ -23,8 +23,9 @@ Relevant constraints, all verified in this repository:
 
 - **No migration machinery.** Every store runs `CREATE TABLE IF NOT EXISTS` once and nothing
   else. No `ALTER TABLE`, no schema version, no backfill anywhere in `packages/stores/`.
-- **Two stores cap the key at 255 characters.** MySQL and Bun-SQL's MySQL mode declare
-  `` `key` VARCHAR(255) PRIMARY KEY``. `maxKeyLength` defaults to 255.
+- **Two stores capped the key at 255 characters before this change.** MySQL and Bun-SQL's
+  MySQL mode declared `` `key` VARCHAR(255) PRIMARY KEY``; this change widens them to
+  `VARCHAR(512)` and documents the ALTER. `maxKeyLength` defaults to 255.
 - **Redis namespaces fingerprints globally.** `fingerprint:<hash>` is not per-scope, so scoping
   the key alone would still let a lookup return another scope's record.
 - **The store interface is public.** It is a documented extension point, users implement it,

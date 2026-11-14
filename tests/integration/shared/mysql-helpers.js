@@ -22,7 +22,7 @@ export async function initMysqlSchema(tableName = "idempotency_records") {
 
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS \`${tableName}\` (
-      \`key\` VARCHAR(255) PRIMARY KEY,
+      \`key\` VARCHAR(512) PRIMARY KEY,
       fingerprint VARCHAR(255) NOT NULL,
       status VARCHAR(50) NOT NULL,
       response_status INT,
