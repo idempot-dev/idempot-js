@@ -1,5 +1,9 @@
 import { test } from "tap";
-import { deriveScopeToken, buildRecordKey } from "@idempot/core";
+import {
+  deriveScopeToken,
+  buildRecordKey,
+  resolvePrincipal
+} from "@idempot/core";
 
 test("deriveScopeToken - identical requests produce identical tokens", async (t) => {
   const first = await deriveScopeToken({ method: "POST", url: "/orders" });
@@ -189,4 +193,109 @@ test("buildRecordKey - one operation under two clients differs", async (t) => {
     buildRecordKey(token, "bob-key-12345678901"),
     "different client keys should not share a record"
   );
+});
+
+test("resolvePrincipal - returns the string a scope function returns", (t) => {
+  t.equal(
+    resolvePrincipal(() => "alice", {}),
+    "alice",
+    "the principal should be passed through"
+  );
+  t.end();
+});
+
+test("resolvePrincipal - accepts a finite number as a principal", (t) => {
+  t.equal(
+    resolvePrincipal(() => 42, {}),
+    "42",
+    "a number becomes a string"
+  );
+  t.end();
+});
+
+test("resolvePrincipal - no scope function means no principal", (t) => {
+  const cap = t.capture(console, "warn");
+  t.equal(resolvePrincipal(null, {}), undefined, "null means unset");
+  t.equal(resolvePrincipal(undefined, {}), undefined, "undefined means unset");
+  t.equal(cap.calls.length, 0, "an unset scope must not warn");
+  t.end();
+});
+
+test("resolvePrincipal - null, undefined and empty string are absent", (t) => {
+  const cap = t.capture(console, "warn");
+  t.equal(
+    resolvePrincipal(() => null, {}),
+    undefined,
+    "null is absent"
+  );
+  t.equal(
+    resolvePrincipal(() => undefined, {}),
+    undefined,
+    "undefined is absent"
+  );
+  t.equal(
+    resolvePrincipal(() => "", {}),
+    undefined,
+    "empty string is absent"
+  );
+  t.equal(cap.calls.length, 0, "an absent principal must not warn");
+  t.end();
+});
+
+test("resolvePrincipal - a throwing scope function means no principal", (t) => {
+  const cap = t.capture(console, "warn");
+  const scope = () => {
+    throw new Error("no principal");
+  };
+  t.equal(
+    resolvePrincipal(scope, {}),
+    undefined,
+    "a throw must not escape into the request"
+  );
+  t.equal(cap.calls.length, 1, "a throw must warn once");
+  t.match(cap.calls[0].args[0], /scope threw/);
+  t.end();
+});
+
+test("resolvePrincipal - a non-string non-number return is absent", (t) => {
+  const cap = t.capture(console, "warn");
+  t.equal(
+    resolvePrincipal(() => ({ id: "alice" }), {}),
+    undefined,
+    "an object is not a principal"
+  );
+  t.equal(
+    resolvePrincipal(() => true, {}),
+    undefined,
+    "a boolean is not a principal"
+  );
+  t.equal(
+    resolvePrincipal(() => Promise.resolve("alice"), {}),
+    undefined,
+    "a Promise is not a principal"
+  );
+  t.equal(cap.calls.length, 3, "each misconfigured scope warns once");
+  t.match(cap.calls[0].args[0], /returned an object/);
+  t.match(cap.calls[1].args[0], /returned a boolean/);
+  t.match(cap.calls[2].args[0], /returned a Promise/);
+  t.end();
+});
+
+test("resolvePrincipal - warns once per scope function", (t) => {
+  const cap = t.capture(console, "warn");
+  const scope = () => ({ id: "alice" });
+  resolvePrincipal(scope, {});
+  resolvePrincipal(scope, {});
+  t.equal(cap.calls.length, 1, "the second call must not repeat the warning");
+  t.end();
+});
+
+test("resolvePrincipal - passes the request object to the scope function", (t) => {
+  const request = { user: { id: "alice" } };
+  t.equal(
+    resolvePrincipal((req) => req.user.id, request),
+    "alice",
+    "the scope function should receive the request"
+  );
+  t.end();
 });

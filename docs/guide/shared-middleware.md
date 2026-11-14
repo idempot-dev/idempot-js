@@ -34,6 +34,9 @@ The query string is part of the route, so `/orders?page=2` is a different
 operation from `/orders?page=3`. A retry must repeat the path and the query
 exactly, because the middleware compares them as sent.
 
+Where the deployment identifies a principal, configure [`scope`](./configuration.md#principal-scope)
+and the principal becomes part of the identity too.
+
 ## Basic Pattern
 
 Create the middleware once and apply it to multiple routes:

@@ -9,6 +9,7 @@
  * @property {number} [ttlMs] - Time-to-live in milliseconds for idempotency records
  * @property {string[]} [excludeFields] - Body fields to exclude when generating the request fingerprint
  * @property {IdempotencyStore} [store] - The storage backend for persisting idempotency records
+ * @property {((request: any) => string | number | null | undefined) | null} [scope] - Resolves the principal that owns a request, so records are isolated per principal
  * @property {number} [maxKeyLength] - Maximum allowed length for the Idempotency-Key header value
  * @property {number} [minKeyLength] - Minimum allowed length for the Idempotency-Key header value (default: 21)
  * @property {ResilienceOptions} [resilience] - Circuit breaker and retry configuration for store operations
@@ -30,6 +31,10 @@ const DEFAULT_OPTIONS = {
 
   /** The storage backend for persisting idempotency records. Must be provided by the user. */
   store: /** @type {any} */ (null),
+
+  /** Resolves the principal that owns a request. When absent, or when it
+   *  returns no value, records are scoped by the route alone. */
+  scope: null,
 
   /** Maximum allowed length for the Idempotency-Key header value. Default is 255 characters. */
   maxKeyLength: 255,

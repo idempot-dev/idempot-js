@@ -59,3 +59,74 @@ export async function deriveScopeToken({ method, url, principal }) {
 export function buildRecordKey(scopeToken, clientKey) {
   return `${scopeToken}:${clientKey}`;
 }
+
+/** Scope functions already reported, so a misconfiguration warns once. */
+const warnedScopes = new WeakSet();
+
+/**
+ * Report a scope function that cannot produce a principal, once per function.
+ * Repeating it on every request floods the log, and the first warning is
+ * enough to point at the function.
+ * @param {Function} scope
+ * @param {string} problem
+ */
+function warnScopeOnce(scope, problem) {
+  if (warnedScopes.has(scope)) {
+    return;
+  }
+  warnedScopes.add(scope);
+  console.warn(
+    `idempotency: scope ${problem}; falling back to the route-only identity`
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function describeType(value) {
+  if (value instanceof Promise) {
+    return "returned a Promise";
+  }
+  if (typeof value === "object") {
+    return "returned an object";
+  }
+  return `returned a ${typeof value}`;
+}
+
+/**
+ * Resolve the principal that owns a request. A missing scope function, an
+ * absent principal, and a scope function that throws all mean the same thing:
+ * no principal, so the request keeps the route-only identity. A thrown error
+ * must not become a 500, and it must not widen the scope to another principal.
+ * A non-empty string is a principal, and a finite number is accepted as one;
+ * `null`, `undefined`, `''` and any other type are absent. A non-string,
+ * non-number return or a throw warns once, because a misconfigured scope
+ * silently disables principal isolation.
+ * @param {((request: any) => string | number | null | undefined) | null | undefined} scope
+ * @param {any} request
+ * @returns {string | undefined}
+ */
+export function resolvePrincipal(scope, request) {
+  if (typeof scope !== "function") {
+    return undefined;
+  }
+  let principal;
+  try {
+    principal = scope(request);
+  } catch {
+    warnScopeOnce(scope, "threw");
+    return undefined;
+  }
+  if (principal === null || principal === undefined || principal === "") {
+    return undefined;
+  }
+  if (typeof principal === "string") {
+    return principal;
+  }
+  if (typeof principal === "number" && Number.isFinite(principal)) {
+    return String(principal);
+  }
+  warnScopeOnce(scope, describeType(principal));
+  return undefined;
+}

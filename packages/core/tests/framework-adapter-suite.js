@@ -21,6 +21,9 @@ function validateAdapter(adapter) {
   if (typeof adapter.createStore !== "function") {
     throw new Error("Adapter must have a 'createStore' function");
   }
+  if (typeof adapter.scope !== "function") {
+    throw new Error("Adapter must have a 'scope' function");
+  }
 }
 
 /**
@@ -1292,6 +1295,343 @@ export function runAdapterTests(adapter) {
         response.headers["X-Idempotent-Replayed"],
       "true",
       "replays with the replay header"
+    );
+
+    await teardown();
+  });
+
+  // Test: The same key and body for another principal is another operation
+  test(`${adapter.name} - the same key and body for another principal runs independently`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({
+      store,
+      scope: adapter.scope
+    });
+    const calls = [];
+
+    mount("POST", "/principal", middleware, async (req, res) => {
+      calls.push("handler");
+      return res.send({ ok: true });
+    });
+
+    const headers = { "idempotency-key": "principal-key-1234567890" };
+    const body = { foo: "bar" };
+
+    const first = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/principal",
+        headers: { ...headers, "x-principal": "alice" },
+        body
+      })
+    );
+    const second = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/principal",
+        headers: { ...headers, "x-principal": "bob" },
+        body
+      })
+    );
+
+    t.equal(first.status, 200, "the first principal should succeed");
+    t.equal(second.status, 200, "another principal must not replay");
+    t.equal(calls.length, 2, "both requests must run the handler");
+    t.notOk(
+      second.headers["x-idempotent-replayed"] ||
+        second.headers["X-Idempotent-Replayed"],
+      "must not replay the other principal's record"
+    );
+
+    await teardown();
+  });
+
+  // Test: An unresolved principal falls back to the operation-only identity
+  test(`${adapter.name} - a scope that returns undefined falls back to the route`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({
+      store,
+      scope: () => undefined
+    });
+    let calls = 0;
+
+    mount("POST", "/fallback", middleware, async (req, res) => {
+      calls++;
+      return res.send({ ok: true });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/fallback",
+        headers: { "idempotency-key": "fallback-key-12345678901" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 200, "the request must not fail");
+    t.equal(calls, 1, "the handler must run");
+
+    await teardown();
+  });
+
+  // Test: A throwing scope falls back to the operation-only identity
+  test(`${adapter.name} - a scope that throws falls back to the route`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({
+      store,
+      scope: () => {
+        throw new Error("no principal");
+      }
+    });
+    let calls = 0;
+
+    mount("POST", "/fallback", middleware, async (req, res) => {
+      calls++;
+      return res.send({ ok: true });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/fallback",
+        headers: { "idempotency-key": "throwing-key-12345678901" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 200, "the request must not fail");
+    t.equal(calls, 1, "the handler must run");
+
+    await teardown();
+  });
+
+  // Test: A throwing scope must not widen to another principal's records
+  test(`${adapter.name} - a throwing scope does not replay another principal's record`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const principalScope = await deriveScopeToken({
+      method: "POST",
+      url: "/fallback",
+      principal: "alice"
+    });
+    const principalKey = buildRecordKey(
+      principalScope,
+      "fallback-key-12345678901"
+    );
+    const principalFingerprint = await generateScopedFingerprint(
+      principalScope,
+      JSON.stringify({ foo: "bar" })
+    );
+    await store.startProcessing(principalKey, principalFingerprint, 60000);
+    await store.complete(principalKey, {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ principal: "alice" })
+    });
+
+    const middleware = adapter.createMiddleware({
+      store,
+      scope: () => {
+        throw new Error("no principal");
+      }
+    });
+    let calls = 0;
+
+    mount("POST", "/fallback", middleware, async (req, res) => {
+      calls++;
+      return res.send({ route: true });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/fallback",
+        headers: { "idempotency-key": "fallback-key-12345678901" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(
+      response.status,
+      200,
+      "the request must run under the route-only identity"
+    );
+    t.equal(calls, 1, "the handler must run");
+    t.equal(response.body?.route, true, "its own response, not alice's");
+    t.notOk(
+      response.headers["x-idempotent-replayed"] ||
+        response.headers["X-Idempotent-Replayed"],
+      "must not replay alice's record"
+    );
+
+    await teardown();
+  });
+
+  // Test: The same principal's retry replays its own record
+  test(`${adapter.name} - the same principal's retry replays`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const middleware = adapter.createMiddleware({
+      store,
+      scope: adapter.scope
+    });
+    let calls = 0;
+
+    mount("POST", "/principal-replay", middleware, async (req, res) => {
+      calls++;
+      return res.send({ calls });
+    });
+
+    const headers = {
+      "idempotency-key": "principal-replay-key-123456",
+      "x-principal": "alice"
+    };
+    const body = { foo: "bar" };
+
+    const first = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/principal-replay",
+        headers,
+        body
+      })
+    );
+    const second = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/principal-replay",
+        headers,
+        body
+      })
+    );
+
+    t.equal(first.status, 200, "the first request should succeed");
+    t.equal(second.status, 200, "the retry should replay");
+    t.equal(calls, 1, "the handler must run once");
+    t.equal(
+      second.headers["x-idempotent-replayed"] ||
+        second.headers["X-Idempotent-Replayed"],
+      "true",
+      "the retry must carry the replay header"
+    );
+
+    await teardown();
+  });
+
+  // Test: A missing principal replays a record stored under the route-only identity
+  test(`${adapter.name} - an undefined scope replays a route-only record`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const routeToken = await deriveScopeToken({
+      method: "POST",
+      url: "/fallback"
+    });
+    const recordKey = buildRecordKey(routeToken, "fallback-key-12345678901");
+    const fingerprint = await generateScopedFingerprint(
+      routeToken,
+      JSON.stringify({ foo: "bar" })
+    );
+    await store.startProcessing(recordKey, fingerprint, 60000);
+    await store.complete(recordKey, {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ route: "seeded" })
+    });
+
+    const middleware = adapter.createMiddleware({
+      store,
+      scope: () => undefined
+    });
+    let calls = 0;
+
+    mount("POST", "/fallback", middleware, async (req, res) => {
+      calls++;
+      return res.send({ route: "handler" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/fallback",
+        headers: { "idempotency-key": "fallback-key-12345678901" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 201, "the route-only record must replay");
+    t.equal(calls, 0, "the handler must not run");
+    t.equal(response.body?.route, "seeded", "replays the seeded body");
+    t.equal(
+      response.headers["x-idempotent-replayed"] ||
+        response.headers["X-Idempotent-Replayed"],
+      "true",
+      "the retry must carry the replay header"
+    );
+
+    await teardown();
+  });
+
+  // Test: A throwing scope replays a record stored under the route-only identity
+  test(`${adapter.name} - a throwing scope replays a route-only record`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const routeToken = await deriveScopeToken({
+      method: "POST",
+      url: "/fallback"
+    });
+    const recordKey = buildRecordKey(routeToken, "fallback-key-22345678901");
+    const fingerprint = await generateScopedFingerprint(
+      routeToken,
+      JSON.stringify({ foo: "bar" })
+    );
+    await store.startProcessing(recordKey, fingerprint, 60000);
+    await store.complete(recordKey, {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ route: "seeded" })
+    });
+
+    const middleware = adapter.createMiddleware({
+      store,
+      scope: () => {
+        throw new Error("no principal");
+      }
+    });
+    let calls = 0;
+
+    mount("POST", "/fallback", middleware, async (req, res) => {
+      calls++;
+      return res.send({ route: "handler" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/fallback",
+        headers: { "idempotency-key": "fallback-key-22345678901" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 201, "the route-only record must replay");
+    t.equal(calls, 0, "the handler must not run");
+    t.equal(response.body?.route, "seeded", "replays the seeded body");
+    t.equal(
+      response.headers["x-idempotent-replayed"] ||
+        response.headers["X-Idempotent-Replayed"],
+      "true",
+      "the retry must carry the replay header"
     );
 
     await teardown();

@@ -177,6 +177,7 @@ function validateResilienceOptions(resilience) {
  * @param {number} [options.ttlMs]
  * @param {string[]} [options.excludeFields]
  * @param {Object} [options.store]
+ * @param {((request: any) => string | number | null | undefined) | null} [options.scope]
  * @param {number} [options.minKeyLength]
  * @param {number} [options.maxKeyLength]
  * @param {Object} [options.resilience]
@@ -196,6 +197,7 @@ export function validateIdempotencyOptions(options = {}) {
     "ttlMs",
     "excludeFields",
     "store",
+    "scope",
     "minKeyLength",
     "maxKeyLength",
     "resilience"
@@ -245,6 +247,13 @@ export function validateIdempotencyOptions(options = {}) {
       throw new Error(`${name} cannot be null`);
     }
     validateStore(v);
+  });
+
+  // Validate scope: a function, or null when unset
+  validateOptional(options, "scope", (v, name) => {
+    if (v !== null && typeof v !== "function") {
+      throw new Error(`${name} must be a function`);
+    }
   });
 
   // Validate minKeyLength: integer >= 21

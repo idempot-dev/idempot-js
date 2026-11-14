@@ -15,15 +15,16 @@ The library enforces sensible defaults that prioritize security and reliability.
 
 ### Core Options
 
-| Option          | Type               | Default               | Description                                                    |
-| --------------- | ------------------ | --------------------- | -------------------------------------------------------------- |
-| `store`         | `IdempotencyStore` | **required**          | Storage backend for persisting idempotency records             |
-| `required`      | `boolean`          | `true`                | Whether requests must include an `Idempotency-Key` header      |
-| `ttlMs`         | `number`           | `86400000` (24 hours) | Time-to-live in milliseconds for idempotency records           |
-| `minKeyLength`  | `number`           | `21`                  | Minimum allowed length for idempotency keys                    |
-| `maxKeyLength`  | `number`           | `255`                 | Maximum allowed length for idempotency keys                    |
-| `excludeFields` | `string[]`         | `[]`                  | Body fields to exclude when generating the request fingerprint |
-| `resilience`    | `object`           | see below             | Circuit breaker and retry configuration                        |
+| Option          | Type               | Default               | Description                                                                 |
+| --------------- | ------------------ | --------------------- | --------------------------------------------------------------------------- |
+| `store`         | `IdempotencyStore` | **required**          | Storage backend for persisting idempotency records                          |
+| `scope`         | `function`         | `null`                | Resolves the principal that owns a request, isolating records per principal |
+| `required`      | `boolean`          | `true`                | Whether requests must include an `Idempotency-Key` header                   |
+| `ttlMs`         | `number`           | `86400000` (24 hours) | Time-to-live in milliseconds for idempotency records                        |
+| `minKeyLength`  | `number`           | `21`                  | Minimum allowed length for idempotency keys                                 |
+| `maxKeyLength`  | `number`           | `255`                 | Maximum allowed length for idempotency keys                                 |
+| `excludeFields` | `string[]`         | `[]`                  | Body fields to exclude when generating the request fingerprint              |
+| `resilience`    | `object`           | see below             | Circuit breaker and retry configuration                                     |
 
 ### Resilience Options
 
@@ -105,6 +106,32 @@ idempotency({
 ```
 
 This ensures requests with different timestamps but otherwise identical payloads are treated as duplicates.
+
+## Principal Scope
+
+A record is scoped to the request route by default: the method, path and query. If your deployment identifies a principal (a user, tenant, or API client), add a `scope` function so two principals that send the same key and body do not share a record.
+
+The function receives your framework's own request object and returns a string (or a finite number, which is converted to a string), or `undefined` when there is no principal. It must be synchronous:
+
+```javascript
+// Hono
+idempotency({ store, scope: (c) => c.get("user")?.id });
+
+// Express
+idempotency({ store, scope: (req) => req.user?.id });
+
+// Fastify
+idempotency({ store, scope: (request) => request.user?.tenantId });
+
+// Bun
+idempotency({ store, scope: (req) => req.user?.tenantId });
+```
+
+The value must come from a trusted, server-verified source. Never read it from a client-supplied header or body: any caller could then claim another principal and read or poison that principal's records.
+
+The returned value must be stable for the life of a retry. If it changes between the first request and the retry, the retry is treated as a different operation and runs again. Do not use a value that rotates, such as a session token or a timestamp.
+
+A scope function that returns `undefined`, or that throws, leaves the request on the route-only identity. The request is processed normally: it is not refused. A non-string, non-number return, including an async function's Promise, is treated the same way and logs one warning per scope function. The route-only identity is shared by every principal, so a transient failure can let another principal's record answer the request. Keep the function reliable and stable.
 
 ## Resilience Configuration
 
