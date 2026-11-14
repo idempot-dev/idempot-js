@@ -17,27 +17,27 @@ import { generateScopedFingerprint } from "../src/fingerprint.js";
 /**
  * The record key the middleware derives for a client key on a route.
  * @param {string} clientKey
- * @param {{method?: string, path?: string}} [route]
+ * @param {{method?: string, path?: string, principal?: string | null}} [route]
  * @returns {Promise<string>}
  */
 export async function recordKeyFor(
   clientKey,
-  { method = "POST", path = "/api" } = {}
+  { method = "POST", path = "/api", principal } = {}
 ) {
-  const scopeToken = await deriveScopeToken({ method, url: path });
+  const scopeToken = await deriveScopeToken({ method, url: path, principal });
   return buildRecordKey(scopeToken, clientKey);
 }
 
 /**
  * The fingerprint the middleware derives for a body on a route.
  * @param {string} body
- * @param {{method?: string, path?: string}} [route]
+ * @param {{method?: string, path?: string, principal?: string | null}} [route]
  * @returns {Promise<string>}
  */
 export async function scopedFingerprintFor(
   body,
-  { method = "POST", path = "/api" } = {}
+  { method = "POST", path = "/api", principal } = {}
 ) {
-  const scopeToken = await deriveScopeToken({ method, url: path });
+  const scopeToken = await deriveScopeToken({ method, url: path, principal });
   return generateScopedFingerprint(scopeToken, body);
 }
