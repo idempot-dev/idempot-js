@@ -1,5 +1,8 @@
 import { test } from "tap";
-import { generateScopedFingerprint } from "../src/fingerprint.js";
+import {
+  generateFingerprint,
+  generateScopedFingerprint
+} from "../src/fingerprint.js";
 import { deriveScopeToken, buildRecordKey } from "../src/identity.js";
 import { IdempotencyKeyExistsError } from "../src/errors.js";
 
@@ -618,7 +621,7 @@ export function runAdapterTests(adapter) {
     const store = {
       lookup: async (key, fingerprint) => {
         lookupCalls++;
-        if (lookupCalls === 1) {
+        if (lookupCalls <= 2) {
           return { byKey: null, byFingerprint: null };
         }
         return {
@@ -659,7 +662,11 @@ export function runAdapterTests(adapter) {
     t.equal(response.status, 409, "should return 409 for in-flight request");
     t.equal(callCount, 0, "handler must not run for an in-flight key");
     t.equal(startProcessingCalls, 1, "startProcessing should be called once");
-    t.equal(lookupCalls, 2, "recheck lookup should be issued once");
+    t.equal(
+      lookupCalls,
+      3,
+      "both identity lookups and the recheck should be issued"
+    );
 
     await teardown();
   });
@@ -674,7 +681,7 @@ export function runAdapterTests(adapter) {
     const store = {
       lookup: async (key, fingerprint) => {
         lookupCalls++;
-        if (lookupCalls === 1) {
+        if (lookupCalls <= 2) {
           return { byKey: null, byFingerprint: null };
         }
         return {
@@ -725,7 +732,11 @@ export function runAdapterTests(adapter) {
       "replayed body, not handler body"
     );
     t.equal(startProcessingCalls, 1, "startProcessing should be called once");
-    t.equal(lookupCalls, 2, "recheck lookup should be issued once");
+    t.equal(
+      lookupCalls,
+      3,
+      "both identity lookups and the recheck should be issued"
+    );
 
     const replayHeader =
       response.headers["x-idempotent-replayed"] ||
@@ -1063,7 +1074,11 @@ export function runAdapterTests(adapter) {
     );
 
     t.equal(response.status, 200, "should succeed after retries");
-    t.equal(attempts, 3, "should retry 3 times");
+    t.equal(
+      attempts,
+      4,
+      "retries the scoped lookup, then pays one pre-scoping lookup"
+    );
 
     await teardown();
   });
@@ -1632,6 +1647,213 @@ export function runAdapterTests(adapter) {
         response.headers["X-Idempotent-Replayed"],
       "true",
       "the retry must carry the replay header"
+    );
+
+    await teardown();
+  });
+
+  // Test: A record stored before scoping still answers a retry
+  test(`${adapter.name} - a pre-scoping record still replays`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const key = "legacy-key-123456789012";
+    const body = JSON.stringify({ foo: "bar" });
+    const legacyFingerprint = await generateFingerprint(body);
+    await store.startProcessing(key, legacyFingerprint, 60000);
+    await store.complete(key, {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ legacy: true })
+    });
+
+    const middleware = adapter.createMiddleware({ store });
+    let calls = 0;
+
+    mount("POST", "/legacy", middleware, async (req, res) => {
+      calls++;
+      return res.send({ legacy: "handler" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/legacy",
+        headers: { "idempotency-key": key },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 201, "the pre-scoping record must replay");
+    t.equal(calls, 0, "the handler must not run");
+    t.equal(response.body?.legacy, true, "replays the seeded body");
+    t.equal(
+      response.headers["x-idempotent-replayed"] ||
+        response.headers["X-Idempotent-Replayed"],
+      "true",
+      "the retry must carry the replay header"
+    );
+
+    await teardown();
+  });
+
+  // Test: An expired pre-scoping record answers nothing
+  test(`${adapter.name} - an expired pre-scoping record does not replay`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const key = "legacy-key-223456789012";
+    const body = JSON.stringify({ foo: "bar" });
+    const legacyFingerprint = await generateFingerprint(body);
+    await store.startProcessing(key, legacyFingerprint, -1);
+    await store.complete(key, {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ legacy: true })
+    });
+
+    const middleware = adapter.createMiddleware({ store });
+    let calls = 0;
+
+    mount("POST", "/legacy", middleware, async (req, res) => {
+      calls++;
+      return res.send({ legacy: "handler" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/legacy",
+        headers: { "idempotency-key": key },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 200, "the handler should answer");
+    t.equal(calls, 1, "the expired record must not replay");
+    t.equal(response.body?.legacy, "handler", "returns the handler body");
+
+    await teardown();
+  });
+
+  // Test: A pre-scoping record whose fingerprint collides with a scoped one
+  // must not produce a cross-operation 409.
+  test(`${adapter.name} - a pre-scoping fingerprint collision does not conflict`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const token = await deriveScopeToken({ method: "POST", url: "/collide" });
+    const body = JSON.stringify({ foo: "bar" });
+    const scopedFingerprint = await generateScopedFingerprint(token, body);
+    await store.startProcessing(
+      "legacy-other-key-123456789",
+      scopedFingerprint,
+      60000
+    );
+    await store.complete("legacy-other-key-123456789", {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ legacy: true })
+    });
+
+    const middleware = adapter.createMiddleware({ store });
+    let calls = 0;
+
+    mount("POST", "/collide", middleware, async (req, res) => {
+      calls++;
+      return res.send({ legacy: "handler" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/collide",
+        headers: { "idempotency-key": "fresh-key-123456789012" },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 200, "the foreign record must not conflict");
+    t.equal(calls, 1, "the handler must run");
+    t.equal(response.body?.legacy, "handler", "returns the handler body");
+
+    await teardown();
+  });
+
+  // Test: A pre-scoping record with a different payload still answers 422
+  test(`${adapter.name} - a pre-scoping record with a different payload returns 422`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const key = "legacy-key-323456789012";
+    const original = JSON.stringify({ amount: 10 });
+    const legacyFingerprint = await generateFingerprint(original);
+    await store.startProcessing(key, legacyFingerprint, 60000);
+    await store.complete(key, {
+      status: 201,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ legacy: true })
+    });
+
+    const middleware = adapter.createMiddleware({ store });
+    let calls = 0;
+
+    mount("POST", "/legacy", middleware, async (req, res) => {
+      calls++;
+      return res.send({ legacy: "handler" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/legacy",
+        headers: { "idempotency-key": key },
+        body: { amount: 20 }
+      })
+    );
+
+    t.equal(response.status, 422, "the changed payload must conflict");
+    t.equal(calls, 0, "the handler must not run");
+    t.match(
+      response.body?.error || JSON.stringify(response.body),
+      /different request payload/i
+    );
+
+    await teardown();
+  });
+
+  // Test: An in-flight pre-scoping record still answers 409
+  test(`${adapter.name} - an in-flight pre-scoping record returns 409`, async (t) => {
+    const store = adapter.createStore();
+    const { mount, request, teardown } = await adapter.setup();
+
+    const key = "legacy-key-423456789012";
+    const body = JSON.stringify({ foo: "bar" });
+    const legacyFingerprint = await generateFingerprint(body);
+    await store.startProcessing(key, legacyFingerprint, 60000);
+
+    const middleware = adapter.createMiddleware({ store });
+    let calls = 0;
+
+    mount("POST", "/legacy", middleware, async (req, res) => {
+      calls++;
+      return res.send({ legacy: "handler" });
+    });
+
+    const response = normalizeResponse(
+      await request({
+        method: "POST",
+        path: "/legacy",
+        headers: { "idempotency-key": key },
+        body: { foo: "bar" }
+      })
+    );
+
+    t.equal(response.status, 409, "the in-flight record must conflict");
+    t.equal(calls, 0, "the handler must not run");
+    t.match(
+      response.body?.error || JSON.stringify(response.body),
+      /already being processed/i
     );
 
     await teardown();

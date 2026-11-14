@@ -14,6 +14,7 @@ export {
   buildRecordKey,
   resolvePrincipal
 } from "./identity.js";
+export { lookupWithLegacyFallback } from "./lookup.js";
 export {
   validateExcludeFields,
   validateIdempotencyKey,

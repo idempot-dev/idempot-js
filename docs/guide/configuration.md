@@ -133,6 +133,21 @@ The returned value must be stable for the life of a retry. If it changes between
 
 A scope function that returns `undefined`, or that throws, leaves the request on the route-only identity. The request is processed normally: it is not refused. A non-string, non-number return, including an async function's Promise, is treated the same way and logs one warning per scope function. The route-only identity is shared by every principal, so a transient failure can let another principal's record answer the request. Keep the function reliable and stable.
 
+## Upgrading From an Unscoped Release
+
+An earlier release did not bind a record to the operation that wrote it. Records written by that release carry no route, principal, or scoped fingerprint. After the upgrade, the middleware looks them up under the pre-scoping identity and honors them for their remaining TTL, so a retry sent during that window replays the stored response instead of running the handler again.
+
+The grace window has these consequences:
+
+- A pre-scoping record is unscoped. A retry with the same key can receive a response that the old release stored for a different request, including a request from another principal.
+- A retry with the same key but a different body still returns 422, as it did before the upgrade. A different key with the same body is a miss during the window, not the old 409.
+- Any period with old and new instances serving at the same time, such as a rolling upgrade or a canary, re-executes handlers for retries that land on an old instance. New records live under scoped keys, which an old instance cannot read. Drain old instances promptly or accept the duplicates for the TTL.
+- Reverting to the earlier release leaves records written by the new release unreadable, so a rollback during the window can run handlers a second time.
+- Changing `excludeFields` between releases defeats the fallback: the old record was hashed with the old exclusions, so every retry misses and runs the handler. Keep `excludeFields` unchanged across the upgrade.
+- A client key that begins with 16 hexadecimal characters and a colon can collide with a scoped record key, and the two are not distinguishable during the grace window. Avoid that key shape.
+
+Wait for the TTL to pass before rolling back, or drain in-flight retries first.
+
 ## Resilience Configuration
 
 The middleware handles store failures gracefully with automatic retries, timeouts, and circuit breaker protection.
