@@ -38,6 +38,10 @@ Given("an Idempotency-Key {string}", function (key) {
   this.idempotencyKey = key;
 });
 
+Given("the principal is {string}", function (principal) {
+  this.principal = principal;
+});
+
 Given("an empty Idempotency-Key header", function () {
   this.idempotencyKey = "";
 });
@@ -73,6 +77,19 @@ Given(
     );
     this.previousRequest = response;
     // Wait a bit to ensure request completes
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+);
+
+Given(
+  "I previously sent a POST request to {string} with no body",
+  async function (path) {
+    this.previousRequest = await this.sendRequest(
+      path,
+      "POST",
+      null,
+      this.idempotencyKey
+    );
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 );
@@ -114,6 +131,17 @@ When(
     this.lastResponseIndex = this.responseIndex;
   }
 );
+
+When("I send a POST request to {string} with no body", async function (path) {
+  this.responseIndex++;
+  this.lastResponse = await this.sendRequest(
+    path,
+    "POST",
+    null,
+    this.idempotencyKey
+  );
+  this.lastResponseIndex = this.responseIndex;
+});
 
 When("I send a GET request to {string}", async function (path) {
   this.responseIndex++;

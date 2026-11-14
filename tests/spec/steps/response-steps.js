@@ -38,6 +38,18 @@ Then(
   }
 );
 
+Then("the response should not have header {string}", function (headerName) {
+  if (!this.lastResponse) {
+    throw new Error("No response recorded");
+  }
+  const headerValue = this.lastResponse.headers[headerName.toLowerCase()];
+  if (headerValue !== undefined) {
+    throw new Error(
+      `Expected header "${headerName}" to be absent, got "${headerValue}"`
+    );
+  }
+});
+
 Then("the response body should contain {string}", function (text) {
   if (!this.lastResponse) {
     throw new Error("No response recorded");
