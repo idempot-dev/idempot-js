@@ -29,7 +29,7 @@ async function createStore() {
   });
   await store.pool.query(`
     CREATE TABLE IF NOT EXISTS \`${tableName}\` (
-      \`key\` VARCHAR(255) PRIMARY KEY,
+      \`key\` VARCHAR(512) PRIMARY KEY,
       fingerprint VARCHAR(255) NOT NULL,
       status VARCHAR(50) NOT NULL,
       response_status INT,

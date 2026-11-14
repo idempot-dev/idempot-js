@@ -31,9 +31,9 @@
 
 ## 5. Key length on MySQL-family stores
 
-- [ ] 5.1 Widen the `key` column to `VARCHAR(512)` in the MySQL schema of `packages/stores/mysql` and in the MySQL branch of `packages/stores/bun-sql`, and verify `packages/core/tests/store-adapter-suite.js` still passes for both against running containers.
-- [ ] 5.2 Add a test that a composed key built from a 255-character client key inserts, looks up and completes, which fails before the widen. Verify it passes after.
-- [ ] 5.3 Document the one-line `ALTER TABLE` for existing deployments in `docs/stores/mysql.md` and `docs/stores/bun-sql.md`, naming the 239-character threshold, and verify `pnpm docs:build` succeeds.
+- [x] 5.1 Widen the `key` column to `VARCHAR(512)` in the MySQL schema of `packages/stores/mysql` and in the MySQL branch of `packages/stores/bun-sql`, and verify `packages/core/tests/store-adapter-suite.js` still passes for both against running containers. Done: `packages/stores/bun-sql/index.js` and `tests/integration/shared/mysql-helpers.js` (used by the Node MySQL suites) create `key VARCHAR(512)`; the three bench MySQL schemas were widened for consistency. The store adapter suite passes for mysql and bun-sql, and the MySQL integration suites pass against the containers.
+- [x] 5.2 Add a test that a composed key built from a 255-character client key inserts, looks up and completes, which fails before the widen. Verify it passes after. Done: `tests/integration/hono-mysql.test.js` and the Bun MySQL suite gained `a 255-character key inserts, looks up and completes`. Both fail against `VARCHAR(255)` (500/503) and pass against `VARCHAR(512)`. Both suites also pin the 238/239 threshold with `the 238/239-character threshold is exact`.
+- [x] 5.3 Document the one-line `ALTER TABLE` for existing deployments in `docs/stores/mysql.md` and `docs/stores/bun-sql.md`, naming the 239-character threshold, and verify `pnpm docs:build` succeeds. Done: both pages and the two package READMEs name the 239-character threshold and document the mandatory ALTER with the pre-deploy audit, the DYNAMIC or COMPRESSED row-format requirement, the write-blocking rebuild, the charset caveat and the `information_schema` verification query; `pnpm docs:build` passes.
 
 ## 6. Spec suite
 

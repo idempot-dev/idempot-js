@@ -187,7 +187,7 @@ export class BunSqlIdempotencyStore {
     if (this.isMySQL) {
       await this.db.unsafe(`
           CREATE TABLE IF NOT EXISTS idempotency_records (
-            ${keyColumn} VARCHAR(255) PRIMARY KEY,
+            ${keyColumn} VARCHAR(512) PRIMARY KEY,
             fingerprint VARCHAR(255) NOT NULL,
             status VARCHAR(50) NOT NULL,
             response_status INT,

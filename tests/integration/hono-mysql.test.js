@@ -81,6 +81,78 @@ t.test("Hono + MySQL - first request creates record", async (t) => {
 });
 
 t.test(
+  "Hono + MySQL - a 255-character key inserts, looks up and completes",
+  async (t) => {
+    const { store, port, tableName } = t.context;
+    const key = "k".repeat(255);
+
+    const first = await makeRequest(port, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    t.equal(first.status, 200, "the first request should succeed");
+
+    const recordKey = await recordKeyFor(key);
+    t.equal(recordKey.length, 272, "the composed key exceeds the old column");
+    await waitForIdempotencyRecordComplete(store, recordKey);
+
+    const second = await makeRequest(port, {
+      idempotencyKey: key,
+      body: { foo: "bar" }
+    });
+    t.equal(second.status, 200, "the retry should replay");
+    t.equal(
+      second.headers["x-idempotent-replayed"],
+      "true",
+      "the retry should carry the replay header"
+    );
+
+    const [rows] = await store.pool.query(
+      `SELECT * FROM \`${tableName}\` WHERE \`key\` = ?`,
+      [recordKey]
+    );
+    t.equal(
+      rows.length,
+      1,
+      "the record should be stored under the composed key"
+    );
+    t.equal(rows[0].status, "complete", "the record should be complete");
+  }
+);
+
+t.test("Hono + MySQL - the 238/239-character threshold is exact", async (t) => {
+  const { store, port } = t.context;
+
+  for (const length of [238, 239]) {
+    const key = "k".repeat(length);
+    const first = await makeRequest(port, {
+      idempotencyKey: key,
+      body: { length }
+    });
+    t.equal(first.status, 200, `${length}-character key should succeed`);
+
+    const recordKey = await recordKeyFor(key);
+    t.equal(
+      recordKey.length,
+      length + 17,
+      "the composed key should add the token and separator"
+    );
+    await waitForIdempotencyRecordComplete(store, recordKey);
+
+    const second = await makeRequest(port, {
+      idempotencyKey: key,
+      body: { length }
+    });
+    t.equal(second.status, 200, "the retry should replay");
+    t.equal(
+      second.headers["x-idempotent-replayed"],
+      "true",
+      "the retry should carry the replay header"
+    );
+  }
+});
+
+t.test(
   "Hono + MySQL - duplicate request returns cached response and does not create duplicate records",
   async (t) => {
     const { store, port, tableName } = t.context;
