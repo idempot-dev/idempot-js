@@ -38,6 +38,20 @@ Given("an Idempotency-Key {string}", function (key) {
   this.idempotencyKey = key;
 });
 
+Given("the principal is {string}", function (principal) {
+  this.principal = principal;
+});
+
+Given("no principal is sent", function () {
+  this.principal = null;
+});
+
+Given("the middleware is configured without a scope", async function () {
+  this.configureScope = false;
+  await this.stopServer();
+  await this.startServer();
+});
+
 Given("an empty Idempotency-Key header", function () {
   this.idempotencyKey = "";
 });
@@ -56,10 +70,16 @@ Given("the key {string} is currently being processed", async function (key) {
   // is a same-payload retry (-> 409), not a fingerprint-mismatch (-> 422).
   // The middleware stores a key composed from the request identity, so the
   // seed must use the same composition.
+  const principal = this.principal ?? undefined;
   const fingerprint = await scopedFingerprintFor(
-    JSON.stringify({ foo: "bar" })
+    JSON.stringify({ foo: "bar" }),
+    { principal }
   );
-  await this.store.startProcessing(await recordKeyFor(key), fingerprint, 60000);
+  await this.store.startProcessing(
+    await recordKeyFor(key, { principal }),
+    fingerprint,
+    60000
+  );
 });
 
 Given(
@@ -73,6 +93,19 @@ Given(
     );
     this.previousRequest = response;
     // Wait a bit to ensure request completes
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+);
+
+Given(
+  "I previously sent a POST request to {string} with no body",
+  async function (path) {
+    this.previousRequest = await this.sendRequest(
+      path,
+      "POST",
+      null,
+      this.idempotencyKey
+    );
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 );
@@ -114,6 +147,17 @@ When(
     this.lastResponseIndex = this.responseIndex;
   }
 );
+
+When("I send a POST request to {string} with no body", async function (path) {
+  this.responseIndex++;
+  this.lastResponse = await this.sendRequest(
+    path,
+    "POST",
+    null,
+    this.idempotencyKey
+  );
+  this.lastResponseIndex = this.responseIndex;
+});
 
 When("I send a GET request to {string}", async function (path) {
   this.responseIndex++;
